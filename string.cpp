@@ -77,7 +77,7 @@ namespace lcp {
                         ) 
                     ) 
                 ) {
-                    if ( min_value == INT_MIN ) {
+                    if ( min_value == -1 ) {
                         continue;
                     }
                     core *new_core = new core(it1 - str.begin(), it2 - it1, std::string(it1, it2));
