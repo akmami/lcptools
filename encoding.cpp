@@ -80,6 +80,20 @@ namespace lcp {
 
         return 0;
     };
+    
+    int init_coefficients(std::string encoding_file, bool verbose=false) {
+    	std::map<char, int> map;
+        std::ifstream encodings;
+        encodings.open(encoding_file);
+
+        char character;
+        int encoding;
+        while( encodings >> character >> encoding ) {
+            map[character] = encoding;
+        }
+        
+        return init_coefficients(map, verbose);
+    };
 };
 
 #endif
