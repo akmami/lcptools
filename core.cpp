@@ -26,7 +26,7 @@ namespace lcp {
 	    	return ( this->p[(this->start_index + index) / SIZE_PER_BLOCK] & ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) ) );
 		}
 
-		core* compress(const core* other) {
+		void compress(const core* other) {
 			
 			int o_block_index = other->block_number - 1, t_block_index = this->block_number - 1;
 			uchar o = other->p[o_block_index], t = this->p[t_block_index];
@@ -68,9 +68,6 @@ namespace lcp {
 
 			// Compressed value is: index
 
-			// Create new core exactly same as this object to return it.
-			core* old_core = new core(this->p, this->block_number, this->start_index);
-
 			// Change this object according to  the new values represents compressed version.
 			this->block_number = (new_bit_size - 1) / SIZE_PER_BLOCK + 1;
 			this->start_index = this->block_number * SIZE_PER_BLOCK - new_bit_size;
@@ -97,16 +94,14 @@ namespace lcp {
 				current_block--;
 				index -= SIZE_PER_BLOCK;
 			}
-			
-			return old_core;
 		}
 
-		core(int start, int end, std::string str) {
+		core(std::string::iterator it1, std::string::iterator it2, int start) {
 			this->start = start;
-			this->end = end;
+			this->end = start + (it1 - it2);
 
-			this->block_number = (str.size() * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
-			this->start_index = this->block_number * SIZE_PER_BLOCK - str.size() * dict_bit_size;
+			this->block_number = ( (it2 - it1) * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
+			this->start_index = this->block_number * SIZE_PER_BLOCK - (it2 - it1) * dict_bit_size;
 			
 			// Make allocation for the bit representation
 			this->p = (unsigned char *)malloc( this->block_number );
@@ -123,7 +118,7 @@ namespace lcp {
 			// Encoding string to bits
 		    int coefficient, index = 0;
 		    
-		    for(std::string::iterator char_it = str.begin(); char_it != str.end(); char_it++) {
+		    for(std::string::iterator char_it = it1; char_it != it2; char_it++) {
 		        coefficient = coefficients[*char_it];
 		        for (int i = dict_bit_size - 1; i >= 0 ; i--) {
 		        	if (coefficient % 2) {
@@ -135,15 +130,14 @@ namespace lcp {
 		    }
 		}
 
-		core(core* element1, core* element2, core* element3, core* element4, core* element5) {
-			this->start = element1->start;
-			this->end = element5->end;
+		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2) {
+			this->start = (*it1)->start;
+			this->end = (*it2)->end;
 
-			int bit_size = 	(element1->block_number * SIZE_PER_BLOCK - element1->start_index) + 
-							(element2->block_number * SIZE_PER_BLOCK - element2->start_index) +
-							(element3->block_number * SIZE_PER_BLOCK - element3->start_index) +
-							(element4->block_number * SIZE_PER_BLOCK - element4->start_index) +
-							(element5->block_number * SIZE_PER_BLOCK - element5->start_index);
+			int bit_size = 0;
+			for ( std::vector<core*>::iterator it = it1; it != it2; it++ ) {
+				bit_size += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
+			}
 			
 			this->block_number = (bit_size - 1) / SIZE_PER_BLOCK + 1;
 			this->start_index = this->block_number * SIZE_PER_BLOCK - bit_size;
@@ -160,44 +154,27 @@ namespace lcp {
 				this->p[i] = 0;
 			}
 
-			int index = bit_size - 1;
+			int index = block_number * SIZE_PER_BLOCK - 1;
+			for( std::vector<core*>::iterator it = it2-1; it != it1-1; it-- ) {
 
-			for( int i=this->block_number-1, j=element5->block_number-1; j>=0; i--, j-- ) {
-				this->p[i] = element5->p[j];
-			}
-
-			index = index - (element5->block_number * SIZE_PER_BLOCK - element5->start_index);
-
-			bit_size = element4->block_number * SIZE_PER_BLOCK - element4->start_index;
-			for( int i=bit_size-1; i >= 0; i-- ) {
-				if( element4->get(i) ) {
-					this->p[(this->start_index + index) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) );
+				for ( int i = (*it)->block_number-1; i >= 0; i--) {
+					if ( index > SIZE_PER_BLOCK ){
+						this->p[ index / SIZE_PER_BLOCK ] |= (*it)->p[i] << ( SIZE_PER_BLOCK - index % SIZE_PER_BLOCK - 1 );
+						if ( index % SIZE_PER_BLOCK != SIZE_PER_BLOCK - 1 ) {
+							this->p[ index / SIZE_PER_BLOCK - 1 ] |= (*it)->p[i] >> ( index % SIZE_PER_BLOCK + 1 );
+						}			
+					} else {
+						this->p[ index / SIZE_PER_BLOCK ] |= (*it)->p[i] << ( SIZE_PER_BLOCK - index % SIZE_PER_BLOCK - 1);
+					}
+					if ( i == 0 ) {
+						if ( index > SIZE_PER_BLOCK - (*it)->start_index ) {
+							index -= SIZE_PER_BLOCK - (*it)->start_index;
+						}
+					}
+					else {
+						index -= SIZE_PER_BLOCK;
+					}
 				}
-				index--;
-			}
-
-			bit_size = element3->block_number * SIZE_PER_BLOCK - element3->start_index;
-			for( int i= bit_size-1; i >= 0; i-- ) {
-				if( element3->get(i) ) {
-					this->p[(this->start_index + index) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) );
-				}
-				index--;
-			}
-
-			bit_size = element2->block_number * SIZE_PER_BLOCK - element2->start_index;
-			for( int i=bit_size-1; i >= 0; i-- ) {
-				if( element2->get(i) ) {
-					this->p[(this->start_index + index) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) );
-				}
-				index--;
-			}
-
-			bit_size = element1->block_number * SIZE_PER_BLOCK - element1->start_index;
-			for( int i=bit_size-1; i >= 0; i-- ) {
-				if( element1->get(i) ) {
-					this->p[(this->start_index + index) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) );
-				}
-				index--;
 			}
 		}
 
