@@ -2,6 +2,7 @@
 #define   ENCODING_CPP
 
 #include <map>
+#include <fstream>
 
 namespace lcp {
 
