@@ -46,7 +46,7 @@ namespace lcp {
                         break;
                     }
                     it2++;
-                    core *new_core = new core(it1, it2, index+1);
+                    core *new_core = new core(it1, it2, index);
                     this->cores.push_back(new_core);
                     
                     continue;
@@ -73,7 +73,7 @@ namespace lcp {
                     if ( min_value == -1 ) {
                         continue;
                     }
-                    core *new_core = new core(it1+1, it2-1, index+1);
+                    core *new_core = new core(it1+1, it1+4, index+1);
                     this->cores.push_back(new_core);
                 }
             }
