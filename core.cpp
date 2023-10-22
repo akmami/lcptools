@@ -98,7 +98,7 @@ namespace lcp {
 
 		core(std::string::iterator it1, std::string::iterator it2, int start) {
 			this->start = start;
-			this->end = start + (it1 - it2);
+			this->end = start + (it2 - it1);
 
 			this->block_number = ( (it2 - it1) * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
 			this->start_index = this->block_number * SIZE_PER_BLOCK - (it2 - it1) * dict_bit_size;
