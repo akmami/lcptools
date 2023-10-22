@@ -6,11 +6,12 @@ typedef unsigned char                   uchar;
 #define SIZE_PER_BLOCK                  8
 #define COMPRESSION_ITERATION_COUNT     2
 #define CORE_LENGTH                     5
+#define MAXIMUM_LENGTH                  10000
 
 
 #include <iostream>
 #include <string>
-#include <vector>
+#include <deque>
 #include "encoding.cpp"
 #include "core.cpp"
 
@@ -18,7 +19,7 @@ namespace lcp {
 
     struct string {
 
-        std::vector<core*> cores;
+        std::deque<core*> cores;
         int level;
 
         string(std::string &str, int core_length=CORE_LENGTH) {
@@ -81,8 +82,8 @@ namespace lcp {
 
         ~string() {
             while (!cores.empty()) {
-                delete cores.back();
-                cores.pop_back();
+                delete cores.front();
+                cores.pop_front();
             }
         }
 
@@ -94,7 +95,7 @@ namespace lcp {
                 if (cores.size() < 2)
                     return false;
 
-                std::vector<core*>::iterator it_curr = cores.end() - 1, it_left = cores.end()-2;
+                std::deque<core*>::iterator it_curr = cores.end() - 1, it_left = cores.end()-2;
 
                 for( ; it_curr != cores.begin(); it_curr--, it_left-- ) {
                     (*it_curr)->compress(*it_left);
@@ -103,20 +104,19 @@ namespace lcp {
                         max_bit_length = (*it_curr)->block_number * SIZE_PER_BLOCK - (*it_curr)->start_index;
                 }
 
-                delete *(cores.begin());
-                cores.erase(cores.begin());    
+                delete cores.front();
+                cores.pop_front();    
             }
 
             // Find cores from compressed cores.
-            std::vector<core*>::iterator it1, it2;
-            core *min_value;
+            std::deque<core*>::iterator it1, it2;
             int index = 0;
 
-            std::vector<core*> temp_cores;
+            std::deque<core*> temp_cores;
 
             it1 = this->cores.begin();
             
-            while(it1 != this->cores.end() && it1+1 != this->cores.end() && it1+2 != this->cores.end() && *(*(it1+1)) == *(*(it1+2)) ) {
+            while(it1 + 2 < this->cores.end() && *(*(it1+1)) == *(*(it1+2)) ) {
                 it1++;
                 index++;
             }
@@ -134,8 +134,11 @@ namespace lcp {
                         continue;
                     }
                     it2++;
-                    core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
-                    temp_cores.push_back(new_core);
+                    
+                    if ( (*it2)->end - (*it1)->start < MAXIMUM_LENGTH) {
+                        core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
+                        temp_cores.push_back(new_core);
+                    }
                     
                     continue;
                 }
@@ -145,13 +148,6 @@ namespace lcp {
                 }
                 
                 // if there is no subsequent characters such as xyzuv where z!=y and y!=z and z!=u and u!=v
-                min_value = (*it1);
-
-                for (it2 = it1 + 1; it2 != it1 + core_length; it2++) {
-                    if (*min_value > *(*it2)) {
-                        min_value = (*it2);
-                    }
-                }
                 
                 if (
                     ( *(*(it1 + 2)) < *(*(it1 + 3)) && *(*(it1 + 2)) < *(*(it1 + 1)) ) ||     // local minima
@@ -161,19 +157,19 @@ namespace lcp {
                     if ( it1 + 1 - COMPRESSION_ITERATION_COUNT < this->cores.begin() ) {
                         continue;
                     }
-                    core *new_core = new core(it1 + 1 - COMPRESSION_ITERATION_COUNT, it2-1);
-                    temp_cores.push_back(new_core);
+                    if ( (*(it1 + 4))->end - (*(it1 + 1 - COMPRESSION_ITERATION_COUNT))->start < MAXIMUM_LENGTH) {
+                        core *new_core = new core(it1 + 1 - COMPRESSION_ITERATION_COUNT, it1 + 4);
+                        temp_cores.push_back(new_core);
+                    }
                 }
             }
-            min_value = NULL;
 
             while (!this->cores.empty()) {
-                delete this->cores.back();
-                this->cores.pop_back();
+                delete this->cores.front();
+                this->cores.pop_front();
             }
 
-            this->cores.insert(this->cores.end(), temp_cores.begin(), temp_cores.end());
-            temp_cores.erase(temp_cores.begin(), temp_cores.end());
+            this->cores = temp_cores;
 
             this->level++;
             
