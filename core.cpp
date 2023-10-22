@@ -1,7 +1,7 @@
 #ifndef   CORE_CPP
 #define   CORE_CPP
 
-#include <vector>
+#include <deque>
 
 namespace lcp {
 
@@ -95,7 +95,6 @@ namespace lcp {
 				index -= SIZE_PER_BLOCK;
 			}
 		}
-
 		core(std::string::iterator it1, std::string::iterator it2, int start) {
 			this->start = start;
 			this->end = start + (it2 - it1);
@@ -130,12 +129,13 @@ namespace lcp {
 		    }
 		}
 
-		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2) {
+		core(std::deque<core*>::iterator it1, std::deque<core*>::iterator it2) {
+			//std::cout << "Creating core." << std::endl;
 			this->start = (*it1)->start;
 			this->end = (*it2)->end;
 
 			int bit_size = 0;
-			for ( std::vector<core*>::iterator it = it1; it != it2; it++ ) {
+			for ( std::deque<core*>::iterator it = it1; it != it2; it++ ) {
 				bit_size += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
 			}
 			
@@ -155,7 +155,7 @@ namespace lcp {
 			}
 
 			int index = block_number * SIZE_PER_BLOCK - 1;
-			for( std::vector<core*>::iterator it = it2-1; it != it1-1; it-- ) {
+			for( std::deque<core*>::iterator it = it2-1; it != it1-1; it-- ) {
 
 				for ( int i = (*it)->block_number-1; i >= 0; i--) {
 					if ( index > SIZE_PER_BLOCK ){
@@ -176,6 +176,7 @@ namespace lcp {
 					}
 				}
 			}
+			//std::cout << "Core created." << std::endl;
 		}
 
 		core(uchar* p, int block_number, int start_index) {
