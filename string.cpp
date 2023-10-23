@@ -121,11 +121,11 @@ namespace lcp {
                 index++;
             }
 
-            for ( ; it1 + 2 <= this->cores.end(); it1++, index++) {
+            for ( ; it1 + 2 < this->cores.end(); it1++, index++) {
                 
                 // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
                 if ( *(*(it1)) != *(*(it1 + 1)) && *(*(it1 + 1)) == *(*(it1 + 2)) ) {
-                    for (it2 = it1 + 3; it2 != this->cores.end() && *(*(it2)) == *(*(it2 - 1)); it2++) {}
+                    for (it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)); it2++) {}
                     
                     if (it2 == this->cores.end()) {
                         break;
