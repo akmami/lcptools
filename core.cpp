@@ -130,7 +130,6 @@ namespace lcp {
 		}
 
 		core(std::deque<core*>::iterator it1, std::deque<core*>::iterator it2) {
-			//std::cout << "Creating core." << std::endl;
 			this->start = (*it1)->start;
 			this->end = (*it2)->end;
 
@@ -176,7 +175,6 @@ namespace lcp {
 					}
 				}
 			}
-			//std::cout << "Core created." << std::endl;
 		}
 
 		core(uchar* p, int block_number, int start_index) {
