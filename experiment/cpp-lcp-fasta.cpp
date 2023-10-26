@@ -314,7 +314,7 @@ int main(int argc, char **argv) {
         std::cout << "Total execution time of the program:  " << total_duration.count() << " sec" << std::endl;
     }
 
-    std::ofstream outfile ( "detailed_summary.txt" );
+    std::ofstream outfile ( "detailed_summary.fasta.txt" );
     
     print2file( all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, outfile );
 
