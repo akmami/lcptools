@@ -118,7 +118,7 @@ void print2file(int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distanc
 };
 
 
-void summary( int &overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, std::chrono::seconds duration ) {
+void summary( int overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int all_core_count[LCP_LEVEL]) {
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
 
@@ -145,8 +145,8 @@ void summary( int &overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2
 
         std::cout << "------------------------------------------" << std::endl;
 
-        std::cout << "Level execution time:                     " << duration.count() << " sec" << std::endl;
-        std::cout << "Total number of cores:                    " << str->cores.size() << std::endl;
+        std::cout << "Level execution time:                     " << ( (double) all_durations[i].count() ) / 1000 << " ms" << std::endl;
+        std::cout << "Total number of cores:                    " << all_core_count[i] << std::endl;
         std::cout << std::endl;
     }
 
@@ -154,14 +154,15 @@ void summary( int &overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2
     std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec.size() << std::endl;
     std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec.size() << std::endl; 
     std::cout << "length # [0,10k):                         " << all_larger_lengths_vec.size() << std::endl;
-}
+};
 
-void analyze( int level, int &overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, std::chrono::seconds duration) {
+
+void analyze( int level, int overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str ) {
 
     for ( std::deque<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
 
         if ( (*it)->start < (*(it-1))->end ) {
-            overlapping_count[level] += 1;
+            overlapping_counts[level] += 1;
         }
         if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < 2*DISTANCE_LENGTH ) {
             all_distances[level][(*it)->start - (*(it-1))->end + DISTANCE_LENGTH]++;
@@ -210,10 +211,12 @@ int main(int argc, char **argv) {
     genome.open(argv[1], std::ios::in);
 
     int read_count = 0;
-    int all_overlaps[LCP_LEVEL] = {0};
+    int all_overlapping_counts[LCP_LEVEL] = {0};
+    int all_core_count[LCP_LEVEL] = {0};
     int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH] = {0};  // in order to store overlapping cores as well (as distance will be negative)
     int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH] = {0};
     int all_lengths[LCP_LEVEL][DISTANCE_LENGTH] = {0};
+    std::vector<std::chrono::milliseconds> all_durations(LCP_LEVEL);
     std::vector<std::vector<int>> all_larger_distances_vec(LCP_LEVEL);
     std::vector<std::vector<int>> all_larger_distances_pos_vec(LCP_LEVEL);
     std::vector<std::vector<int>> all_larger_lengths_vec(LCP_LEVEL);
@@ -221,7 +224,7 @@ int main(int argc, char **argv) {
 	// read file
     if ( genome.is_open() ) {  
 
-        std::chrono::miliseconds total_duration;
+        std::chrono::milliseconds total_duration;
         
         std::cout << "Program begins" << std::endl;
 
@@ -240,22 +243,23 @@ int main(int argc, char **argv) {
                 lcp::string *str = new lcp::string(line);
                 
                 auto extraction_end = std::chrono::high_resolution_clock::now();
-                total_duration += std::chrono::duration_cast<std::chrono::miliseconds>(extraction_end - start);
+                all_durations[0] += std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start);
+                all_core_count[0] += str->cores.size();
 
-                if (str->cores.size() > 2) {
+                analyze(0, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
 
-                    for ( int i = 1; i < LCP_LEVEL; i++ ) {
+                for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
-                        auto start_level = std::chrono::high_resolution_clock::now();
+                    auto start_level = std::chrono::high_resolution_clock::now();
 
-                        str->deepen();
-                        
-                        auto stop_level = std::chrono::high_resolution_clock::now();
-                        auto duration_level = std::chrono::duration_cast<std::chrono::miliseconds>(stop_level - start_level);
-                        total_duration += std::chrono::miliseconds(duration_level.count());
+                    str->deepen();
+                    
+                    auto stop_level = std::chrono::high_resolution_clock::now();
+                    auto duration_level = std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level);
+                    all_durations[i] += std::chrono::milliseconds(duration_level.count());
+                    all_core_count[i] += str->cores.size();
 
-                        analyze(i, all_overlaps, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, duration_level);
-                    }
+                    analyze(i, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
                 }
 
                 delete str;
@@ -269,14 +273,12 @@ int main(int argc, char **argv) {
             }
         }
         
-        summary( all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, duration_level);
+        summary( all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, all_durations, all_core_count);
         
         genome.close();
-        
-        std::cout << "Total execution time of the program:  " << total_duration.count() << " sec" << std::endl;
     }
 
-    std::ofstream outfile ( "detailed_summary.txt" );
+    std::ofstream outfile ( "detailed_summary.fastq.txt" );
     
     print2file( all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, outfile );
 
