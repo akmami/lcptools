@@ -95,6 +95,7 @@ namespace lcp {
 				index -= SIZE_PER_BLOCK;
 			}
 		}
+		
 		core(std::string::iterator it1, std::string::iterator it2, int start) {
 			this->start = start;
 			this->end = start + (it2 - it1);
@@ -131,7 +132,7 @@ namespace lcp {
 
 		core(std::deque<core*>::iterator it1, std::deque<core*>::iterator it2) {
 			this->start = (*it1)->start;
-			this->end = (*it2)->end;
+			this->end = (*(it2-1))->end;
 
 			int bit_size = 0;
 			for ( std::deque<core*>::iterator it = it1; it != it2; it++ ) {
