@@ -121,45 +121,47 @@ namespace lcp {
                 index++;
             }
 
+            while ( it1 - COMPRESSION_ITERATION_COUNT < this->cores.begin() ) {
+                it1++;
+                index++;
+            }
+
+            // std::cout << "Starting from index: " << index << std::endl;
+
             for ( ; it1 + 2 < this->cores.end(); it1++, index++) {
-                
+                // std::cout << "Processing " << (*it1)->start << " " << (*it1)->end << std::endl;
+
                 // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
                 if ( *(*(it1)) != *(*(it1 + 1)) && *(*(it1 + 1)) == *(*(it1 + 2)) ) {
-                    for (it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)); it2++) {}
+
+                    for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)) && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH; it2++ ) {}
                     
-                    if (it2 == this->cores.end()) {
-                        break;
-                    }
-                    if ( it1 - COMPRESSION_ITERATION_COUNT < this->cores.begin() ) {
-                        continue;
-                    }
-                    it2++;
-                    
-                    if ( (*it2)->end - (*it1)->start < MAXIMUM_LENGTH) {
+                    if ( it2 < this->cores.end() && *(*(it2)) != *(*(it2 - 1)) && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH ) {
+                        it2++;
                         core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                         temp_cores.push_back(new_core);
-                    }
-                    
-                    continue;
+                        continue;
+                    } 
                 }
 
-                if (it1 + core_length > this->cores.end()) {
-                    break;
-                }
-                
-                // if there is no subsequent characters such as xyzuv where z!=y and y!=z and z!=u and u!=v
-                
-                if (
-                    ( *(*(it1 + 2)) < *(*(it1 + 3)) && *(*(it1 + 2)) < *(*(it1 + 1)) ) ||     // local minima
-                    ( *(*(it1 + 2)) > *(*(it1 + 3)) && *(*(it1 + 2)) > *(*(it1 + 1)) &&       // local maxima without immediate local minima neighbours
-                      *(*(it1)) <= *(*(it1 + 1)) && *(*(it1 + 4)) <= *(*(it1 + 3)) )    
-                ) {
-                    if ( it1 + 1 - COMPRESSION_ITERATION_COUNT < this->cores.begin() ) {
-                        continue;
-                    }
-                    if ( (*(it1 + 4))->end - (*(it1 + 1 - COMPRESSION_ITERATION_COUNT))->start < MAXIMUM_LENGTH) {
-                        core *new_core = new core(it1 + 1 - COMPRESSION_ITERATION_COUNT, it1 + 4);
-                        temp_cores.push_back(new_core);
+                if (it1 + core_length <= this->cores.end()) {
+
+                    // if there is no subsequent characters such as xyzuv where z!=y and y!=z and z!=u and u!=v
+                    if (
+                        ( *(*(it1 + 2)) < *(*(it1 + 3)) && *(*(it1 + 2)) < *(*(it1 + 1)) ) ||     // local minima
+                        ( *(*(it1 + 2)) > *(*(it1 + 3)) && *(*(it1 + 2)) > *(*(it1 + 1)) &&       // local maxima without immediate local minima neighbours
+                        *(*(it1)) <= *(*(it1 + 1)) && *(*(it1 + 4)) <= *(*(it1 + 3)) )    
+                    ) {
+                        // std::cout << "Found " << std::endl;
+                        for ( it2 = it1 - COMPRESSION_ITERATION_COUNT; it2 < it1 + 4 && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH; it2++ ) {}
+
+                        if ( it2 == it1 + 4 && (*(it2-1))->start - (*(it2-2))->end < MAXIMUM_LENGTH ) {
+                            core *new_core = new core(it1 + 1 - COMPRESSION_ITERATION_COUNT, it1 + 4);
+                            temp_cores.push_back(new_core);
+                        }
+                        // } else {
+                        //     std::cout << "Else " << (*it2)->start << " " << (*(it2-1))->end << std::endl;
+                        // }
                     }
                 }
             }
