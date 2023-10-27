@@ -9,7 +9,7 @@
 #define LCP_LEVEL           8
 
 
-double mean(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
@@ -24,7 +24,7 @@ double mean(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = 
 };
 
 
-double std_deviation(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double std_deviation(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean(distances, larger_distances);
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
@@ -42,7 +42,7 @@ double std_deviation(int distances[DISTANCE_LENGTH], std::vector<int> larger_dis
 };
 
 
-double mean_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
     for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
@@ -57,7 +57,7 @@ double mean_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_di
 };
 
 
-double std_deviation_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double std_deviation_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean_shifted(distances, larger_distances);
     double count = 0;
     for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
@@ -75,7 +75,7 @@ double std_deviation_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> 
 };
 
 
-void print2file(int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
+void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
         
@@ -286,7 +286,7 @@ int main(int argc, char **argv) {
         genome.close();
     }
 
-    std::ofstream outfile ( "detailed_summary.fasta.txt" );
+    std::ofstream outfile ( "detailed_summary.lcp.fasta.txt" );
     
     print2file( all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, outfile );
 
