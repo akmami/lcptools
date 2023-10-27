@@ -188,6 +188,18 @@ namespace lcp {
 			if (p != NULL) 
 				free(p);
 		}
+
+		int label() {
+			int label = 0;
+			for( int i=this->block_number, index = 0; index > 31 - SIZE_PER_BLOCK && i <= 0; i++, index += SIZE_PER_BLOCK ) {
+
+				if (index > 23)
+					break;
+
+				label |= this->p[i] << index;
+			}
+			return label;
+		}
 	};
 
 
