@@ -7,6 +7,7 @@
 
 #define DISTANCE_LENGTH     10000
 #define LCP_LEVEL           4
+#define KMER_SIZE           15
 
 
 inline void process(std::string &str ) {
@@ -17,13 +18,22 @@ inline void process(std::string &str ) {
         }
     }
     str = processed;
-}
+};
 
 
-inline void analyze( std::vector<int> &original_uht_values, std::vector<int> &error_uht_values, int &deletion, int &insertion, int &match, int &mismatch ) {
+inline void analyze( lcp::string *str1, lcp::string *str2, int &deletion, int &insertion, int &match, int &mismatch ) {
 
-    // TODO examine distances
-    int m = original_uht_values.size(), n = error_uht_values.size(), i, j;
+    int m = str1->cores.size(), n = str2->cores.size(), i, j, index;
+    int arr1[m], arr2[n];
+    
+    for ( std::deque<lcp::core*>::iterator it = str1->cores.begin(); it != str1->cores.end(); it++ ) {
+        arr1[index] = (*it)->label();
+    }
+    
+    index = 0;
+    for ( std::deque<lcp::core*>::iterator it = str2->cores.begin(); it != str2->cores.end(); it++ ) {
+        arr2[index] = (*it)->label();
+    }
 
     int dp[m+1][n+1] = {0};
  
@@ -34,7 +44,7 @@ inline void analyze( std::vector<int> &original_uht_values, std::vector<int> &er
     // calculating the minimum penalty
     for ( i = 1; i <= m; i++ ) {
         for ( j = 1; j <= n; j++ ) {
-            if ( original_uht_values[i - 1] == error_uht_values[j - 1] ) { dp[i][j] = dp[i - 1][j - 1]; }
+            if ( arr1[i - 1] == arr2[j - 1] ) { dp[i][j] = dp[i - 1][j - 1]; }
             else { dp[i][j] = std::min( dp[i - 1][j - 1] + 1 , std::min( dp[i - 1][j] + 1, dp[i][j - 1] + 1 ) ); }
         }
     }
@@ -44,12 +54,94 @@ inline void analyze( std::vector<int> &original_uht_values, std::vector<int> &er
 
     std::cout << "Finding deletion, insertion and mismatch count" << std::endl;
     while ( !(i == 0 || j == 0)) {
-        if (original_uht_values[i - 1] == error_uht_values[j - 1]) { i--; j--; match++; }
+        if (arr1[i - 1] == arr2[j - 1]) { i--; j--; match++; }
         else if (dp[i - 1][j - 1] + 1 == dp[i][j]) { i--; j--; mismatch++; }
         else if (dp[i - 1][j] + 1 == dp[i][j]) { i--; deletion++; }
         else if (dp[i][j - 1] + 1 == dp[i][j]) { j--; insertion++; }
         //else { std::cout << "else" << std::endl; }
     }
+};
+
+
+inline void print2file(int **all_distances, int **all_distances_pos, int **all_lengths, std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
+    
+
+        outfile << "Distances ( core_curr->pos - core_prev->end ) " << std::endl;
+        for ( int j = 0; j < 2*DISTANCE_LENGTH; j++ ) {
+            for ( int k = 0; k < all_distances[i][j]; k++ ) {
+                outfile << j - DISTANCE_LENGTH << ',';
+            }
+        }
+        for ( int j = 0; j < all_larger_distances_vec[i].size(); j++ ) {
+            outfile << all_larger_distances_vec[i][j] << ',';
+        }
+        outfile << std::endl;
+
+        outfile << "Distances btw pos ( core_curr->pos - core_prev->pos ) " << std::endl;
+        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
+            for ( int k = 0; k < all_distances_pos[i][j]; k++ ) {
+                outfile << j << ',';
+            }
+        }
+        for ( int j = 0; j < all_larger_distances_pos_vec[i].size(); j++ ) {
+            outfile << all_larger_distances_pos_vec[i][j] << ',';
+        }
+        outfile << std::endl;
+
+        outfile << "Lengths ( core_curr->end - core_curr->pos ) " << std::endl;
+        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
+            for ( int k = 0; k < all_lengths[i][j]; k++ ) {
+                outfile << j << ',';
+            }
+        }
+        for ( int j = 0; j < all_larger_lengths_vec[i].size(); j++ ) {
+            outfile << all_larger_lengths_vec[i][j] << ',';
+        }
+
+        outfile << std::endl << std::endl;
+    }
+};
+
+
+inline void summary( int *overlapping_counts, int **all_distances, int **all_distances_pos, int **all_lengths, std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int *all_core_count ) {
+    
+    for ( int i = 0; i < LCP_LEVEL; i++ ) {
+
+        std::cout << "Level: " << i << std::endl;
+        std::cout << "Overlapping core counts:                  " << overlapping_counts[i] << std::endl;
+        std::cout << "Std of distances btw cores (w'out):       " << std_deviation_shifted(all_distances[i]) << std::endl;
+        std::cout << "Mean of distances btw cores (w'out):      " << mean_shifted(all_distances[i]) << std::endl;
+        std::cout << "Std of distances btw cores (with):        " << std_deviation_shifted(all_distances[i], all_larger_distances_vec[i]) << std::endl;
+        std::cout << "Mean of distances btw cores (with):       " << mean_shifted(all_distances[i], all_larger_distances_vec[i]) << std::endl;
+
+        std::cout << "------------------------------------------" << std::endl;
+
+        std::cout << "Std of distances btw starts (w'out):      " << std_deviation(all_distances_pos[i]) << std::endl;
+        std::cout << "Mean of distances btw starts (w'out):     " << mean(all_distances_pos[i]) << std::endl;
+        std::cout << "Std of distances btw starts (with):       " << std_deviation(all_distances_pos[i], all_larger_distances_pos_vec[i]) << std::endl;
+        std::cout << "Mean of distances btw starts (with):      " << mean(all_distances_pos[i], all_larger_distances_pos_vec[i]) << std::endl;
+
+        std::cout << "------------------------------------------" << std::endl;
+
+        std::cout << "Std of lengths (w'out):                   " << std_deviation(all_lengths[i]) << std::endl;
+        std::cout << "Mean of lengths (w'out):                  " << mean(all_lengths[i]) << std::endl;
+        std::cout << "Std of lengths (with):                    " << std_deviation(all_lengths[i], all_larger_lengths_vec[i]) << std::endl;
+        std::cout << "Mean of lengths (with):                   " << mean(all_lengths[i], all_larger_lengths_vec[i]) << std::endl;
+
+        std::cout << "------------------------------------------" << std::endl;
+
+        std::cout << "Level execution time:                     " << ( (double) all_durations[i].count() ) / 1000 << " sec" << std::endl;
+        std::cout << "Total number of cores:                    " << all_core_count[i] << std::endl;
+
+        std::cout << "------------------------------------------" << std::endl;
+
+        std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec[i].size() << std::endl;
+        std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec[i].size() << std::endl; 
+        std::cout << "length # [0,10k):                         " << all_larger_lengths_vec[i].size() << std::endl;
+        std::cout << std::endl;
+    }
+
+    std::cout << std::endl; 
 };
 
 
@@ -89,7 +181,8 @@ int main(int argc, char **argv) {
     genome_original.open(argv[2], std::ios::in);
     genome_error.open(argv[3], std::ios::in);
 
-    bool uht_set[4 ** 15] = {false};
+    // assuming dict_bit_size <= 2 and KMER_SIZE <= 16
+    bool uht_set[2 ** (dict_bit_size * KMER_SIZE)] = {false};
     int uht_value;
     if ( uht_fil ) {
         while ( getline(uht_file, uht_line) ) {
@@ -134,7 +227,7 @@ int main(int argc, char **argv) {
 
                 process( line_original );
 
-                int curr_value = 0, index = 0, mask = 2**15 - 1;
+                int curr_value = 0, index = 0, mask = 2**30 - 1;
 
                 std::string::iterator it = line_original.begin();
                 for ( index < KMER_SIZE - 1 && it < line_original.end(); index++, it++ ) {
@@ -142,7 +235,7 @@ int main(int argc, char **argv) {
                     curr_value |= coefficients[(*it)];
                 }
 
-                for ( ;  it < line_original.end(); it++ ) {
+                for ( ;  it < line_original.end(); it++, index++ ) {
                     curr_value *= dict_bit_size;
                     curr_value &= mask;
                     curr_value |= coefficients[(*it)];
