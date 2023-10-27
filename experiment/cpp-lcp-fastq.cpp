@@ -9,7 +9,7 @@
 #define LCP_LEVEL           8
 
 
-double mean(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
@@ -24,7 +24,7 @@ double mean(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = 
 };
 
 
-double std_deviation(int distances[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double std_deviation(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean(distances, larger_distances);
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
@@ -42,7 +42,7 @@ double std_deviation(int distances[DISTANCE_LENGTH], std::vector<int> larger_dis
 };
 
 
-double mean_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
     for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
@@ -57,7 +57,7 @@ double mean_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_di
 };
 
 
-double std_deviation_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
+double std_deviation_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean_shifted(distances, larger_distances);
     double count = 0;
     for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
@@ -75,7 +75,7 @@ double std_deviation_shifted(int distances[2*DISTANCE_LENGTH], std::vector<int> 
 };
 
 
-void print2file(int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
+void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
         
@@ -118,7 +118,7 @@ void print2file(int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distanc
 };
 
 
-void summary( int overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int all_core_count[LCP_LEVEL]) {
+void summary( int read_count, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int (&all_core_count)[LCP_LEVEL]) {
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
 
@@ -154,10 +154,12 @@ void summary( int overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*
     std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec.size() << std::endl;
     std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec.size() << std::endl; 
     std::cout << "length # [0,10k):                         " << all_larger_lengths_vec.size() << std::endl;
+
+    std::cout << "Total number of reads:                    " << read_count << std::endl;
 };
 
 
-void analyze( int level, int overlapping_counts[LCP_LEVEL], int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH], int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH], int all_lengths[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str ) {
+void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str ) {
 
     for ( std::deque<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
 
@@ -243,7 +245,7 @@ int main(int argc, char **argv) {
                 lcp::string *str = new lcp::string(line);
                 
                 auto extraction_end = std::chrono::high_resolution_clock::now();
-                all_durations[0] += std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start);
+                all_durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
                 all_core_count[0] += str->cores.size();
 
                 analyze(0, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
@@ -255,8 +257,7 @@ int main(int argc, char **argv) {
                     str->deepen();
                     
                     auto stop_level = std::chrono::high_resolution_clock::now();
-                    auto duration_level = std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level);
-                    all_durations[i] += std::chrono::milliseconds(duration_level.count());
+                    all_durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
                     all_core_count[i] += str->cores.size();
 
                     analyze(i, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
@@ -273,7 +274,7 @@ int main(int argc, char **argv) {
             }
         }
         
-        summary( all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, all_durations, all_core_count);
+        summary( read_count, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, all_durations, all_core_count);
         
         genome.close();
     }
