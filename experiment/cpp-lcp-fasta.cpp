@@ -147,17 +147,18 @@ void summary( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEV
 
         std::cout << "Level execution time:                     " << ( (double) all_durations[i].count() ) / 1000 << " sec" << std::endl;
         std::cout << "Total number of cores:                    " << all_core_count[i] << std::endl;
+    
+        std::cout << "------------------------------------------" << std::endl;
+            
+        std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec[i].size() << std::endl;
+        std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec[i].size() << std::endl; 
+        std::cout << "length # [0,10k):                         " << all_larger_lengths_vec[i].size() << std::endl;
         std::cout << std::endl;
     }
-
-    std::cout << std::endl;
-    std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec.size() << std::endl;
-    std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec.size() << std::endl; 
-    std::cout << "length # [0,10k):                         " << all_larger_lengths_vec.size() << std::endl;
 };
 
 
-void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str ) {
+void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, int chrom_index ) {
     
     for ( std::deque<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
 
@@ -243,7 +244,7 @@ int main(int argc, char **argv) {
                     all_durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
                     all_core_count[0] += str->cores.size();
                     
-                    analyze(0, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
+                    analyze(0, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
                     
                     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
@@ -255,7 +256,7 @@ int main(int argc, char **argv) {
                         all_durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
                         all_core_count[i] += str->cores.size();
 
-                        analyze(i, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str);
+                        analyze(i, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
                     }
 
                     std::cout << "Processing is done for " << id << std::endl;
