@@ -28,6 +28,7 @@ CPP_LCP_FASTA := cpp-lcp-fasta
 CPP_LCP_FASTQ_ERROR := cpp-lcp-fastq-error
 CPP_MINIMIZER_FASTA := cpp-minimizer-fasta
 CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
+PROCESS_MAF := process-maf
 
 create_temp:
 	mkdir -p $(TEMP_DIR)
@@ -43,9 +44,9 @@ create_results:
 # HELPERS
 ######################################################################
 processMaf: create_temp
-	$(GXX) -o process-maf process-maf.cpp;
-	mv process-maf ../bin;
-	time ../bin/process-maf ~/data/pbsim/sd_0001.maf ~/data/pbsim/sd_oo1_processed.maf
+	$(GXX) -o $(PROCESS_MAF) $(PROCESS_MAF)$(CXX);
+	mv $(PROCESS_MAF) $(EXECUTABLE_DIR);
+	time $(EXECUTABLE_DIR)/$(PROCESS_MAF) $(CURRENT_DIR)/test.maf
 
 moveFasta: create_temp
 	if ! [ -f $(HUMAN_V38_FASTA_PATH) ]; then \
