@@ -9,24 +9,6 @@
 #define LCP_LEVEL           4
 
 
-inline void process(std::string &str ) {
-    
-    int index = str.find_last_of(' ');
-    std::string processed = "";
-    
-    for ( std::string::iterator it = str.begin() + index + 1; it != str.end(); it++ ) {
-        if ( (*it) != '-') {
-            processed += (*it);
-        }
-        if ( (*it) == 'N' ) {
-            str = "";
-            return;
-        }
-    }
-    str = processed;
-}
-
-
 inline void analyze( lcp::string* str1, lcp::string* str2, int &deletion, int &insertion, int &match, int &mismatch ) {
 
     int m = str1->cores.size(), n = str2->cores.size(), i, j, index;
@@ -89,8 +71,7 @@ int main(int argc, char **argv) {
         std::cerr << "Error opening: " << argv[1] << " . You have failed." << std::endl;
         return -1;
     }
-
-
+    
     // initializing coefficients of the alphabet
     lcp::init_coefficients();
 
