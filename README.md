@@ -77,21 +77,21 @@ Processes the input string and identifies cores that adhere to specific rules:
 
 1. The subsequent characters should not be the same, and the middle character is local minima.
 
-Ex: *xyz* where *x!=y* and *y!=z*.
+	Ex: *xyz* where *x!=y* and *y!=z*.
 
-**y<x** and **y<z**
+	**y<x** and **y<z**
 
 2. The subsequent characters should not be the same, and the middle character local maxima, and its neighbors are not local minima. 
 
-Ex: *sxyzt* where *s!=x* and *x!=y* and *y!=z* and *z!=st*.
+	Ex: *sxyzt* where *s!=x* and *x!=y* and *y!=z* and *z!=st*.
 
-**x<y** and **z<y** and **s<=x** and **z>=t**.
+	**x<y** and **z<y** and **s<=x** and **z>=t**.
 
-2. The characters, except the front and back, are the same.
+3. The characters, except the front and back, are the same.
 
-Ex: *xyyz*, *xyyyz*, *xyyyyz*, ...
+	Ex: *xyyz*, *xyyyz*, *xyyyyz*, ...
 
-**x!=y** and **y!=z**
+	**x!=y** and **y!=z**
 
 ### Compress Function:
 
