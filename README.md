@@ -1,88 +1,121 @@
-# LCP
-The string class contains an algorithm that runs LCP on a given string and alphabet encoding.
+# LCP (Locally Consistent Parsing) Algorithm Implementation
 
+This repository contains an implementation of the Locally Consistent Parsing (LCP) algorithm, applied to strings using a specific binary alphabet encoding. The implementation is in C++ and is designed for efficient computation of LCP on large datasets.
 
-## Character encoding
+## Character Encoding
 
-The default encoding of the alphabet is accordingly.
+The binary encoding of the alphabet is defined as follows. This default encoding is used unless a custom encoding is provided:
 
-| Character | Binary |
-| --------- | ------ |
-| A | 00 |
-| T | 11 |
-| G | 10 |
-| C | 01 |
-| a | 00 |
-| t | 11 |
-| g | 10 |
-| c | 01 |
+| Character | Binary Encoding |
+| --------- | --------------- |
+| A, a      | 00              |
+| T, t      | 11              |
+| G, g      | 10              |
+| C, c      | 01              |
 
-You have to initialize the encodings once at the beginning. You can provide an optional *verbose* bool variable, which will print the summary of the encoding. 
+### Initialization
 
-```
- lcp::init_coefficients(verbose);
+To initialize the encodings, use the following function call at the beginning of your program. A boolean parameter `verbose` can be provided, which, when set to `true`, prints a summary of the encoding:
+
+```cpp
+lcp::init_coefficients(verbose);
 ```
 
-You can specifically call the function that prints the summary of the encoding as
+To display the encoding summary separately, use:
 
-```
- lcp::encoding_summary();
-```
-
-If you want to have your encoding values for the characters, you can initialize by passing the map<char, int> object to the initialization function.
-
-```
- std::map<char, int> mp = { {'A', 3}, {'T', 0}, {'C', 2}, {'G', 1} };
- lcp::init_coefficients(mp, verbose);
+```cpp
+lcp::encoding_summary();
 ```
 
-where *verbose* is an optional bool parameter that is set to false as default.
+For custom character encoding, initialize the encoding by passing a `std::map<char, int>` object to the initialization function:
 
-## Usage
-
-The program given below shows the usage of the LCP string.
-
+```cpp
+std::map<char, int> customEncoding = { {'A', 3}, {'T', 0}, {'C', 2}, {'G', 1} };
+lcp::init_coefficients(customEncoding, verbose);
 ```
+
+In the above code, `verbose` is an optional boolean parameter, defaulting to `false`.
+
+## Usage Example
+
+Below is an example demonstrating the usage of the LCP algorithm implementation:
+
+```cpp
 #include <iostream>
 #include "string.cpp"
 
 int main() {
+    // Initialize alphabet coefficients
+    lcp::init_coefficients();
 
- // initializing coefficients of the alphabet
- lcp::init_coefficients();
+    // Example string
+    std::string str = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
 
- std::string str = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
+    // Create LCP string object
+    lcp::string *lcp_str = new lcp::string(str);
 
- lcp::string *lcp_str = new lcp::string(str);
+    // Deepen the LCP analysis
+    lcp_str->deepen();
 
- // increasing level of the lcp
- lcp_str->deepen();
+    // Output LCP string
+    std::cout << *lcp_str << std::endl;
 
- std::cout << lcp_str << std::endl;
+    // Clean up to prevent memory leaks
+    delete lcp_str;
 
- // prevent memory leaks
- delete lcp_str;
-
- return 0;
-};
+    return 0;
+}
 ```
 
-## LCP Algorithm
+## LCP Algorithm Description
 
-The constructor takes the string and finds all the cores which comply with one of the rules:
+The LCP algorithm operates as follows:
 
-1. The subsequent characters should not be the same, and the middle character is either local minima or local maxima, and its neighbors are not local minima. 
+### Constructor:
 
-Ex: *xyzst* where *x!=y* and *y!=z* and *z!=s* and *s!=t*.
-**z<=x,y,s,t** or **x<y<z && z>s>t**
+Processes the input string and identifies cores that adhere to specific rules:
 
-2. The characters, except the front and back, are the same. 
+1. The subsequent characters should not be the same, and the middle character is local minima.
 
-Ex: xyyz, xyyyz, xyyyyz, ... where x!=y and y!=z
+Ex: *xyz* where *x!=y* and *y!=z*.
 
-### deepen
+**y<x** and **y<z**
 
-This function has the following function.
+2. The subsequent characters should not be the same, and the middle character local maxima, and its neighbors are not local minima. 
+
+Ex: *sxyzt* where *s!=x* and *x!=y* and *y!=z* and *z!=st*.
+
+**x<y** and **z<y** and **s<=x** and **z>=t**.
+
+2. The characters, except the front and back, are the same.
+
+Ex: *xyyz*, *xyyyz*, *xyyyyz*, ...
+
+**x!=y** and **y!=z**
+
+### Compress Function:
+
+The compress function in the LCP algorithm is crucial for processing binary sequences. It starts by pinpointing the initial point of difference between two binary strings, beginning from the right-end. The function then assesses the difference based on the position and value of the divergent bit. This detail is transformed into a new binary sequence, which establishes the foundation of a newly generated 'core'. This core is a clear representation of the differences between the original sequences, integral to the algorithm's deepening process. Essentially, the compress function effectively consolidates and encapsulates the information, ensuring efficient further analysis within the LCP framework.
+
+```
+PROGRAM compress(bits1, bits2):
+	
+	position <- FIND FIRST DIFFERENCE BETWEEN bits1 AND bits2 STARTING FROM RIGHT
+	difference <- GET BIT FROM THE bits2 AT POSITION (bits2.length - position)
+	new_bits <- position * 2 + difference
+
+	new_core = CREATE NEW CORE FROM new_bits
+
+	return new_core
+```
+
+Ex: 11101**0**00 vs 00010**1**00 -> **100**0 as the position is **2 (100)** and the bit is **0**. Position index start from 0.
+
+### Deepen Function:
+
+The deepen function in the LCP algorithm primarily focuses on the compression of 'cores' alongside their left neighbors. The purpose of this repeated compression is to manage the length of the cores, preventing them from becoming large. After a few rounds of compression, the LCP algorithm is re-applied. This re-application aims to identify new cores within the compressed data. In this context, each compressed core is treated as a discrete value, represented in binary form. This representation facilitates efficient processing and analysis within the algorithm.
+
+This function iteratively compresses and processes cores to find new cores in compliance with the rules stated above.
 
 ```
 PROGRAM deepen(core_length=5, verbose=false):
@@ -108,32 +141,12 @@ PROGRAM deepen(core_length=5, verbose=false):
 	level += 1
 ```
 
-
-The compression is done for the cores with their left neighbours. After compressing cores a couple of times, which is done to prevent the increase of the length of the cores for each deepening, the same LCP algorithm is called, which finds new cores from compressed cores. Each compressed core is treated as a value as it is represented in bits.
-
-### compress
-This function has the following function.
-
-```
-PROGRAM compress(bits1, bits2):
-	
-	position <- FIND FIRST DIFFERENCE BETWEEN bits1 AND bits2 STARTING FROM RIGHT
-	difference <- GET BIT FROM THE bits2 AT POSITION (bits2.length - position)
-	new_bits <- position * 2 + difference
-
-	new_core = CREATE NEW CORE FROM new_bits
-
-	return new_core
-```
-
-Ex: 11101**0**00 vs 00010**1**00 -> **100**0 as the position is **2 (100)** and the bit is **0**. Position index start from 0.
+The deepen function in the LCP algorithm primarily focuses on the compression of 'cores' alongside their left neighbors. The purpose of this repeated compression is to manage the length of the cores, preventing them from becoming unwieldy with each iteration of deepening. After a few rounds of compression, the LCP algorithm is reapplied. This reapplication aims to identify new cores within the compressed data. In this context, each compressed core is treated as a discrete value, represented in binary form. This representation facilitates efficient processing and analysis within the algorithm.
 
 ## Default Variables
 
-The default core length is set to 5.
-
 The default iteration count for compression in each deepening is set to 2.
 
-The default value for verbose is set to false.
+The default value for `verbose` is set to `false`.
 
 
