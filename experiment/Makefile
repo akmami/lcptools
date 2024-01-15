@@ -131,7 +131,7 @@ lcpFasta: MKDIR_BIN MKDIR_RESULTS
 lcpFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX); \
 	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR); \
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(PBSIM_MAF) $(LCP_LEVEL)
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(PBSIM_MAF_PROCESSED) $(LCP_LEVEL)
 
 ######################################################################
 # MINIMIZER
@@ -146,16 +146,3 @@ minimizerFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_MINIMIZER_FASTQ_ERROR) $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX) && \
 	mv cpp-minimizer-fastq-error ../bin && \
 	time ../bin/cpp-minimizer-fastq-error ~/data/pbsim/sd_0001.maf > ../results/output.minimizer.fastq.pbsim.txt
-
-######################################################################
-# UHT
-######################################################################
-uhtFasta: MKDIR_BIN MKDIR_RESULTS
-	$(GXX) -o cpp-uht-fasta cpp-uht-fasta.cpp && \
-	mv cpp-uht-fasta ../bin && \
-	time ../bin/cpp-uht-fasta ~/links/human_v38.fasta > ../results/output.uht.fasta.txt
-
-uhtFastq: MKDIR_BIN MKDIR_RESULTS
-	$(GXX) -o cpp-uht-fastq-error cpp-uht-fastq-error.cpp && \
-	mv cpp-uht-fastq-error ../bin && \
-	time ../bin/cpp-uht-fastq-error ~/data/pbsim/sd_0001.maf > ../results/output.uht.fastq.pbsim.txt
