@@ -131,9 +131,6 @@ int main(int argc, char **argv) {
 
     std::sort(reads.begin(), reads.end(), cmpr);
 
-    for (std::vector<struct MafRead>::iterator it = reads.begin(); it != reads.end(); ++it) {
-        std::cout << it->id << " " << it->genome_num << " " << it->pos << " " << it->length << std::endl;
-    }
 
     // Write Header (optional)
     outfile << "H\tVN:Z:1.0\n";
