@@ -18,6 +18,7 @@ CURRENT_DIR := $(shell pwd)
 DATA_DIR := $(CURRENT_DIR)/../data
 EXECUTABLE_DIR := $(CURRENT_DIR)/../bin
 RESULTS_DIR := $(CURRENT_DIR)/../results
+OUT_DIR := $(CURRENT_DIR)/../out
 
 # Data paths
 HUMAN_V38_FASTA_PATH := $(DATA_DIR)/$(HUMAN_V38_FASTA)
@@ -33,7 +34,7 @@ TIME := /usr/bin/time -v
 
 .PHONY: all
 
-all: MKDIR_BIN MKDIR_RESULTS TEST_DATA
+all: MKDIR_BIN MKDIR_RESULTS MKDIR_OUT TEST_DATA
 
 MKDIR_BIN:
 	@echo "Checking if $(EXECUTABLE_DIR) exists..."
@@ -51,6 +52,15 @@ MKDIR_RESULTS:
 		mkdir $(RESULTS_DIR); \
 	else \
 		echo "$(RESULTS_DIR) already exists."; \
+	fi
+
+MKDIR_OUT:
+	@echo "Checking if $(OUT_DIR) exists..."
+	@if [ ! -d "$(OUT_DIR)" ]; then \
+		echo "$(OUT_DIR) does not exist. Creating..."; \
+		mkdir $(OUT_DIR); \
+	else \
+		echo "$(OUT_DIR) already exists."; \
 	fi
 
 TEST_DATA:
@@ -78,50 +88,57 @@ processMaf: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(PROCESS_MAF) $(PROCESS_MAF)$(CXX) -lz
 	@echo "Moving $(PROCESS_MAF) to $(EXECUTABLE_DIR)"
 	mv $(PROCESS_MAF) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*.maf.gz; do \
-		file=$$(basename $$filepath); \
+	@echo "Processing files in parallel"
+	@find $(DATA_DIR) -name 'sd_merged_*.maf.gz' | parallel ' \
+		file=$$(basename {}); \
 		pname=$$(echo $$file | sed 's/\.maf.gz/_processed.maf.gz/'); \
-		echo "Processing $$file"; \
-		if [ -f $(RESULTS_DIR)/$$pname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$pname"; \
-			rm -f $(RESULTS_DIR)/$$pname; \
-        fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$pname"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(PROCESS_MAF) $$filepath $(RESULTS_DIR)/$$pname; \
-	done
+		out_file=$(PROCESS_MAF)-$${file#sd_merged_}; \
+		out_file=$$(echo $$out_file | sed 's/\.maf.gz/-out.txt/'); \
+		echo "Processing $${file}" > $(OUT_DIR)/$${out_file}; \
+		if [ -f $(RESULTS_DIR)/$${pname} ]; then \
+			echo "Removing existing processed file $(RESULTS_DIR)/$${pname}" >> $(OUT_DIR)/$${out_file}; \
+			rm -f $(RESULTS_DIR)/$${pname}; \
+		fi; \
+		echo "Preprocessing $${file}. Output will be put into $(RESULTS_DIR)/$${pname}" >> $(OUT_DIR)/$${out_file}; \
+		$(TIME) $(EXECUTABLE_DIR)/$(PROCESS_MAF) {} $(RESULTS_DIR)/$${pname} >> $(OUT_DIR)/$${out_file} 2>&1 \
+	'
 
 fastqToFastq: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(FASTQ_TO_FASTQ)$(CXX)"
 	$(GXX) -o $(FASTQ_TO_FASTQ) $(FASTQ_TO_FASTQ)$(CXX) -lz
 	@echo "Moving $(FASTQ_TO_FASTQ) to $(EXECUTABLE_DIR)"
 	mv $(FASTQ_TO_FASTQ) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*.fastq.gz; do \
+	@find $(DATA_DIR) -name 'sd_merged_*.fastq.gz' | parallel ' \
 		file=$$(basename $$filepath); \
 		rname=$$(echo $$file | sed 's/\.fastq.gz/.fasta.gz/'); \
-		echo "Processing $$file"; \
+		out_file=$(FASTQ_TO_FASTQ)-$${file#sd_merged_}; \
+		out_file=$$(echo $$out_file | sed 's/\.fastq.gz/-out.txt/'); \
+		echo "Processing $$file" > $(OUT_DIR)/$${out_file}; \
 		if [ -f $(RESULTS_DIR)/$$rname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
 			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTQ) $$filepath $(RESULTS_DIR)/$$rname; \
-	done
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
+		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTQ) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file} 2>&1 \
+	'
 
 goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(GOLD_STANDARD_GFA)$(CXX)"
 	$(GXX) -o $(GOLD_STANDARD_GFA) $(GOLD_STANDARD_GFA)$(CXX) -lz
 	@echo "Moving $(GOLD_STANDARD_GFA) to $(EXECUTABLE_DIR)"
 	mv $(GOLD_STANDARD_GFA) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*_processed.maf.gz; do \
+	@find $(DATA_DIR) -name 'sd_merged_*_processed.maf.gz' | parallel ' \
 		file=$$(basename $$filepath); \
 		rname=$$(echo $$file | sed 's/\.maf.gz/.gfa/'); \
-		echo "Processing $$file"; \
+		out_file=$(GOLD_STANDARD_GFA)-$${file#sd_merged_}; \
+		out_file=$$(echo $$out_file | sed 's/\_processed.maf.gz/-out.txt/'); \
+		echo "Processing $$file" > $(OUT_DIR)/$${out_file};  \
 		if [ -f $(RESULTS_DIR)/$$rname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
 			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname; \
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
+		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file}; \
 	done
 
 goldStandartFastq: MKDIR_BIN MKDIR_RESULTS
