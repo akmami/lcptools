@@ -4,22 +4,6 @@
 #include <cstring>
 #include "GzFile.hpp"
 
-/**
- * A function to remove '-' from the given string
- */
-void process( char str[BUFFERSIZE] ) {
-    
-    size_t writeIndex = 0, readIndex = 0;
-
-    for ( ; readIndex < BUFFERSIZE && str[readIndex] != '\n'; readIndex++) {
-        if (str[readIndex] != '-') {
-            str[writeIndex++] = str[readIndex];
-        }
-    }
-
-    str[writeIndex] = '\0';
-};
-
 int main(int argc, char **argv) {
 
     // Validate arguments
@@ -29,16 +13,16 @@ int main(int argc, char **argv) {
     }
 
     // validate input file
-    GzFile maffile( argv[1], "rb");
-    if (!maffile) {
+    GzFile infile( argv[1], "rb");
+    if (!infile) {
         std::cerr << "Failed to open file: " << argv[1] << std::endl;
         return 1;
     }
 
     // Open output file
-    std::ofstream outfile(argv[2]);
-    if ( !outfile.good() ) {
-        std::cerr << "Error creating outfile " << argv[1] << std::endl;
+    GzFile outfile( argv[2], "wb" );
+    if (!outfile) {
+        std::cerr << "Error creating outfile " << argv[2] << std::endl;
         return -1;
     }
 
@@ -54,9 +38,9 @@ int main(int argc, char **argv) {
 
     while (true) {
         
-        if ( maffile.gets(buffer, sizeof(buffer)) == Z_NULL) {
+        if ( infile.gets(buffer, sizeof(buffer)) == Z_NULL) {
             // End of file or an error
-            if ( ! maffile.eof() ) {
+            if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
             }
             break;
@@ -65,9 +49,6 @@ int main(int argc, char **argv) {
         ++lineCount;
 
         if (lineCount % 4 == 2) {
-            
-            // remove '-' from sequence
-            process(buffer);
 
             std::istringstream iss(buffer);
 
@@ -81,17 +62,18 @@ int main(int argc, char **argv) {
 
             iss >> id >> id;
 
-            if ( sscanf(id, "%c%ld_%ld", &id_prefix, &genome_num, &sim_res_num) != 3) { // if sscanf successfully parsed 3 items
+            // if sscanf successfully parsed 3 items
+            if ( sscanf(id, "%c%ld_%ld", &id_prefix, &genome_num, &sim_res_num) != 3) { 
                 printf("Error parsing the string\n");
             }
 
-            outfile << "@" << id << std::endl;
-            outfile << seq << std::endl;
-            outfile << "+" << id << std::endl;
+            outfile.printf("@%s\n", id);
+            outfile.printf("%s\n", seq);
+            outfile.printf("+%s\n", id);
             for( int i = 0; i < seq.length(); i++ ) {
-                outfile << "!";
+                outfile.printf("+%c", '!');
             }
-            outfile << "\n";
+            outfile.printf("\n");
         }
     }
 
