@@ -1,4 +1,7 @@
-# LCP (Locally Consistent Parsing) Algorithm Implementation
+# `LCP` (Locally Consistent Parsing) Algorithm Implementation <br>
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/akmami/lcptools)
+![GitHub last commit](https://img.shields.io/github/last-commit/akmami/lcptools)
+![GitHub](https://img.shields.io/github/license/akmami/lcptools)
 
 This repository contains an implementation of the Locally Consistent Parsing (LCP) algorithm, applied to strings using a specific binary alphabet encoding. The implementation is in C++ and is designed for efficient computation of LCP on large datasets.
 
