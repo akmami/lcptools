@@ -4,7 +4,7 @@
 #include <zlib.h>
 
 #define BUFFERSIZE  100000
-#define IDSIZE      128
+
 
 class GzFile {
 public:
