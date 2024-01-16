@@ -139,7 +139,7 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
         fi; \
 		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
 		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file}; \
-	done
+	'
 
 goldStandartFastq: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(GOLD_STANDARD_FASTQ)$(CXX)"
