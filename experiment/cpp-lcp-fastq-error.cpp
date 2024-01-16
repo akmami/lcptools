@@ -5,64 +5,76 @@
 #include <chrono>
 #include "../string.cpp"
 
-#define DISTANCE_LENGTH     10000
-#define LCP_LEVEL           4
+#define MAX_ROWS            100000
+#define MAX_COLUMNS         100000
+#define GAP_PENALTY         -4
+#define MATCH               5
+#define MISMATCH            -4
 
+//
+// The main assumption here is that given strings/sequences cannot exceed 100000.
+// You can increase MAX_ROWS along with MAX_COLUMN 
+//
+// REMARK: Matrix is constantly being reused for pairwise alignment
+//
 
-inline void analyze( lcp::string* str1, lcp::string* str2, int &deletion, int &insertion, int &match, int &mismatch ) {
+void analyze(lcp::string* seq1, lcp::string* seq2, int** dp, int& deletion, int& insertion, int& match, int& mismatch ) {
+    int rows = seq1->cores.size() + 1;
+    int cols = seq2->cores.size() + 1;
+   
+    dp[0][0] = 0;
 
-    int m = str1->cores.size(), n = str2->cores.size(), i, j, index;
-    int arr1[m], arr2[n];
-    
-    index = 0;
-    for ( std::deque<lcp::core*>::iterator it = str1->cores.begin(); it != str1->cores.end(); it++, index++ ) {
-        arr1[index] = (*it)->label();
+    for (int i = 1; i < rows; ++i) {
+        dp[i][0] = dp[i - 1][0] + GAP_PENALTY;
     }
-    
-    index = 0;
-    for ( std::deque<lcp::core*>::iterator it = str2->cores.begin(); it != str2->cores.end(); it++, index++ ) {
-        arr2[index] = (*it)->label();
-    }
-    
-    int **dp = new int*[m+1];
-    for ( int i = 0; i < m+1; i++ ) {
-        dp[i] = new int[n+1];
-    }
- 
-    for (i = 0; i <= m; i++) { dp[i][0] = i; }
-    for (i = 0; i <= n; i++) { dp[0][i] = i; }    
-    
 
-    // calculating the minimum penalty
-    for ( i = 1; i <= m; i++ ) {
-        for ( j = 1; j <= n; j++ ) {
-            if ( arr1[i - 1] == arr2[j - 1] ) { dp[i][j] = dp[i - 1][j - 1]; }
-            else { dp[i][j] = std::min( dp[i - 1][j - 1] + 1 , std::min( dp[i - 1][j] + 1, dp[i][j - 1] + 1 ) ); }
+    for (int j = 1; j < cols; ++j) {
+        dp[0][j] = dp[0][j - 1] + GAP_PENALTY;
+    }
+
+    for (int i = 1; i < rows; ++i) {
+        for (int j = 1; j < cols; ++j) {
+
+            dp[i][j] = std::max(
+                std::max(
+                    dp[i - 1][j] + GAP_PENALTY ,
+                    dp[i][j - 1] + GAP_PENALTY
+                ), 
+                    dp[i - 1][j - 1] + ( seq1->cores.at(i - 1)->label() == seq2->cores.at(j - 1)->label() ? MATCH : MISMATCH )
+                );
         }
     }
- 
-    // Finding deletion, insertion and mismatch count
-    i = m; j = n;
 
-    while ( !(i == 0 || j == 0)) {
-        if (arr1[i - 1] == arr2[j - 1]) { i--; j--; match++; }
-        else if (dp[i - 1][j - 1] + 1 == dp[i][j]) { i--; j--; mismatch++; }
-        else if (dp[i - 1][j] + 1 == dp[i][j]) { i--; deletion++; }
-        else if (dp[i][j - 1] + 1 == dp[i][j]) { j--; insertion++; }
-        //else { std::cout << "else" << std::endl; }
+    // Traceback to find the alignment
+    int i = rows - 1;
+    int j = cols - 1;
+
+    while (i > 0 || j > 0) {
+
+        if (i > 0 && j > 0 && dp[i][j] == dp[i - 1][j - 1] + ( seq1->cores.at(i - 1)->label() == seq2->cores.at(j - 1)->label() ? MATCH : MISMATCH ) ) {
+            // Match or mismatch
+            if ( seq1->cores.at(i - 1) == seq2->cores.at(j - 1) ) {
+                ++match;
+            } else {
+                ++mismatch;
+            }
+            --i;
+            --j;
+        } else if (i > 0 && dp[i][j] == dp[i - 1][j] + GAP_PENALTY) {
+            ++deletion;
+            --i;
+        } else {
+            ++insertion;
+            --j;
+        }
     }
-    
-    for ( int i = 0; i < m+1; i++ ) {
-        delete dp[i];
-    }
-    delete [] dp;
 };
 
 
 int main(int argc, char **argv) {
 
-    if (argc < 2) {
-        std::cerr << "Wrong format: " << argv[0] << " [infile] " << std::endl;
+    if (argc != 3) {
+        std::cerr << "Wrong format: " << argv[0] << " [infile] [lcp-level]" << std::endl;
         return -1;  
     }
 
@@ -71,64 +83,75 @@ int main(int argc, char **argv) {
         std::cerr << "Error opening: " << argv[1] << " . You have failed." << std::endl;
         return -1;
     }
+
+    int lcp_level = atoi(argv[2]);
+
+    int** dp = new int*[MAX_ROWS];
+    for (int i = 0; i < MAX_ROWS; ++i) {
+        dp[i] = new int[MAX_COLUMNS];
+    }
     
     // initializing coefficients of the alphabet
     lcp::init_coefficients();
 
     // variables
-    std::string line, str1, str2;
+    std::string str1, str2;
 
     std::fstream maf_file;
     maf_file.open(argv[1], std::ios::in);
 
-    int read_count = 0;
-    int deletion = 0;
-    int insertion = 0;
-    int match = 0;
-    int mismatch = 0;
+    int read_count;
+    int deletion;
+    int insertion;
+    int match;
+    int mismatch;
     
 	// read file
     if ( maf_file.is_open() ) {  
 
-        std::cout << "Program begins" << std::endl;
+        std::cout << "Deletion  Insertion   Match   Mismatch" << std::endl;
 
-        while ( getline(maf_file, line) ) {
+        while ( getline(maf_file, str1) ) {
             
-            read_count++;
+            read_count = 0;
+            deletion = 0;
+            insertion = 0;
+            match = 0;
+            mismatch = 0;
 
-            // line is 'a'
-
-            // raw sequence
-            getline(maf_file, str1);
+            // other sequence
             getline(maf_file, str2);
-
-            process( str1 );
-            process( str2 );
 
             lcp::string *str_original = new lcp::string(str1);
             lcp::string *str_error = new lcp::string(str2);
 
-            for ( int i = 1; i < LCP_LEVEL; i++ ) {
+            for ( int i = 1; i < lcp_level; i++ ) {
                 str_original->deepen();
                 str_error->deepen();
             }
 
-            analyze( str_original, str_error, deletion, insertion, match, mismatch );
+            analyze( str_original, str_error, dp, deletion, insertion, match, mismatch );
+
+            std::cout << str_original << std::endl;
+            std::cout << str_error << std::endl;
 
             delete str_original;
             delete str_error;
 
-            // empty line
-            getline(maf_file, line);
+            std::cout << deletion << '\t' << insertion << '\t' << match << '\t' << mismatch << std::endl;
+
+            if ( read_count++ == 4 ) {
+                break;
+            }
         }
                 
         maf_file.close();
     }
 
-    std::cout << "Deletion:     " << deletion << std::endl;
-    std::cout << "Insertion:    " << insertion << std::endl;
-    std::cout << "Match:    " << match << std::endl;
-    std::cout << "Mismatch:     " << mismatch << std::endl;
+    for (int i = 0; i < MAX_ROWS; ++i) {
+        delete dp[i];
+    }
+    delete dp;
 
     return 0;
 };
