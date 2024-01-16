@@ -9,8 +9,9 @@ CPP_LCP_FASTQ_ERROR := cpp-lcp-fastq-error
 CPP_MINIMIZER_FASTA := cpp-minimizer-fasta
 CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
 PROCESS_MAF := process-maf
-MAF_TO_GFA := maf-to-gfa
-GOLD_STANDARD := gold-standard
+FASTQ_TO_FASTQ := fastq-to-fasta
+GOLD_STANDARD_GFA := gold-standard-gfa
+GOLD_STANDARD_FASTQ := gold-standard-fastq
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -79,45 +80,65 @@ processMaf: MKDIR_BIN MKDIR_RESULTS
 	mv $(PROCESS_MAF) $(EXECUTABLE_DIR)
 	@for filepath in $(DATA_DIR)/sd_merged_*.maf.gz; do \
 		file=$$(basename $$filepath); \
+		pname=$$(echo $$file | sed 's/\.maf.gz/_processed.maf.gz/'); \
 		echo "Processing $$file"; \
-		if [ -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_processed.maf/') ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_processed.maf/')"; \
-			rm -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_processed.maf/'); \
+		if [ -f $(RESULTS_DIR)/$$pname ]; then \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$pname"; \
+			rm -f $(RESULTS_DIR)/$$pname; \
         fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_processed.maf/')"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(PROCESS_MAF) $$filepath $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_processed.maf/'); \
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$pname"; \
+		$(TIME) $(EXECUTABLE_DIR)/$(PROCESS_MAF) $$filepath $(RESULTS_DIR)/$$pname; \
 	done
 
-mafToGfa: MKDIR_BIN MKDIR_RESULTS
-	@echo "Compiling $(MAF_TO_GFA)$(CXX)"
-	$(GXX) -o $(MAF_TO_GFA) $(MAF_TO_GFA)$(CXX) -lz
-	@echo "Moving $(MAF_TO_GFA) to $(EXECUTABLE_DIR)"
-	mv $(MAF_TO_GFA) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*.maf.gz; do \
+fastqToFastq: MKDIR_BIN MKDIR_RESULTS
+	@echo "Compiling $(FASTQ_TO_FASTQ)$(CXX)"
+	$(GXX) -o $(FASTQ_TO_FASTQ) $(FASTQ_TO_FASTQ)$(CXX) -lz
+	@echo "Moving $(FASTQ_TO_FASTQ) to $(EXECUTABLE_DIR)"
+	mv $(FASTQ_TO_FASTQ) $(EXECUTABLE_DIR)
+	@for filepath in $(DATA_DIR)/sd_merged_*.fastq.gz; do \
 		file=$$(basename $$filepath); \
+		rname=$$(echo $$file | sed 's/\.fastq.gz/.fasta.gz/'); \
 		echo "Processing $$file"; \
-		if [ -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/.gfa/') ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/.gfa/')"; \
-			rm -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/'); \
+		if [ -f $(RESULTS_DIR)/$$rname ]; then \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
+			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/.gfa/')"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(MAF_TO_GFA) $$filepath $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/.gfa/'); \
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
+		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTQ) $$filepath $(RESULTS_DIR)/$$rname; \
 	done
 
-goldStandart: MKDIR_BIN MKDIR_RESULTS
-	@echo "Compiling $(GOLD_STANDARD)$(CXX)"
-	$(GXX) -o $(GOLD_STANDARD) $(GOLD_STANDARD)$(CXX) -lz
-	@echo "Moving $(GOLD_STANDARD) to $(EXECUTABLE_DIR)"
-	mv $(GOLD_STANDARD) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*.maf.gz; do \
+goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
+	@echo "Compiling $(GOLD_STANDARD_GFA)$(CXX)"
+	$(GXX) -o $(GOLD_STANDARD_GFA) $(GOLD_STANDARD_GFA)$(CXX) -lz
+	@echo "Moving $(GOLD_STANDARD_GFA) to $(EXECUTABLE_DIR)"
+	mv $(GOLD_STANDARD_GFA) $(EXECUTABLE_DIR)
+	@for filepath in $(DATA_DIR)/sd_merged_*_processed.maf.gz; do \
 		file=$$(basename $$filepath); \
+		rname=$$(echo $$file | sed 's/\.maf.gz/.gfa/'); \
 		echo "Processing $$file"; \
-		if [ -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/') ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/')"; \
-			rm -f $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/'); \
+		if [ -f $(RESULTS_DIR)/$$rname ]; then \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
+			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/')"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD) $$filepath $(RESULTS_DIR)/$$(echo $$file | sed 's/\.maf.gz/_gold.fastq/'); \
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
+		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname; \
+	done
+
+goldStandartFastq: MKDIR_BIN MKDIR_RESULTS
+	@echo "Compiling $(GOLD_STANDARD_FASTQ)$(CXX)"
+	$(GXX) -o $(GOLD_STANDARD_FASTQ) $(GOLD_STANDARD_FASTQ)$(CXX) -lz
+	@echo "Moving $(GOLD_STANDARD_FASTQ) to $(EXECUTABLE_DIR)"
+	mv $(GOLD_STANDARD_FASTQ) $(EXECUTABLE_DIR)
+	@for filepath in $(DATA_DIR)/sd_merged_*_processed.maf.gz; do \
+		file=$$(basename $$filepath); \
+		rname=(echo $$file | sed 's/\.maf.gz/_gold.fastq.gz/'); \
+		echo "Processing $$file"; \
+		if [ -f $(RESULTS_DIR)/$$rname ]; then \
+			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
+			rm -f $(RESULTS_DIR)/$$rname; \
+        fi; \
+		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
+		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_FASTQ) $$filepath $(RESULTS_DIR)/$$rname; \
 	done
 
 ######################################################################
