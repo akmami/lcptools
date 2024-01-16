@@ -1,10 +1,34 @@
+/**
+ * @file    GenomicDataAnalysis.cpp
+ * @brief   Statistical Analysis of Genomic Sequence Alignments
+ *
+ * This program performs statistical analysis on genomic sequence alignment data.
+ * It includes functionality for calculating the mean and standard deviation of distances
+ * and lengths in the alignments. The analysis is done at multiple levels, defined by
+ * LCP_LEVEL, and caters to a range of distance lengths, specified by DISTANCE_LENGTH.
+ * The results are printed to a file and include detailed statistics at each level of
+ * analysis.
+ *
+ */
+
+
 #include <iostream>
 #include <cmath>
 
 #define DISTANCE_LENGTH     10000
 #define LCP_LEVEL           8
 
-
+/**
+ * @brief Calculates the mean of distances.
+ *
+ * This function calculates the mean of distances in a given range. It supports
+ * processing of standard distances within a predefined range (DISTANCE_LENGTH)
+ * and additional larger distances provided as a vector.
+ * 
+ * @param distances Array of distances within the predefined range.
+ * @param larger_distances Vector of distances outside the predefined range.
+ * @return The mean of all provided distances.
+ */
 double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
@@ -20,6 +44,17 @@ double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances
 };
 
 
+/**
+ * @brief Calculates the standard deviation of distances.
+ *
+ * This function calculates the standard deviation of distances in a given range.
+ * It leverages the mean function for its calculation and handles both standard
+ * and larger distances.
+ *
+ * @param distances Array of distances within the predefined range.
+ * @param larger_distances Vector of distances outside the predefined range.
+ * @return The standard deviation of all provided distances.
+ */
 double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean(distances, larger_distances);
     double count = 0;
@@ -71,6 +106,21 @@ double stdev_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> large
 };
 
 
+/**
+ * @brief Prints detailed alignment data to a file.
+ *
+ * Outputs detailed alignment data for each LCP level to a specified file.
+ * This includes distances, positions, and lengths of the cores in the alignments.
+ * The data is formatted for easy analysis and visualization.
+ *
+ * @param all_distances Array of all distances for each LCP level.
+ * @param all_distances_pos Array of all position distances for each LCP level.
+ * @param all_lengths Array of all lengths for each LCP level.
+ * @param all_larger_distances_vec Vector containing larger distances for each LCP level.
+ * @param all_larger_distances_pos_vec Vector containing larger position distances for each LCP level.
+ * @param all_larger_lengths_vec Vector containing larger lengths for each LCP level.
+ * @param outfile Reference to the output file stream.
+ */
 void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
@@ -114,6 +164,23 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
 };
 
 
+/**
+ * @brief Prints a summary of the analysis to the console.
+ *
+ * Outputs a concise summary of the statistical analysis, including mean and standard
+ * deviation of distances and lengths, along with execution times and count of cores
+ * for each LCP level.
+ *
+ * @param overlapping_counts Array of counts of overlapping cores for each LCP level.
+ * @param all_distances Array of all distances for each LCP level.
+ * @param all_distances_pos Array of all position distances for each LCP level.
+ * @param all_lengths Array of all lengths for each LCP level.
+ * @param all_larger_distances_vec Vector containing larger distances for each LCP level.
+ * @param all_larger_distances_pos_vec Vector containing larger position distances for each LCP level.
+ * @param all_larger_lengths_vec Vector containing larger lengths for each LCP level.
+ * @param all_durations Vector containing execution durations for each LCP level.
+ * @param all_core_count Array of total number of cores for each LCP level.
+ */
 void summary( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int (&all_core_count)[LCP_LEVEL]) {
 
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
