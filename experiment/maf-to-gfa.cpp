@@ -1,38 +1,33 @@
+/**
+ * @file    gold-standard-gfa.cpp
+ * @brief   MAF File Parsing and Processing Tool
+ *
+ * This program is designed to read, parse, and process data from a MAF 
+ * (Multiple Alignment Format) file. It extracts relevant information from 
+ * the MAF file, organizes it into a structured format, and then outputs 
+ * the processed data.
+ *
+ * The program performs the following operations:
+ * - Validates and opens the input and output files.
+ * - Parses the MAF file to extract read information, including IDs, positions,
+ *   and lengths.
+ * - Sorts the reads based on specific compare function implemented in MafRead.hpp
+ * - Outputs the processed reads, including segments and links, to the specified 
+ *   output file in a defined format.
+ *
+ * Usage: <ExecutableName> <InputMafFile> <OutputFile>
+ */
+
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include <cstring>
 #include "GzFile.hpp"
+#include "MafRead.hpp"
 #include <vector>
 #include <algorithm>
 
-
-struct MafRead {
-    char id[IDSIZE];
-    size_t genome_num;
-    long pos;
-    long length;
-};
-
-bool cmpr(const MafRead& a, const MafRead& b) {
-    return a.genome_num < b.genome_num || ( a.genome_num == b.genome_num && a.pos < b.pos);
-};
-
-/**
- * A function to remove '-' from the given string
- */
-void process( char str[BUFFERSIZE] ) {
-    
-    size_t writeIndex = 0, readIndex = 0;
-
-    for ( ; readIndex < BUFFERSIZE && str[readIndex] != '\n'; readIndex++) {
-        if (str[readIndex] != '-') {
-            str[writeIndex++] = str[readIndex];
-        }
-    }
-
-    str[writeIndex] = '\0';
-};
 
 int main(int argc, char **argv) {
 
@@ -43,8 +38,8 @@ int main(int argc, char **argv) {
     }
 
     // validate input file
-    GzFile maffile( argv[1], "rb");
-    if (!maffile) {
+    GzFile infile( argv[1], "rb");
+    if (!infile) {
         std::cerr << "Failed to open file: " << argv[1] << std::endl;
         return 1;
     }
@@ -52,7 +47,7 @@ int main(int argc, char **argv) {
     // Open output file
     std::ofstream outfile(argv[2]);
     if ( !outfile.good() ) {
-        std::cerr << "Error creating outfile " << argv[1] << std::endl;
+        std::cerr << "Error creating outfile " << argv[2] << std::endl;
         return -1;
     }
 
@@ -70,9 +65,9 @@ int main(int argc, char **argv) {
 
     while (true) {
 
-        if ( maffile.gets(buffer, sizeof(buffer)) == Z_NULL) {
+        if ( infile.gets(buffer, sizeof(buffer)) == Z_NULL ) {
             // End of file or an error
-            if ( ! maffile.eof() ) {
+            if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
             }
             break;
@@ -81,9 +76,6 @@ int main(int argc, char **argv) {
         ++lineCount;
 
         if (lineCount % 4 == 2) {
-
-            // remove '-' from sequence
-            process(buffer);
 
             std::istringstream iss(buffer);
 
@@ -102,7 +94,8 @@ int main(int argc, char **argv) {
 
             iss >> id >> id; 
 
-            if ( sscanf(id, "%c%ld_%ld", &id_prefix, &genome_num, &sim_res_num) != 3) { // if sscanf successfully parsed 3 items
+            // if sscanf successfully parsed 3 items
+            if ( sscanf(id, "%c%ld_%ld", &id_prefix, &genome_num, &sim_res_num) != 3) { 
                 printf("Error parsing the string\n");
                 continue;
             }
@@ -116,21 +109,10 @@ int main(int argc, char **argv) {
             read.length = seq.size();
 
             reads.push_back( read );
-
-            // if ( genome_num == 1 ) {
-            //     continue;
-            // }
-
-            // if ( lineCount < 16 ) {
-            //     continue;
-            // }
-
-            // break;
         }
     }
 
-    std::sort(reads.begin(), reads.end(), cmpr);
-
+    std::sort(reads.begin(), reads.end(), mr_cmpr);
 
     // Write Header (optional)
     outfile << "H\tVN:Z:1.0\n";
@@ -141,6 +123,7 @@ int main(int argc, char **argv) {
     }
 
     long overlap, prev_pos, prev_length, cur_pos, cur_length;
+    
     // Write Links
     for (std::vector<struct MafRead>::iterator it = reads.begin() + 1; it != reads.end(); ++it) {
         
