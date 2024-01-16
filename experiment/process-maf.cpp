@@ -1,15 +1,42 @@
+/**
+ * @file    process-maf.cpp
+ * @brief   MAF File Preprocessing for Genomic Sequences
+ *
+ * This program is tailored for processing MAF (Multiple Alignment Format) files,
+ * particularly focusing on two types of reads:
+ * 1. Original reads directly extracted from the genome.
+ * 2. Simulated reads which include intentional errors to mimic sequencing variations.
+ *
+ * Each read comes with alignment data that maps to a reference sequence. In these
+ * alignments, insertions and deletions are marked with '-' characters. The primary
+ * function of this program is to process these reads by removing the '-' characters,
+ * thereby normalizing the reads for subsequent analysis.
+ *
+ * The process involves:
+ * - Validating and opening the input and output files, both expected to be in 
+ *   gzip-compressed format.
+ * - Iteratively reading sequences from the input file, where each sequence consists
+ *   of several lines (including the sequence itself and potentially other metadata).
+ * - Removing '-' characters from the sequences to correct for insertions and deletions.
+ * - Writing the processed sequences to the output file.
+ *
+ * The program uses a buffer size defined by BUFFERSIZE for reading the input file.
+ * It handles errors in file operations and ensures proper file format adherence.
+ *
+ * Usage: <ExecutableName> <InputFile.gz> <OutputFile.gz>
+ */
+
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
 #include "GzFile.hpp"
 
 
-#define BUFFERSIZE  100000
-
 /**
  * A function to remove '-' from the given string
  */
-void process( char str[BUFFERSIZE], std::string &line ) {
+void process( char str[BUFFERSIZE] ) {
     
     size_t writeIndex = 0, readIndex = 0;
 
@@ -18,11 +45,8 @@ void process( char str[BUFFERSIZE], std::string &line ) {
             str[writeIndex++] = str[readIndex];
         }
     }
-
+    str[writeIndex++] = '\n';
     str[writeIndex] = '\0';
-
-    line.clear();
-    line.append(str);
 };
 
 int main(int argc, char **argv) {
@@ -33,68 +57,52 @@ int main(int argc, char **argv) {
     }
 
     // validate input file
-    GzFile maffile( argv[1], "rb");
-    if (!maffile) {
+    GzFile infile( argv[1], "rb");
+    if (!infile) {
         std::cerr << "Failed to open file: " << argv[1] << std::endl;
         return 1;
     }
 
-    // open output file
-    std::ofstream outfile(argv[2]);
-    if (!outfile) {
-        std::cerr << "Error creating outfile " << argv[1] << std::endl;
-        return 1;
+    // Open output file
+    GzFile outfile( argv[2], "wb" );
+    if ( !outfile ) {
+        std::cerr << "Error creating outfile " << argv[2] << std::endl;
+        return -1;
     }
 
     // variables
-    std::string line, seq1, seq2;
     char buffer[BUFFERSIZE];
 
 	// read file
-    while ( true ) {
+    while (true) {
 
-        if ( maffile.gets(buffer, sizeof(buffer)) == Z_NULL) {
+        if ( infile.gets(buffer, BUFFERSIZE) == Z_NULL) {
             // End of file or an error
-            if ( ! maffile.eof() ) {
+            if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
             }
             break;
         }
         // line is 'a'
+        outfile.printf("%s", buffer);
 
         // get raw sequence 1
-        maffile.gets(buffer, sizeof(buffer));
-        
+        infile.gets(buffer, BUFFERSIZE);
         // remove '-' from raw sequence 1
-        process(buffer, line);
-
-        // parse string
-        std::istringstream iss(line);
-
-        // access the 7th column
-        iss >> seq1 >> seq1 >> seq1 >> seq1 >> seq1 >> seq1 >> seq1; 
-
-        outfile << seq1 << std::endl;
-
-        line.clear();
+        process(buffer);
+        // write sequence 1
+        outfile.printf("%s", buffer);
 
         // get raw sequence 2
-        maffile.gets(buffer, sizeof(buffer));
-
+        infile.gets(buffer, BUFFERSIZE);
         // remove '-' from raw sequence 2
-        process(buffer, line);
+        process(buffer);
+        // write sequence 2
+        outfile.printf("%s", buffer);
         
-        // parse string
-        iss.clear();
-        iss.str(line);
-
-        // access the 7th column
-        iss >> seq2 >> seq2 >> seq2 >> seq2 >> seq2 >> seq2 >> seq2;
-
-        outfile << seq2 << std::endl;
-
         // empty line
-        maffile.gets(buffer, BUFFERSIZE);
+        infile.gets(buffer, BUFFERSIZE);
+        outfile.printf("%s", buffer);
     }
 
     return 0;
