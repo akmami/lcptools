@@ -3,6 +3,8 @@
 
 results/*
 bin/*
+out/*
+data/*
 
 .nfs*
 
