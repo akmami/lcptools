@@ -1,6 +1,6 @@
 HUMAN_V38_FASTA := human_v38.fasta
-PBSIM_MAF := sd_merged_85.maf.gz
-PBSIM_FASTQ := sd_merged_85.fastq.gz
+PBSIM_MAF := *.maf.gz
+PBSIM_FASTQ := *.fastq.gz
 LCP_LEVEL := 4
 
 # Programs
@@ -11,7 +11,6 @@ CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
 PROCESS_MAF := process-maf
 FASTQ_TO_FASTQ := fastq-to-fasta
 GOLD_STANDARD_GFA := gold-standard-gfa
-GOLD_STANDARD_FASTQ := gold-standard-fastq
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -69,16 +68,16 @@ TEST_DATA:
 		exit 1; \
 	fi
 	@echo "File $(HUMAN_V38_FASTA_PATH) exists."
-	@if [ ! -f $(PBSIM_MAF_PATH) ]; then \
-		echo "File $(PBSIM_MAF_PATH) does not exist. Exiting."; \
+	@if ! ls $(PBSIM_MAF_PATH) 1> /dev/null; then \
+		echo "No .maf.gz files found. Exiting."; \
 		exit 1; \
 	fi
-	@echo "File $(PBSIM_MAF_PATH) exists."
-	@if [ ! -f $(PBSIM_FASTQ_PATH) ]; then \
-		echo "File $(PBSIM_FASTQ_PATH) does not exist. Exiting."; \
+	@echo "At least one maf.gz file exists."
+	@if ! ls $(PBSIM_FASTQ_PATH) 1> /dev/null; then \
+		echo "No .fastq.gz files found. Exiting."; \
 		exit 1; \
 	fi
-	@echo "File $(PBSIM_FASTQ_PATH) exists."
+	@echo "At least one fastq.gz file exists."
 
 ######################################################################
 # HELPERS
@@ -140,23 +139,6 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
 		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file}; \
 	'
-
-goldStandartFastq: MKDIR_BIN MKDIR_RESULTS
-	@echo "Compiling $(GOLD_STANDARD_FASTQ)$(CXX)"
-	$(GXX) -o $(GOLD_STANDARD_FASTQ) $(GOLD_STANDARD_FASTQ)$(CXX) -lz
-	@echo "Moving $(GOLD_STANDARD_FASTQ) to $(EXECUTABLE_DIR)"
-	mv $(GOLD_STANDARD_FASTQ) $(EXECUTABLE_DIR)
-	@for filepath in $(DATA_DIR)/sd_merged_*_processed.maf.gz; do \
-		file=$$(basename $$filepath); \
-		rname=(echo $$file | sed 's/\.maf.gz/_gold.fastq.gz/'); \
-		echo "Processing $$file"; \
-		if [ -f $(RESULTS_DIR)/$$rname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$rname"; \
-			rm -f $(RESULTS_DIR)/$$rname; \
-        fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname"; \
-		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_FASTQ) $$filepath $(RESULTS_DIR)/$$rname; \
-	done
 
 ######################################################################
 # LCP
