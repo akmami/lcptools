@@ -4,8 +4,7 @@
 typedef unsigned char                   uchar;
 
 #define SIZE_PER_BLOCK                  8
-#define COMPRESSION_ITERATION_COUNT     2
-#define CORE_LENGTH                     5
+#define COMPRESSION_ITERATION_COUNT     1
 #define MAXIMUM_LENGTH                  10000
 
 
@@ -14,20 +13,23 @@ typedef unsigned char                   uchar;
 #include <deque>
 #include "encoding.cpp"
 #include "core.cpp"
+#include "base_core.cpp"
 
 namespace lcp {
 
     struct string {
 
         std::deque<core*> cores;
+        std::deque<base_core*> base_cores;
+
         int level;
 
-        string(std::string &str, int core_length=CORE_LENGTH) {
+        string(std::string &str) {
             
             this->level = 1;
 
             std::string::iterator it1, it2;
-            int max_value, min_value;
+            int min_value;
 
             it1 = str.begin();
             int index = 0;
@@ -40,42 +42,42 @@ namespace lcp {
             for ( ; it1 + 2 <= str.end(); it1++, index++) {
                 
                 // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
-                if (coefficients[*(it1)] != coefficients[*(it1 + 1)] && coefficients[*(it1 + 1)] == coefficients[*(it1 + 2)]) {
+                if (coefficients[static_cast<unsigned char>(*it1)] != coefficients[static_cast<unsigned char>(*(it1 + 1))] && coefficients[static_cast<unsigned char>(*(it1 + 1))] == coefficients[static_cast<unsigned char>(*(it1 + 2))]) {
                     for (it2 = it1 + 3; it2 != str.end() && *(it2) == *(it2 - 1); it2++) {}
                     
                     if (it2 == str.end()) {
                         break;
                     }
                     it2++;
-                    core *new_core = new core(it1, it2, index);
-                    this->cores.push_back(new_core);
+                    base_core *new_core = new base_core(it1, it2, index);
+                    this->base_cores.push_back(new_core);
                     
                     continue;
                 }
 
-                if (it1 + core_length > str.end()) {
+                if (it1 + 3 > str.end()) {
                     break;
                 }
                 
                 // if there is no subsequent characters such as uxyzv where x!=y and y!=z
-                min_value = coefficients[*it1];
+                min_value = coefficients[static_cast<unsigned char>(*it1)];
 
-                for (it2 = it1 + 1; it2 != it1 + core_length; it2++) {
-                    if (min_value > coefficients[*it2]) {
-                        min_value = coefficients[*it2];
+                for (it2 = it1 + 1; it2 != it1 + 3; it2++) {
+                    if (min_value > coefficients[static_cast<unsigned char>(*it2)]) {
+                        min_value = coefficients[static_cast<unsigned char>(*it2)];
                     }
                 }
                 
                 if (
-                    ( coefficients[*(it1 + 2) ] < coefficients[*(it1 + 3) ] && coefficients[*(it1 + 2) ] < coefficients[*(it1 + 1) ] ) ||   // local minima
-                    ( coefficients[*(it1 + 2) ] > coefficients[*(it1 + 3) ] && coefficients[*(it1 + 2) ] > coefficients[*(it1 + 1) ] &&     // local maxima without immediate local minima neighbours
-                      coefficients[*(it1) ] <= coefficients[*(it1 + 1) ] && coefficients[*(it1 + 4) ] <= coefficients[*(it1 + 3) ] )
+                    ( coefficients[static_cast<unsigned char>(*(it1 + 2))] < coefficients[static_cast<unsigned char>(*(it1 + 3))] && coefficients[static_cast<unsigned char>(*(it1 + 2))] < coefficients[static_cast<unsigned char>(*(it1 + 1))] ) ||   // local minima
+                    ( coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 3))] && coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 1))] &&     // local maxima without immediate local minima neighbours
+                      coefficients[static_cast<unsigned char>(*(it1))] <= coefficients[static_cast<unsigned char>(*(it1 + 1))] && coefficients[static_cast<unsigned char>(*(it1 + 4))] <= coefficients[static_cast<unsigned char>(*(it1 + 3))] )
                 ) {
                     if ( min_value == -1 ) {
                         continue;
                     }
-                    core *new_core = new core(it1+1, it1+4, index+1);
-                    this->cores.push_back(new_core);
+                    base_core *new_core = new base_core(it1+1, it1+4, index+1);
+                    this->base_cores.push_back(new_core);
                 }
             }
         }
@@ -85,27 +87,76 @@ namespace lcp {
                 delete cores.front();
                 cores.pop_front();
             }
+            while (!base_cores.empty()) {
+                delete base_cores.front();
+                base_cores.pop_front();
+            }
         }
 
-        bool deepen(int core_length=CORE_LENGTH) {
+        bool deepen() {
 
             // Compress cores
-            for(int i=0; i < COMPRESSION_ITERATION_COUNT; i++) {
-                int max_bit_length = 0;
-                if (cores.size() < 2)
+            if (this->level == 1) {
+                if (this->base_cores.size() < 2)
                     return false;
 
-                std::deque<core*>::iterator it_curr = cores.end() - 1, it_left = cores.end()-2;
+                std::deque<base_core*>::iterator it_curr = this->base_cores.end() - 1, it_left = this->base_cores.end()-2;
+
+                for( ; it_curr != this->base_cores.begin(); it_curr--, it_left-- ) {
+                    unsigned int index = (*it_curr)->compress(*it_left);
+                    uchar bit_size = 0;
+                    unsigned int temp = index;
+                    
+                    while(temp != 0) {
+                        bit_size++;
+                        temp /= 2;
+                    }
+                    
+                    bit_size = bit_size > 2 ? bit_size : 2;
+                    lcp::core* new_core = new core(index, bit_size, (*it_curr)->start, (*it_curr)->end );
+                    this->cores.push_front(new_core);
+                }
+
+                delete base_cores.front();
+                base_cores.pop_front();  
+                
+                // std::cout << "printing compressed cores" << std::endl;
+                // for (core* c : this->cores){
+                //     std::cout << c << " ";
+                // }
+                // std::cout << std::endl;  
+            } 
+
+            int i = 0;
+
+            if (this->level == 1) {
+                i++;
+            }
+
+            for( ; i < COMPRESSION_ITERATION_COUNT; i++) {
+                
+                if (this->cores.size() < 2)
+                    return false;
+
+                std::deque<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end()-2;
 
                 for( ; it_curr != cores.begin(); it_curr--, it_left-- ) {
                     (*it_curr)->compress(*it_left);
-
-                    if (max_bit_length < (*it_curr)->block_number * SIZE_PER_BLOCK - (*it_curr)->start_index)
-                        max_bit_length = (*it_curr)->block_number * SIZE_PER_BLOCK - (*it_curr)->start_index;
                 }
 
-                delete cores.front();
-                cores.pop_front();    
+                delete this->cores.front();
+                this->cores.pop_front();   
+
+                // std::cout << "printing compressed cores" << std::endl;
+                // for (core* c : this->cores){
+                //     std::cout << c << " ";
+                // }
+                // std::cout << std::endl; 
+            }
+
+            while (!base_cores.empty()) {
+                delete base_cores.front();
+                base_cores.pop_front();
             }
 
             // Find cores from compressed cores.
@@ -116,27 +167,24 @@ namespace lcp {
 
             it1 = this->cores.begin();
             
-            while(it1 + 2 < this->cores.end() && *(*(it1+1)) == *(*(it1+2)) ) {
+            while( it1 + 1 < this->cores.end() && *(*(it1)) == *(*(it1+1)) ) {
                 it1++;
                 index++;
             }
 
-            while ( it1 - COMPRESSION_ITERATION_COUNT < this->cores.begin() ) {
+            while ( index < COMPRESSION_ITERATION_COUNT && it1 - 1 < this->cores.begin() ) {
                 it1++;
                 index++;
             }
-
-            // std::cout << "Starting from index: " << index << std::endl;
 
             for ( ; it1 + 2 < this->cores.end(); it1++, index++) {
-                // std::cout << "Processing " << (*it1)->start << " " << (*it1)->end << std::endl;
 
                 // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
                 if ( *(*(it1)) != *(*(it1 + 1)) && *(*(it1 + 1)) == *(*(it1 + 2)) ) {
 
-                    for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)) && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH; it2++ ) {}
+                    for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)); it2++ ) {}
                     
-                    if ( it2 < this->cores.end() && *(*(it2)) != *(*(it2 - 1)) && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH ) {
+                    if ( it2 < this->cores.end() && (*it2)->end - (*(it1))->start < MAXIMUM_LENGTH ) {
                         it2++;
                         core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                         temp_cores.push_back(new_core);
@@ -144,24 +192,24 @@ namespace lcp {
                     } 
                 }
 
-                if (it1 + core_length <= this->cores.end()) {
+                if (it1 + 3 < this->cores.end()) {
 
                     // if there is no subsequent characters such as xyzuv where z!=y and y!=z and z!=u and u!=v
                     if (
-                        ( *(*(it1 + 2)) < *(*(it1 + 3)) && *(*(it1 + 2)) < *(*(it1 + 1)) ) ||     // local minima
-                        ( *(*(it1 + 2)) > *(*(it1 + 3)) && *(*(it1 + 2)) > *(*(it1 + 1)) &&       // local maxima without immediate local minima neighbours
-                        *(*(it1)) <= *(*(it1 + 1)) && *(*(it1 + 4)) <= *(*(it1 + 3)) )    
+                        ( *(*(it1 + 1)) < *(*(it1 + 2)) && *(*(it1 + 1)) < *(*(it1)) ) ||     // local minima
+                        ( *(*(it1 + 1)) > *(*(it1 + 2)) && *(*(it1 + 1)) > *(*(it1)) &&       // local maxima without immediate local minima neighbours
+                        *(*(it1-1)) <= *(*(it1)) && *(*(it1 + 3)) <= *(*(it1 + 2)) )    
                     ) {
-                        // std::cout << "Found " << std::endl;
-                        for ( it2 = it1 - COMPRESSION_ITERATION_COUNT; it2 < it1 + 4 && (*it2)->start - (*(it2-1))->end < MAXIMUM_LENGTH; it2++ ) {}
-
-                        if ( it2 == it1 + 4 && (*(it2-1))->start - (*(it2-2))->end < MAXIMUM_LENGTH ) {
-                            core *new_core = new core(it1 + 1 - COMPRESSION_ITERATION_COUNT, it1 + 4);
+                        // std::cout << "Found nun-repetative " << index << std::endl;
+                        // if ( ( *(*(it1 + 1)) > *(*(it1 + 2)) && *(*(it1 + 1)) > *(*(it1)) &&       // local maxima without immediate local minima neighbours
+                        // *(*(it1-1)) <= *(*(it1)) && *(*(it1 + 3)) <= *(*(it1 + 2)) ) ) {
+                        //     std::cout << "maxima" << std::endl;
+                        // }
+                        
+                        if ( (*(it1 + 2))->end - (*(it1 - COMPRESSION_ITERATION_COUNT))->start < MAXIMUM_LENGTH ) {
+                            core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1 + 3);
                             temp_cores.push_back(new_core);
                         }
-                        // } else {
-                        //     std::cout << "Else " << (*it2)->start << " " << (*(it2-1))->end << std::endl;
-                        // }
                     }
                 }
             }
@@ -182,16 +230,28 @@ namespace lcp {
 
     std::ostream& operator<<(std::ostream& os, const string& element) {
         os << "Level: " << element.level << std::endl;
-        for (core* c : element.cores) {
-            os << c << " ";
+        if (element.level == 1) {
+            for (base_core* c : element.base_cores) {
+                os << c << " ";
+            }
+        } else {
+            for (core* c : element.cores) {
+                os << c << " ";
+            }
         }
         return os;
     };
 
     std::ostream& operator<<(std::ostream& os, const string* element) {
         os << "Level: " << element->level << std::endl;
-        for (core* c : element->cores) {
-            os << c << " ";
+        if (element->level == 1) {
+            for (base_core* c : element->base_cores) {
+                os << c << " ";
+            }
+        } else {
+            for (core* c : element->cores) {
+                os << c << " ";
+            }
         }
         return os;
     };
