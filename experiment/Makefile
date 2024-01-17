@@ -1,6 +1,7 @@
 HUMAN_V38_FASTA := human_v38.fasta
 PBSIM_MAF := *.maf.gz
 PBSIM_FASTQ := *.fastq.gz
+PREFIX := sd_merged_
 LCP_LEVEL := 4
 
 # Programs
@@ -88,10 +89,10 @@ processMaf: MKDIR_BIN MKDIR_RESULTS
 	@echo "Moving $(PROCESS_MAF) to $(EXECUTABLE_DIR)"
 	mv $(PROCESS_MAF) $(EXECUTABLE_DIR)
 	@echo "Processing files in parallel"
-	@find $(DATA_DIR) -name 'sd_merged_*.maf.gz' | parallel ' \
+	@find $(DATA_DIR) -name '$(PREFIX)*.maf.gz' | parallel ' \
 		file=$$(basename {}); \
 		pname=$$(echo $$file | sed 's/\.maf.gz/_processed.maf.gz/'); \
-		out_file=$(PROCESS_MAF)-$${file#sd_merged_}; \
+		out_file=$(PROCESS_MAF)-$${file#$(PREFIX)}; \
 		out_file=$$(echo $$out_file | sed 's/\.maf.gz/-out.txt/'); \
 		echo "Processing $${file}" > $(OUT_DIR)/$${out_file}; \
 		if [ -f $(RESULTS_DIR)/$${pname} ]; then \
@@ -107,10 +108,10 @@ fastqToFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(FASTQ_TO_FASTQ) $(FASTQ_TO_FASTQ)$(CXX) -lz
 	@echo "Moving $(FASTQ_TO_FASTQ) to $(EXECUTABLE_DIR)"
 	mv $(FASTQ_TO_FASTQ) $(EXECUTABLE_DIR)
-	@find $(DATA_DIR) -name 'sd_merged_*.fastq.gz' | parallel ' \
+	@find $(DATA_DIR) -name '$(PREFIX)*.fastq.gz' | parallel ' \
 		file=$$(basename $$filepath); \
 		rname=$$(echo $$file | sed 's/\.fastq.gz/.fasta.gz/'); \
-		out_file=$(FASTQ_TO_FASTQ)-$${file#sd_merged_}; \
+		out_file=$(FASTQ_TO_FASTQ)-$${file#$(PREFIX)}; \
 		out_file=$$(echo $$out_file | sed 's/\.fastq.gz/-out.txt/'); \
 		echo "Processing $$file" > $(OUT_DIR)/$${out_file}; \
 		if [ -f $(RESULTS_DIR)/$$rname ]; then \
@@ -126,10 +127,10 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(GOLD_STANDARD_GFA) $(GOLD_STANDARD_GFA)$(CXX) -lz
 	@echo "Moving $(GOLD_STANDARD_GFA) to $(EXECUTABLE_DIR)"
 	mv $(GOLD_STANDARD_GFA) $(EXECUTABLE_DIR)
-	@find $(DATA_DIR) -name 'sd_merged_*_processed.maf.gz' | parallel ' \
+	@find $(DATA_DIR) -name '$(PREFIX)*_processed.maf.gz' | parallel ' \
 		file=$$(basename $$filepath); \
 		rname=$$(echo $$file | sed 's/\.maf.gz/.gfa/'); \
-		out_file=$(GOLD_STANDARD_GFA)-$${file#sd_merged_}; \
+		out_file=$(GOLD_STANDARD_GFA)-$${file#$(PREFIX)}; \
 		out_file=$$(echo $$out_file | sed 's/\_processed.maf.gz/-out.txt/'); \
 		echo "Processing $$file" > $(OUT_DIR)/$${out_file};  \
 		if [ -f $(RESULTS_DIR)/$$rname ]; then \
