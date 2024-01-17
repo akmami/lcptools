@@ -20,7 +20,7 @@ namespace lcp {
 	    	return ( this->p[(this->start_index + index) / SIZE_PER_BLOCK] & ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) ) );
 		}
 
-		unsigned int compress(const base_core* other) {
+		uint compress(const base_core* other) {
 			
 			int o_block_index = other->block_number - 1, t_block_index = this->block_number - 1;
 			uchar o = other->p[o_block_index], t = this->p[t_block_index];
@@ -48,7 +48,7 @@ namespace lcp {
 			}
 			
 			// shift left by 1 bit and set last bit to difference
-			unsigned int index = 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
+			uint index = 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
 
 			return index;
 		}
@@ -146,8 +146,8 @@ namespace lcp {
 				free(p);
 		}
 
-		unsigned int label() {
-			unsigned int label = 0;
+		uint label() {
+			uint label = 0;
 			for( int i = this->block_number, index = 0; index > 31 - SIZE_PER_BLOCK && i <= 0; i++, index += SIZE_PER_BLOCK ) {
 
 				if (index > 23)
