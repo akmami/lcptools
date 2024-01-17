@@ -15,22 +15,16 @@ namespace lcp {
 		// Core related variables
 		int start;
 		int end;
-
-		// element at index:
-		// p[(start_index + index) / SIZE_PER_BLOCK] & ( 1 << ( SIZE_PER_BLOCK - ( (start_index + index) % SIZE_PER_BLOCK ) - 1 ) )
-
-		// set to index:
-		// p[(start_index + index) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (start_index + index) % SIZE_PER_BLOCK ) - 1 ) );
-
+		
 		bool get(int index) const {
 	    	return ( this->p[(this->start_index + index) / SIZE_PER_BLOCK] & ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) ) );
 		}
 
-		void compress(const base_core* other) {
+		unsigned int compress(const base_core* other) {
 			
 			int o_block_index = other->block_number - 1, t_block_index = this->block_number - 1;
 			uchar o = other->p[o_block_index], t = this->p[t_block_index];
-			int current_index = 0, new_bit_size = 0, temp = 0;
+			int current_index = 0, temp = 0;
 			
 			while (o_block_index > 0 && t_block_index > 0 && o == t) {
 				o = other->p[--o_block_index];
@@ -54,46 +48,9 @@ namespace lcp {
 			}
 			
 			// shift left by 1 bit and set last bit to difference
-			int index = 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
-			
-			// count bits requred to reperesent index
-			new_bit_size = 0;
-			temp = index;
-			while(temp != 0) {
-				new_bit_size++;
-				temp /= 2;
-			}
+			unsigned int index = 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
 
-			new_bit_size = new_bit_size > 2 ? new_bit_size : 2;
-
-			// Compressed value is: index
-
-			// Change this object according to  the new values represents compressed version.
-			this->block_number = (new_bit_size - 1) / SIZE_PER_BLOCK + 1;
-			this->start_index = this->block_number * SIZE_PER_BLOCK - new_bit_size;
-			this->p = NULL;
-			
-			// Make allocation for the bit representation
-			this->p = (unsigned char *)malloc( this->block_number );
-
-			if (this->p == NULL) {
-				throw std::bad_alloc();
-			}
-
-			// clear old dumps
-			for(int i=0; i<this->block_number; i++) {
-				this->p[i] = 0;
-			}
-
-			// Set bits block by block and avoid unnecesary assignments
-			int current_block = this->block_number - 1;
-
-			while ( index > 0 ) {
-				this->p[current_block] = (uchar)index;
-				index = index >> SIZE_PER_BLOCK;
-				current_block--;
-				index -= SIZE_PER_BLOCK;
-			}
+			return index;
 		}
 		
 		base_core(std::string::iterator it1, std::string::iterator it2, int start) {
@@ -119,7 +76,7 @@ namespace lcp {
 		    int coefficient, index = 0;
 		    
 		    for(std::string::iterator char_it = it1; char_it != it2; char_it++) {
-		        coefficient = coefficients[*char_it];
+		        coefficient = coefficients[static_cast<unsigned char>(*char_it)];
 		        for (int i = dict_bit_size - 1; i >= 0 ; i--) {
 		        	if (coefficient % 2) {
 		        		this->p[(this->start_index + index + i) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index + i) % SIZE_PER_BLOCK ) - 1 ) );
