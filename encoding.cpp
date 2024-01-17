@@ -61,7 +61,7 @@ namespace lcp {
             if (it->second < 0)
                 throw std::invalid_argument("Invalid value given.");
             
-            coefficients[it->first] = it->second;
+            coefficients[static_cast<unsigned char>(it->first)] = it->second;
             characters[it->second] = it->first;
             if (max < it->second) {
                 max = it->second;
