@@ -13,10 +13,15 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
+#include <vector>
+#include <chrono>
 
 #define DISTANCE_LENGTH     10000
 #define LCP_LEVEL           8
+#define KMER_SIZE           10
+#define WINDOW_SIZE         15
 
 /**
  * @brief Calculates the mean of distances.
@@ -163,6 +168,26 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
     }
 };
 
+void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec, std::chrono::milliseconds total_duration, int total_count ) {
+    
+    std::cout << "Level execution time:                         " << ( (double) total_duration.count() ) / 1000 << " sec" << std::endl;
+    std::cout << "Total number of minimizers:                   " << total_count << std::endl;
+
+    std::cout << "----------------------------------------------" << std::endl;
+
+    std::cout << "Mean of distances btw minimizers (w'out):     " << mean(distances) << std::endl; 
+    std::cout << "Std of distances btw minimizers (w'out):      " << stdev(distances) << std::endl;
+
+    std::cout << "----------------------------------------------" << std::endl;
+        
+    std::cout << "Mean of distances btw minimizers (with):      " << mean(distances, all_larger_distances_vec) << std::endl;
+    std::cout << "Std of distances btw minimizers (with):       " << stdev(distances, all_larger_distances_vec) << std::endl;
+
+    std::cout << "----------------------------------------------" << std::endl;
+
+    std::cout << "dist # not in [-10k,10k):                     " << all_larger_distances_vec.size() << std::endl;
+        
+};
 
 /**
  * @brief Prints a summary of the analysis to the console.
@@ -181,7 +206,7 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
  * @param all_durations Vector containing execution durations for each LCP level.
  * @param all_core_count Array of total number of cores for each LCP level.
  */
-void summary( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int (&all_core_count)[LCP_LEVEL]) {
+void summaryLCP( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int (&all_core_count)[LCP_LEVEL]) {
 
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
 
