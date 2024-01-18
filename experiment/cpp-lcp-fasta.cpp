@@ -13,7 +13,36 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distanc
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
         }
-        if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < 2*DISTANCE_LENGTH ) {
+        if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < DISTANCE_LENGTH ) {
+            all_distances[level][(*it)->start - (*(it-1))->end + DISTANCE_LENGTH]++;
+        } else {
+            all_larger_distances_vec[level].push_back((*it)->start - (*(it-1))->end);
+        }
+
+        if ( 0 <= (*it)->start - (*(it-1))->start && (*it)->start - (*(it-1))->start < DISTANCE_LENGTH ) {
+            all_distances_pos[level][(*it)->start - (*(it-1))->start]++;
+        } else {
+            all_larger_distances_pos_vec[level].push_back( (*it)->start - (*(it-1))->start );
+        }
+        
+        if ( 0 <= (*it)->end - (*it)->start && (*it)->end - (*it)->start < DISTANCE_LENGTH ) {
+            all_lengths[level][(*it)->end - (*it)->start] += 1;
+        } else {
+            all_larger_lengths_vec[level].push_back( (*it)->end - (*it)->start );
+        }
+    }
+};
+
+void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, int chrom_index ) {
+    
+    int level = 0;
+    
+    for ( std::deque<lcp::base_core*>::iterator it = str->base_cores.begin() + 1; it < str->base_cores.end(); it++ ) {
+
+        if ( (*it)->start < (*(it-1))->end ) {
+            overlapping_counts[level] += 1;
+        }
+        if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < DISTANCE_LENGTH ) {
             all_distances[level][(*it)->start - (*(it-1))->end + DISTANCE_LENGTH]++;
         } else {
             all_larger_distances_vec[level].push_back((*it)->start - (*(it-1))->end);
@@ -92,7 +121,8 @@ int main(int argc, char **argv) {
                     all_durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
                     all_core_count[0] += str->cores.size();
                     
-                    analyze(0, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
+                    // Base cores are stored in level 0 instead of cores. Hence, need seperation
+                    analyze(all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
                     
                     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
