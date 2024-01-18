@@ -213,7 +213,7 @@ void summary( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEV
             
         std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec[i].size() << std::endl;
         std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec[i].size() << std::endl; 
-        std::cout << "length # [0,10k):                         " << all_larger_lengths_vec[i].size() << std::endl;
+        std::cout << "length # not in [0,10k):                  " << all_larger_lengths_vec[i].size() << std::endl;
         std::cout << std::endl;
     }
 };
