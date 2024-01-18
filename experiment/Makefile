@@ -109,7 +109,7 @@ fastqToFastq: MKDIR_BIN MKDIR_RESULTS
 	@echo "Moving $(FASTQ_TO_FASTQ) to $(EXECUTABLE_DIR)"
 	mv $(FASTQ_TO_FASTQ) $(EXECUTABLE_DIR)
 	@find $(DATA_DIR) -name '$(PREFIX)*.fastq.gz' | parallel ' \
-		file=$$(basename $$filepath); \
+		file=$$(basename {}); \
 		rname=$$(echo $$file | sed 's/\.fastq.gz/.fasta.gz/'); \
 		out_file=$(FASTQ_TO_FASTQ)-$${file#$(PREFIX)}; \
 		out_file=$$(echo $$out_file | sed 's/\.fastq.gz/-out.txt/'); \
@@ -119,7 +119,7 @@ fastqToFastq: MKDIR_BIN MKDIR_RESULTS
 			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
 		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTQ) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file} 2>&1 \
+		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTQ) {} $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file} 2>&1 \
 	'
 
 goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
@@ -128,7 +128,7 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 	@echo "Moving $(GOLD_STANDARD_GFA) to $(EXECUTABLE_DIR)"
 	mv $(GOLD_STANDARD_GFA) $(EXECUTABLE_DIR)
 	@find $(DATA_DIR) -name '$(PREFIX)*_processed.maf.gz' | parallel ' \
-		file=$$(basename $$filepath); \
+		file=$$(basename {}); \
 		rname=$$(echo $$file | sed 's/\.maf.gz/.gfa/'); \
 		out_file=$(GOLD_STANDARD_GFA)-$${file#$(PREFIX)}; \
 		out_file=$$(echo $$out_file | sed 's/\_processed.maf.gz/-out.txt/'); \
@@ -138,7 +138,7 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 			rm -f $(RESULTS_DIR)/$$rname; \
         fi; \
 		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) $$filepath $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file}; \
+		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) {} $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file}; \
 	'
 
 ######################################################################
@@ -147,7 +147,7 @@ goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
 lcpFasta: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA)$(CXX); \
 	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR); \
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(HUMAN_V38_FASTA_PATH) | gzip > $(RESULTS_DIR)/$(CPP_LCP_FASTA)-output.txt
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(HUMAN_V38_FASTA_PATH) > $(RESULTS_DIR)/$(CPP_LCP_FASTA)-output.txt
 
 lcpFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX); \
@@ -160,8 +160,7 @@ lcpFastq: MKDIR_BIN MKDIR_RESULTS
 minimizerFasta: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_MINIMIZER_FASTA) $(CPP_MINIMIZER_FASTA)$(CXX) && \
 	mv $(CPP_MINIMIZER_FASTA) $(EXECUTABLE_DIR) && \
-	time $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA) $(HUMAN_V38_FASTA_PATH) > $(TEMP_DIR)/$(CPP_MINIMIZER_FASTA)-output.txt && \
-	mv $(TEMP_DIR)/$(CPP_MINIMIZER_FASTA)-output.txt $(RESULTS_DIR)/;
+	time $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA) $(HUMAN_V38_FASTA_PATH) > $(OUT_DIR)/$(CPP_MINIMIZER_FASTA)-output.txt 2>&1;
 
 minimizerFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -o $(CPP_MINIMIZER_FASTQ_ERROR) $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX) && \
