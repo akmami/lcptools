@@ -34,7 +34,19 @@
 
 
 /**
- * A function to remove '-' from the given string
+ * @brief Processes a string by removing '-'.
+ *
+ * This function is designed to modify a given character array in place. It removes
+ * all '-' characters from the array up to the first newline character '\n' or until
+ * BUFFERSIZE is reached. The purpose is typically to clean up a string by eliminating
+ * specific unwanted characters (e.g., in genomic data processing, '-' might represent
+ * a deletion or a gap in an alignment that needs to be removed for further analysis).
+ *
+ * The function maintains the order of the remaining characters and ensures the processed
+ * string is properly null-terminated.
+ *
+ * @param str A character array of size BUFFERSIZE. The array is modified in place; '-' 
+ *        characters are removed, and the array is truncated at the first newline character.
  */
 void process( char str[BUFFERSIZE] ) {
     
@@ -48,6 +60,7 @@ void process( char str[BUFFERSIZE] ) {
     str[writeIndex++] = '\n';
     str[writeIndex] = '\0';
 };
+
 
 int main(int argc, char **argv) {
 
