@@ -1,5 +1,5 @@
 /**
- * @file    GenomicDataAnalysis.cpp
+ * @file    helper.cpp
  * @brief   Statistical Analysis of Genomic Sequence Alignments
  *
  * This program performs statistical analysis on genomic sequence alignment data.
@@ -22,6 +22,7 @@
 #define LCP_LEVEL           8
 #define KMER_SIZE           10
 #define WINDOW_SIZE         15
+
 
 /**
  * @brief Calculates the mean of distances.
@@ -78,6 +79,26 @@ double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distance
 };
 
 
+/**
+ * @brief Calculates the shifted mean of a set of distances.
+ *
+ * This function computes the mean of an array of distances, where each distance is
+ * shifted by subtracting a predefined offset (DISTANCE_LENGTH). It is designed to
+ * handle cases where distances are symmetrically distributed around DISTANCE_LENGTH.
+ * The function also accommodates an optional vector of additional distances that are
+ * not subject to the shifting but are included in the mean calculation. The vector
+ * contains elements that are not in interval of [-DISTANCE_LENGTH, DISTANCE_LENGTH].
+ *
+ * @param distances A reference to an array of integers, size 2*DISTANCE_LENGTH,
+ *        containing the primary set of distances. Each distance is adjusted by
+ *        subtracting DISTANCE_LENGTH before being included in the mean calculation.
+ * @param larger_distances (Optional) A vector of integers for additional distances.
+ *        These distances are included directly in the mean calculation without any
+ *        shifting.
+ *
+ * @return The mean of the combined set of distances as a double. This mean includes
+ *         both the shifted values from the array and the direct values from the vector.
+ */
 double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = 0;
     double count = 0;
@@ -93,6 +114,32 @@ double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger
 };
 
 
+/**
+ * @brief Calculates the shifted standard deviation of a set of distances.
+ *
+ * This function computes the standard deviation for an array of distances, 
+ * with each distance shifted by subtracting a predefined offset (DISTANCE_LENGTH).
+ * It is particularly useful in scenarios where the distances are symmetrically 
+ * distributed around DISTANCE_LENGTH. The function also supports an optional vector 
+ * of additional distances, which are included directly in the standard deviation 
+ * calculation without shifting.
+ *
+ * The standard deviation is calculated based on the shifted mean of the distances,
+ * which is computed using the mean_shifted function. This ensures consistency in 
+ * the statistical analysis of the data.
+ *
+ * @param distances A reference to an array of integers, size 2*DISTANCE_LENGTH,
+ *        containing the primary set of distances. Each distance in this array 
+ *        is adjusted by subtracting DISTANCE_LENGTH before contributing to the
+ *        standard deviation calculation.
+ * @param larger_distances (Optional) A vector of integers for additional distances.
+ *        These distances are included directly in the standard deviation calculation 
+ *        without any shifting.
+ *
+ * @return The standard deviation of the combined set of distances as a double. This 
+ *         includes both the shifted values from the array and the direct values from 
+ *         the vector, based on the shifted mean.
+ */
 double stdev_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
     double m = mean_shifted(distances, larger_distances);
     double count = 0;
@@ -168,6 +215,27 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
     }
 };
 
+
+/**
+ * @brief Prints a summary of statistics for distances between minimizers.
+ *
+ * This function outputs a summary of the statistical analysis of distances between
+ * minimizers. It includes the execution time, total count of minimizers, and the
+ * statistical measures (mean and standard deviation) of distances. The statistics
+ * are computed both with and without considering additional larger distances that
+ * fall outside a predefined range.
+ *
+ * The summary is printed to the standard output (console) and is formatted to
+ * provide a clear and concise overview of the data.
+ *
+ * @param distances A reference to an array of integers, size DISTANCE_LENGTH,
+ *        representing the primary set of distances between minimizers.
+ * @param all_larger_distances_vec A vector of integers representing distances
+ *        between minimizers that are outside the predefined range.
+ * @param total_duration The total execution time of the minimizer analysis,
+ *        represented as a duration in milliseconds.
+ * @param total_count The total number of minimizers analyzed.
+ */
 void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec, std::chrono::milliseconds total_duration, int total_count ) {
     
     std::cout << "Level execution time:                         " << ( (double) total_duration.count() ) / 1000 << " sec" << std::endl;
@@ -188,6 +256,7 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_
     std::cout << "dist # not in [-10k,10k):                     " << all_larger_distances_vec.size() << std::endl;
         
 };
+
 
 /**
  * @brief Prints a summary of the analysis to the console.
