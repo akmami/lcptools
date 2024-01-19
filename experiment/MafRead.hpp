@@ -10,9 +10,4 @@ struct MafRead {
     long length;
 };
 
-
-bool mr_cmpr(const MafRead& a, const MafRead& b) {
-    return a.genome_num < b.genome_num || ( a.genome_num == b.genome_num && a.pos < b.pos);
-};
-
 #endif
