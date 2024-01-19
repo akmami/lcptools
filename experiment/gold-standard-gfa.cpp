@@ -29,11 +29,15 @@
 #include <algorithm>
 
 
+bool mr_cmpr(const MafRead& a, const MafRead& b) {
+    return a.genome_num < b.genome_num || ( a.genome_num == b.genome_num && a.pos < b.pos);
+};
+
 int main(int argc, char **argv) {
 
     // Validate arguments
-    if (argc != 3) {
-        std::cerr << "Wrong format: " << argv[0] << " [infile] [outfile]" << std::endl;
+    if (argc != 4) {
+        std::cerr << "Wrong format: " << argv[0] << " [infile] [outfile] [--all | --simple]" << std::endl;
         return -1;  
     }
 
@@ -49,6 +53,18 @@ int main(int argc, char **argv) {
     if ( !outfile.good() ) {
         std::cerr << "Error creating outfile " << argv[2] << std::endl;
         return -1;
+    }
+
+    std::string operation(argv[3]);
+    bool isAll = false;
+
+    if ( operation == "--all" ) {
+        isAll = true;
+    } else if ( operation == "--simple" ) {
+        isAll = false;
+    } else {
+        std::cerr << "Wrong input: " << argv[0] << " [infile] [outfile] [--all | --simple]" << std::endl;
+        return -1; 
     }
 
     std::vector<struct MafRead> reads;
@@ -125,17 +141,43 @@ int main(int argc, char **argv) {
     long overlap, prev_pos, prev_length, cur_pos, cur_length;
     
     // Write Links
-    for (std::vector<struct MafRead>::iterator it = reads.begin() + 1; it != reads.end(); ++it) {
-        
-        if ( (it - 1)->genome_num == (it)->genome_num ) {
-
-            prev_pos = (it - 1)->pos;
-            prev_length = (it - 1)->length;
-            cur_pos = it->pos;
-            cur_length = it->length;
+    if (isAll) {
+        for (std::vector<struct MafRead>::iterator it = reads.begin() + 1; it != reads.end(); ++it) {
             
-            if ( ( overlap = std::max((long)0, ( std::min(cur_pos + cur_length, prev_pos + prev_length) - std::max(cur_pos, prev_pos) ) ) ) > 0 ) {
-                outfile << "L\t" << (it-1)->id << "\t+\t" << it->id << "\t-\t" << overlap << "M\n";
+            if ( (it - 1)->genome_num == (it)->genome_num ) {
+
+                prev_pos = (it - 1)->pos;
+                prev_length = (it - 1)->length;
+                cur_pos = it->pos;
+                cur_length = it->length;
+                
+                if ( ( overlap = std::max((long)0, ( std::min(cur_pos + cur_length, prev_pos + prev_length) - std::max(cur_pos, prev_pos) ) ) ) > 0 ) {
+                    outfile << "L\t" << (it-1)->id << "\t+\t" << it->id << "\t-\t" << overlap << "M\n";
+                }
+            }
+        }
+    } else {
+        for (std::vector<MafRead>::iterator it1 = reads.begin(); it1 != reads.end(); ++it1) {
+            for (std::vector<MafRead>::iterator it2 = it1 + 1; it2 != reads.end(); ++it2) {
+
+                // Only compare reads from the same genome
+                if (it1->genome_num == it2->genome_num) {
+
+                    prev_pos = it1->pos;
+                    prev_length = it1->length;
+                    cur_pos = it2->pos;
+                    cur_length = it2->length;
+
+                    // Calculate overlap
+                    overlap = std::max((long)0, (std::min(cur_pos + cur_length, prev_pos + prev_length) - std::max(cur_pos, prev_pos)));
+
+                    // If there is an overlap, write the link
+                    if (overlap > 0) {
+                        outfile << "L\t" << it1->id << "\t+\t" << it2->id << "\t-\t" << overlap << "M\n";
+                    } else {
+                        break;
+                    }
+                }
             }
         }
     }
