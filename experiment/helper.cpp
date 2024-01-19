@@ -42,7 +42,7 @@ double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances
         m += i * distances[i];
         count += distances[i];
     }
-    for ( int i = 0; i < larger_distances.size(); i++ ) {
+    for ( uint i = 0; i < larger_distances.size(); i++ ) {
         m += larger_distances[i];
     }
     count += larger_distances.size();
@@ -72,7 +72,7 @@ double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distance
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
         variance += ( m - i ) * ( m - i ) * distances[i];
     }
-    for ( int i = 0; i < larger_distances.size(); i++ ) {
+    for ( uint i = 0; i < larger_distances.size(); i++ ) {
         variance += ( m - larger_distances[i] ) * ( m - larger_distances[i] );
     }
     return sqrt(variance / count);
@@ -106,7 +106,7 @@ double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger
         m += (i-DISTANCE_LENGTH) * distances[i];
         count += distances[i];
     }
-    for ( int i = 0; i < larger_distances.size(); i++ ) {
+    for ( uint i = 0; i < larger_distances.size(); i++ ) {
         m += larger_distances[i];
     }
     count += larger_distances.size();
@@ -151,7 +151,7 @@ double stdev_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> large
     for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
         variance += ( m - (i-DISTANCE_LENGTH) ) * ( m - (i-DISTANCE_LENGTH) ) * distances[i];
     }
-    for ( int i = 0; i < larger_distances.size(); i++ ) {
+    for ( uint i = 0; i < larger_distances.size(); i++ ) {
         variance += ( m - larger_distances[i] ) * ( m - larger_distances[i] );
     }
     return sqrt(variance / count);
@@ -185,7 +185,7 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
                 outfile << j - DISTANCE_LENGTH << ',';
             }
         }
-        for ( int j = 0; j < all_larger_distances_vec[i].size(); j++ ) {
+        for ( uint j = 0; j < all_larger_distances_vec[i].size(); j++ ) {
             outfile << all_larger_distances_vec[i][j] << ',';
         }
         outfile << std::endl;
@@ -196,7 +196,7 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
                 outfile << j << ',';
             }
         }
-        for ( int j = 0; j < all_larger_distances_pos_vec[i].size(); j++ ) {
+        for ( uint j = 0; j < all_larger_distances_pos_vec[i].size(); j++ ) {
             outfile << all_larger_distances_pos_vec[i][j] << ',';
         }
         outfile << std::endl;
@@ -207,7 +207,7 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
                 outfile << j << ',';
             }
         }
-        for ( int j = 0; j < all_larger_lengths_vec[i].size(); j++ ) {
+        for ( uint j = 0; j < all_larger_lengths_vec[i].size(); j++ ) {
             outfile << all_larger_lengths_vec[i][j] << ',';
         }
 
@@ -236,7 +236,7 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
  *        represented as a duration in milliseconds.
  * @param total_count The total number of minimizers analyzed.
  */
-void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec, std::chrono::milliseconds total_duration, int total_count ) {
+void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec, std::chrono::milliseconds total_duration, size_t total_count ) {
     
     std::cout << "Level execution time:                         " << ( (double) total_duration.count() ) / 1000 << " sec" << std::endl;
     std::cout << "Total number of minimizers:                   " << total_count << std::endl;
