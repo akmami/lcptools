@@ -6,51 +6,58 @@
 #include "helper.cpp"
 
 
+uint encode(std::string& read) {
+    uint res = 0;
+    for(std::string::iterator it = read.begin(); it != read.end(); it++) {
+        res *= 4;
+        res |= ( (*it) == 'A' ? 0 : ( (*it) == 'T' ? 3 : ( (*it) == 'C' ? 1 : 2 ) ) );
+    }
+    return res;
+};
 
-void analyze(std::vector<std::pair<std::string, int>> &minimizers, int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec ) {
+void analyze(std::vector<int> &minimizers, int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec ) {
 
-    std::vector<std::pair<std::string, int>>::iterator it = minimizers.begin() + 1;
-
-    for ( ; it != minimizers.end(); it++ ) {
-        if ( (*it).second - (*(it-1)).second < DISTANCE_LENGTH ) {
-            distances[(*it).second - (*(it-1)).second]++;
+    for ( std::vector<int>::iterator it = minimizers.begin() + 1; it != minimizers.end(); it++ ) {
+        if ( (*it) - (*(it-1)) < DISTANCE_LENGTH ) {
+            distances[(*it) - (*(it-1))]++;
         } else {
-            all_larger_distances_vec.push_back((*it).second - (*(it-1)).second);
+            all_larger_distances_vec.push_back((*it) - (*(it-1)));
         }
     }
 };
 
-std::vector<std::pair<std::string, int>> find_minimizers(const std::string& sequence) {
-    
-    std::vector<std::pair<std::string, int>> minimizers;
-    
-    if (sequence.length() < KMER_SIZE || WINDOW_SIZE < KMER_SIZE) return minimizers;
+void find_minimizers(const std::string& sequence, uint kmer_size, uint window_size, std::vector<int>& minimizers) {
+        
+    if (sequence.length() < kmer_size || window_size < kmer_size) return;
 
-    for (int i = 0; i <= sequence.length() - KMER_SIZE; ++i) {
-        std::string curr_kmer = sequence.substr(i, KMER_SIZE);
+    for ( uint i = window_size - kmer_size; i <= sequence.size() - window_size; i++ ) {
+        std::string curr_kmer = sequence.substr(i, kmer_size);
+        uint curr_val = encode(curr_kmer);
         bool isMinimizer = true;
 
         // Check if this k-mer is minimal in all positions in the window
-        for (int j = std::max(0, i - WINDOW_SIZE + 1); j <= std::min(i + WINDOW_SIZE - KMER_SIZE, static_cast<int>(sequence.length()) - KMER_SIZE); ++j) {
-            std::string window_kmer = sequence.substr(j, KMER_SIZE);
-            if (window_kmer < curr_kmer) {
+        for ( uint j = i - window_size + kmer_size; j <= i + kmer_size; j++ ) {
+            if ( j == i ) {
+                continue;
+            }
+            std::string window_kmer = sequence.substr(j, kmer_size);
+            uint win_val = encode(window_kmer);
+            if (win_val <= curr_val) {
                 isMinimizer = false;
                 break;
             }
         }
 
         if (isMinimizer) {
-            minimizers.push_back(std::make_pair(curr_kmer, i));
+            minimizers.push_back(i);
         }
     }
-
-    return minimizers;
 };
 
 int main(int argc, char **argv) {
 
-    if (argc < 2) {
-        std::cerr << " Wrong format: " << argv[0] << " [infile] " << std::endl;
+    if (argc != 4) {
+        std::cerr << " Wrong format: " << argv[0] << " [infile] [kmer-size] [window-size]" << std::endl;
         return -1;  
     }
 
@@ -60,6 +67,9 @@ int main(int argc, char **argv) {
         return -1;
     }
 
+    uint kmer_size = atoi(argv[2]);
+    uint window_size = atoi(argv[3]);
+
     // variables
     std::string line;
 
@@ -68,7 +78,7 @@ int main(int argc, char **argv) {
     int chrom_index = 0;
     sequence.reserve(250000000);
     std::chrono::milliseconds total_duration(0);
-    int total_count = 0;
+    size_t total_count = 0;
     int distances[DISTANCE_LENGTH] = {0};
     std::vector<int> all_larger_distances_vec;
     
@@ -86,7 +96,9 @@ int main(int argc, char **argv) {
                 
                 auto start = std::chrono::high_resolution_clock::now();
 
-                std::vector<std::pair<std::string, int>> minimizers = find_minimizers(sequence);
+                std::vector<int> minimizers;
+                
+                find_minimizers(sequence, kmer_size, window_size, minimizers);
 
                 auto end = std::chrono::high_resolution_clock::now();
 
@@ -94,6 +106,12 @@ int main(int argc, char **argv) {
                 total_count += minimizers.size();
 
                 analyze(minimizers, distances, all_larger_distances_vec);
+
+                std::cout << "Processing is done for " << id << std::endl;
+                std::cout << "Length of the processed sequence: " << sequence.size() << std::endl;
+                std::cout << std::endl;
+
+                sequence.clear();
             }
 
             if ( chrom_index > 23 ) {
@@ -102,10 +120,8 @@ int main(int argc, char **argv) {
             
             id = line.substr(1);
             std::cout << "Processing started for " << id << std::endl;
-            std::cout << std::endl;
             
-            continue;   
-            
+            continue;
         }
         else if (line[0] != '>'){
             sequence += line;
