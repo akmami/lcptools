@@ -26,6 +26,11 @@ public:
         return gzFile_ ? gzgets(gzFile_, buffer, len) : Z_NULL;
     }
 
+    // Rewind file
+    void rewind(){
+        gzrewind(gzFile_);
+    }
+
     // Print to compressed file
     int printf(const char* format, ...) {
         char buffer[BUFFERSIZE];
