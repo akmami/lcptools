@@ -101,8 +101,7 @@ int main(int argc, char **argv) {
 
         std::string sequence, id;
         sequence.reserve(250000000);
-        std::chrono::milliseconds total_duration;
-        
+                
         std::cout << "Program begins" << std::endl;
 
         while (getline(genome, line)) {
@@ -119,7 +118,7 @@ int main(int argc, char **argv) {
                     
                     auto extraction_end = std::chrono::high_resolution_clock::now();
                     all_durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-                    all_core_count[0] += str->cores.size();
+                    all_core_count[0] += str->base_cores.size();
                     
                     // Base cores are stored in level 0 instead of cores. Hence, need seperation
                     analyze(all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
