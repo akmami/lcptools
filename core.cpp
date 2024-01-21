@@ -86,14 +86,6 @@ namespace lcp {
 			this->start = start;
 			this->end = end;
 		}
-
-		void print() {
-			uchar bit_size = this->label_length;
-			while (bit_size--) {
-				std::cout << ( (this->label >> bit_size) & 1 );
-			}
-			std::cout << " ";
-		}
 	};
 
 
