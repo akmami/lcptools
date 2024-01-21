@@ -29,7 +29,7 @@
 #include <algorithm>
 
 
-bool mr_cmpr(const MafRead& a, const MafRead& b) {
+bool mr_cmpr(const struct MafRead& a,const struct MafRead& b) {
     return a.genome_num < b.genome_num || ( a.genome_num == b.genome_num && a.pos < b.pos);
 };
 
@@ -157,8 +157,8 @@ int main(int argc, char **argv) {
             }
         }
     } else {
-        for (std::vector<MafRead>::iterator it1 = reads.begin(); it1 != reads.end(); ++it1) {
-            for (std::vector<MafRead>::iterator it2 = it1 + 1; it2 != reads.end(); ++it2) {
+        for (std::vector<struct MafRead>::iterator it1 = reads.begin(); it1 != reads.end(); ++it1) {
+            for (std::vector<struct MafRead>::iterator it2 = it1 + 1; it2 != reads.end(); ++it2) {
 
                 // Only compare reads from the same genome
                 if (it1->genome_num == it2->genome_num) {
