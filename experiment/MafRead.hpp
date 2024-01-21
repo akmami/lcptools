@@ -1,5 +1,5 @@
-#ifndef GZFILE_HPP
-#define GZFILE_HPP
+#ifndef MAFREAD_HPP
+#define MAFREAD_HPP
 
 #define IDSIZE      128
 
