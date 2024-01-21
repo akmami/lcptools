@@ -13,8 +13,8 @@ namespace lcp {
 		uchar label_length;
 
 		// Core related variables
-		uint start;
-		uint end;
+		int start;
+		int end;
 
 		void compress(const core* other) {
 
@@ -47,8 +47,8 @@ namespace lcp {
 		
 		core(std::deque<lcp::base_core*>::iterator it1, std::deque<lcp::base_core*>::iterator it2) {
 			
-			this->start = (uint)(*it1)->start;
-			this->end = (uint)(*(it2-1))->end;
+			this->start = (*it1)->start;
+			this->end = (*(it2-1))->end;
 
 			this->label = 0;
 			this->label_length = 0;
@@ -80,7 +80,7 @@ namespace lcp {
 			this->label_length = this->label_length > 31 ? 32 : this->label_length;
 		}
 
-		core(uint label, uchar label_length, uint start, uint end) {
+		core(uint label, uchar label_length, int start, int end) {
 			this->label = label;
 			this->label_length = label_length;
 			this->start = start;
