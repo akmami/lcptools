@@ -1,5 +1,8 @@
 import random
 
+def custom_sort(t):
+    return (len(t[0]), t[0])
+
 def create_random_read(read_length=15000):
     return ''.join(random.choice(['A', 'T', 'G', 'C']) for _ in range(read_length))
 
@@ -24,6 +27,8 @@ def simulate_reads_with_depth(input_string, read_length=1000, depth=10, length_v
         current_index += step_size
         read_id += 1
 
+    random.shuffle(reads)
+
     return reads
 
 
@@ -35,3 +40,14 @@ for read in simulated_reads:
     print(read[2])
     print("+" + read[0] + "_" + str(read[1]))
     print("!" * len(read[2]))
+
+with open('../data/simulated.gfa', 'w') as f:
+    
+    reads = sorted(simulated_reads, key=custom_sort)
+    
+    for read in reads:
+        f.write("S\t" + read[0] + "_" + str(read[1]) + "\t.\n")
+
+    for i in range (1, len(reads)):
+        f.write("L\t" + reads[i-1][0] + "_" + str(reads[i-1][1]) + "\t+\t" + reads[i][0] + "_" + str(reads[i][1]) + "\t-\t0M\n")
+
