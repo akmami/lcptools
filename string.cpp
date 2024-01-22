@@ -48,6 +48,12 @@ namespace lcp {
                     if (it2 == str.end()) {
                         break;
                     }
+
+                    // check whether there is any invalid character encountered
+                    if ( coefficients[static_cast<unsigned char>(*it1)] == -1 || coefficients[static_cast<unsigned char>(*(it1+1))] == -1 || coefficients[static_cast<unsigned char>(*(it2-1))] == -1) {
+                        continue;
+                    }
+
                     it2++;
                     base_core *new_core = new base_core(it1, it2, index);
                     this->base_cores.push_back(new_core);
@@ -73,7 +79,7 @@ namespace lcp {
                     ( coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 3))] && coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 1))] &&     // local maxima without immediate local minima neighbours
                       coefficients[static_cast<unsigned char>(*(it1))] <= coefficients[static_cast<unsigned char>(*(it1 + 1))] && coefficients[static_cast<unsigned char>(*(it1 + 4))] <= coefficients[static_cast<unsigned char>(*(it1 + 3))] )
                 ) {
-                    if ( min_value == -1 ) {
+                    if ( min_value == -1 ) {    // invalid character encountered
                         continue;
                     }
                     base_core *new_core = new base_core(it1+1, it1+4, index+1);
@@ -100,10 +106,12 @@ namespace lcp {
                 if (this->base_cores.size() < 2)
                     return false;
 
-                std::deque<base_core*>::iterator it_curr = this->base_cores.end() - 1, it_left = this->base_cores.end()-2;
+                std::deque<base_core*>::iterator it_curr = this->base_cores.end() - 1, it_left = this->base_cores.end() - 2;
 
                 for( ; it_curr != this->base_cores.begin(); it_curr--, it_left-- ) {
                     unsigned int index = (*it_curr)->compress(*it_left);
+
+                    // determine bit count required to represent new core
                     uchar bit_size = 0;
                     unsigned int temp = index;
                     
@@ -111,25 +119,23 @@ namespace lcp {
                         bit_size++;
                         temp /= 2;
                     }
-                    
                     bit_size = bit_size > 2 ? bit_size : 2;
+
+                    // create new core
                     lcp::core* new_core = new core(index, bit_size, (*it_curr)->start, (*it_curr)->end );
                     this->cores.push_front(new_core);
                 }
 
-                delete base_cores.front();
-                base_cores.pop_front();  
-                
-                // std::cout << "printing compressed cores" << std::endl;
-                // for (core* c : this->cores){
-                //     std::cout << c << " ";
-                // }
-                // std::cout << std::endl;  
+                // cores are now represented by cores, hence, no need for base cores
+                while (!base_cores.empty()) {
+                    delete base_cores.front();
+                    base_cores.pop_front();
+                }
             } 
 
             int i = 0;
 
-            if (this->level == 1) {
+            if (this->level == 1) {     // if it is first level, then compression is already done once above
                 i++;
             }
 
@@ -138,25 +144,14 @@ namespace lcp {
                 if (this->cores.size() < 2)
                     return false;
 
-                std::deque<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end()-2;
+                std::deque<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end() - 2;
 
                 for( ; it_curr != cores.begin(); it_curr--, it_left-- ) {
                     (*it_curr)->compress(*it_left);
                 }
 
                 delete this->cores.front();
-                this->cores.pop_front();   
-
-                // std::cout << "printing compressed cores" << std::endl;
-                // for (core* c : this->cores){
-                //     std::cout << c << " ";
-                // }
-                // std::cout << std::endl; 
-            }
-
-            while (!base_cores.empty()) {
-                delete base_cores.front();
-                base_cores.pop_front();
+                this->cores.pop_front();
             }
 
             // Find cores from compressed cores.
@@ -199,13 +194,7 @@ namespace lcp {
                         ( *(*(it1 + 1)) < *(*(it1 + 2)) && *(*(it1 + 1)) < *(*(it1)) ) ||     // local minima
                         ( *(*(it1 + 1)) > *(*(it1 + 2)) && *(*(it1 + 1)) > *(*(it1)) &&       // local maxima without immediate local minima neighbours
                         *(*(it1-1)) <= *(*(it1)) && *(*(it1 + 3)) <= *(*(it1 + 2)) )    
-                    ) {
-                        // std::cout << "Found nun-repetative " << index << std::endl;
-                        // if ( ( *(*(it1 + 1)) > *(*(it1 + 2)) && *(*(it1 + 1)) > *(*(it1)) &&       // local maxima without immediate local minima neighbours
-                        // *(*(it1-1)) <= *(*(it1)) && *(*(it1 + 3)) <= *(*(it1 + 2)) ) ) {
-                        //     std::cout << "maxima" << std::endl;
-                        // }
-                        
+                    ) { 
                         if ( (*(it1 + 2))->end - (*(it1 - COMPRESSION_ITERATION_COUNT))->start < MAXIMUM_LENGTH ) {
                             core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1 + 3);
                             temp_cores.push_back(new_core);
