@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     long overlap, prev_pos, prev_length, cur_pos, cur_length;
     
     // Write Links
-    if (isAll) {
+    if (!isAll) {
         for (std::vector<struct MafRead>::iterator it = reads.begin() + 1; it != reads.end(); ++it) {
             
             if ( (it - 1)->genome_num == (it)->genome_num ) {
