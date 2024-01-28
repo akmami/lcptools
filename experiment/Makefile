@@ -132,7 +132,7 @@ lcpFastq: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
 	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
 	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}".maf.gz "{2}" > $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/extract-chrom_85_chrom_1.fastq.gz"{1}".maf.gz "{2}" > $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7
 
 ######################################################################
 # MINIMIZER
@@ -183,4 +183,4 @@ extractChrom:
 	$(GXX) -Wall -o $(EXTRACT_CHROM) $(EXTRACT_CHROM)$(CXX) -lz;
 	@echo "Moving $(EXTRACT_CHROM) to $(EXECUTABLE_DIR)";
 	mv $(EXTRACT_CHROM) $(EXECUTABLE_DIR) && \
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM) $(DATA_DIR)/sd_merged_"{1}".fastq.gz $(RESULTS_DIR)/$(EXTRACT_CHROM)_"{1}"_chrom_"{2}".fastq.gz "{2} ::: 85 90 95 99 ::: 2;
+	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/$(EXTRACT_CHROM)_"{1}"_chrom_"{2}".maf.gz "{2} ::: 85 90 95 99 ::: 1;

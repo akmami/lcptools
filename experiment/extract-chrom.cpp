@@ -15,7 +15,10 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include "GzFile.hpp"
+
+#define FIRST_LINE_BUFFERSIZE   128
 
 
 /**
@@ -27,7 +30,7 @@
  * arguments, handles file operations, performs the filtering based on the chromosome ID
  * specified, and ensures efficient and accurate processing.
  *
- * Usage: <ExecutableName> <InputFile.gz> <OutputFile.gz> <ChromosomeIndex>
+ * Usage: <ExecutableName> <InputFile.maf.gz> <OutputFile.maf.gz> <ChromosomeIndex>
  */
 int main(int argc, char* argv[]) {
     
@@ -53,11 +56,16 @@ int main(int argc, char* argv[]) {
 
     uint chrom = std::stoul( argv[3] );
 
-    char buffer[BUFFERSIZE];
+    char buffer1[FIRST_LINE_BUFFERSIZE];
+    char buffer2[BUFFERSIZE];
+    char buffer3[BUFFERSIZE];
+    std::istringstream iss;
+
+    std::string id;
 
     while (true) {
         
-        if ( infile.gets(buffer, BUFFERSIZE) == Z_NULL) {
+        if ( infile.gets(buffer1, FIRST_LINE_BUFFERSIZE) == Z_NULL) {
             // End of file or an error
             if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
@@ -65,30 +73,30 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        std::string id(buffer);
+        infile.gets(buffer2, BUFFERSIZE);
+
+        infile.gets(buffer3, BUFFERSIZE);
+
+        std::istringstream iss(buffer3);
+
+        iss >> id >> id; 
 
         size_t firstUnderscore = id.find('_');
             
-        if (chrom == std::stoul( id.substr(2, firstUnderscore - 2) ) ) {
-            outfile.printf("%s", buffer);       // Write id
-            
-            infile.gets(buffer, BUFFERSIZE);
-            outfile.printf("%s", buffer);       // Write the sequence
+        if (chrom == std::stoul( id.substr(1, firstUnderscore - 1) ) ) {
+            outfile.printf("%s", buffer1);      // Write 'a'
 
-            infile.gets(buffer, BUFFERSIZE);    // Skip the '+' line
-            outfile.printf("%s", buffer);
+            outfile.printf("%s", buffer2);      // Write the sequence 1
 
-            infile.gets(buffer, BUFFERSIZE);    // Skip the quality line
-            outfile.printf("%s", buffer);
+            outfile.printf("%s", buffer3);      // Write the sequence 2
+
+            infile.gets(buffer1, FIRST_LINE_BUFFERSIZE);
+            outfile.printf("%s", buffer1);      // Write last line
 
             continue;
-        } 
+        }
 
-        infile.gets(buffer, BUFFERSIZE);
-
-        infile.gets(buffer, BUFFERSIZE);
-
-        infile.gets(buffer, BUFFERSIZE);
+        infile.gets(buffer1, FIRST_LINE_BUFFERSIZE);
     }
 
     return 0;
