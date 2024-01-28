@@ -120,24 +120,24 @@ int main(int argc, char **argv) {
                 std::vector<int> str_original;
                 std::vector<int> str_error;
                 
-                int kmers1[genome_original.size() - KMER_SIZE + 1];
+                int kmers1[genome_original.size() - kmer_size + 1];
                 int curr_value = 0, mask = 2 ** 30 - 1;
                 std::string::iterator it = genome_original.begin();
-                for ( ; it + KMER_SIZE < genome_original.end(); it++ ) {
+                for ( ; it + kmer_size < genome_original.end(); it++ ) {
                     curr_value *= dict_bit_size;
                     curr_value |= coefficients[(*it)];
                 }
 
-                int kmers2[genome_error.size() - KMER_SIZE + 1];
+                int kmers2[genome_error.size() - kmer_size + 1];
                 curr_value = 0;
                 it = genome_error.begin();
-                for ( ; it + KMER_SIZE < genome_error.end(); it++ ) {
+                for ( ; it + kmer_size < genome_error.end(); it++ ) {
                     curr_value *= dict_bit_size;
                     curr_value |= coefficients[(*it)];
                 }
                 
                 bool isMinimizer;
-                for ( int i = WINDOW_SIZE; i + KMER_SIZE + WINDOW_SIZE < genome_original.size(); i++) {
+                for ( int i = WINDOW_SIZE; i + kmer_size + WINDOW_SIZE < genome_original.size(); i++) {
                     isMinimizer + true;
                     for ( int j = i - 1; i - WINDOW_SIZE < j; j-- ) {
                         if ( kmers1[j] < kmers1[i] ) {
@@ -156,7 +156,7 @@ int main(int argc, char **argv) {
                         str_original.push_back(kmers1[i]);
                 }
 
-                for ( int i = WINDOW_SIZE; i + KMER_SIZE + WINDOW_SIZE < genome_error.size(); i++) {
+                for ( int i = WINDOW_SIZE; i + kmer_size + WINDOW_SIZE < genome_error.size(); i++) {
                     isMinimizer + true;
                     for ( int j = i - 1; i - WINDOW_SIZE < j; j-- ) {
                         if ( kmers2[j] < kmers2[i] ) {
