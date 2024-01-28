@@ -66,26 +66,29 @@ int main(int argc, char* argv[]) {
         }
 
         std::string id(buffer);
-        
+
         size_t firstUnderscore = id.find('_');
-
-        if (firstUnderscore != std::string::npos ) {
             
-            if (chrom == std::stoul( id.substr(2, firstUnderscore - 2) ) ) {
-                outfile.printf("%s", buffer);       // Write id
-                
-                infile.gets(buffer, BUFFERSIZE);
-                outfile.printf("%s", buffer);       // Write the sequence
+        if (chrom == std::stoul( id.substr(2, firstUnderscore - 2) ) ) {
+            outfile.printf("%s", buffer);       // Write id
+            
+            infile.gets(buffer, BUFFERSIZE);
+            outfile.printf("%s", buffer);       // Write the sequence
 
-                infile.gets(buffer, BUFFERSIZE);    // Skip the '+' line
-                outfile.printf("%s", buffer);
+            infile.gets(buffer, BUFFERSIZE);    // Skip the '+' line
+            outfile.printf("%s", buffer);
 
-                infile.gets(buffer, BUFFERSIZE);    // Skip the quality line
-                outfile.printf("%s", buffer);
+            infile.gets(buffer, BUFFERSIZE);    // Skip the quality line
+            outfile.printf("%s", buffer);
 
-                break;
-            }
-        }
+            continue;
+        } 
+
+        infile.gets(buffer, BUFFERSIZE);
+
+        infile.gets(buffer, BUFFERSIZE);
+
+        infile.gets(buffer, BUFFERSIZE);
     }
 
     return 0;
