@@ -19,7 +19,7 @@
  * Note: The constant BUFFERSIZE is defined in the GzFile.hpp file, specifying
  * the size of the buffer used for reading from the input file.
  *
- * Usage: <ExecutableName> <InputFile.gz> <OutputFile.gz>
+ * Usage: <ExecutableName> <InputFile.fastq.gz> <OutputFile.fasta.gz>
  */
 
 #include <iostream>
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
 
     while (true) {
         
-        if ( infile.gets(buffer, sizeof(buffer)) == Z_NULL) {
+        if ( infile.gets(buffer, BUFFERSIZE) == Z_NULL) {
             // End of file or an error
             if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
@@ -63,11 +63,11 @@ int main(int argc, char* argv[]) {
 
         outfile.printf(">%s", buffer + 1);        // Replace '@' with '>'
 
-        infile.gets(buffer, sizeof(buffer));
+        infile.gets(buffer, BUFFERSIZE);
         outfile.printf("%s", buffer);             // Write the sequence
         
-        infile.gets(buffer, sizeof(buffer));        // Skip the '+' line
-        infile.gets(buffer, sizeof(buffer));        // Skip the quality line
+        infile.gets(buffer, BUFFERSIZE);        // Skip the '+' line
+        infile.gets(buffer, BUFFERSIZE);        // Skip the quality line
     }
 
     return 0;
