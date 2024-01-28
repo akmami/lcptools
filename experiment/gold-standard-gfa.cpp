@@ -15,7 +15,7 @@
  * - Outputs the processed reads, including segments and links, to the specified 
  *   output file in a defined format.
  *
- * Usage: <ExecutableName> <InputMafFile> <OutputFile>
+ * Usage: <ExecutableName> <InputMafFile.maf.gz> <OutputFile.gfa>
  */
 
 
@@ -33,6 +33,22 @@ bool mr_cmpr(const struct MafRead& a,const struct MafRead& b) {
     return a.genome_num < b.genome_num || ( a.genome_num == b.genome_num && a.pos < b.pos);
 };
 
+
+/**
+ * @brief The entry point of the program for parsing and processing MAF files into GFA format.
+ *
+ * The main function coordinates the processing of a MAF file. It reads the file, extracts
+ * read information, and sorts these reads based on genome numbers and positions. The program
+ * supports two modes of operation: '--all' for exhaustive link generation between reads and 
+ * '--simple' for generating links only between consecutive reads. The processed data is then 
+ * outputted to a GFA formatted file.
+ *
+ * Usage: <ExecutableName> <InputMafFile.maf.gz> <OutputFile.gfa> [--all | --simple]
+ *
+ * @param argc The number of command-line arguments.
+ * @param argv The array of command-line arguments.
+ * @return Returns 0 on successful execution, -1 on argument validation failure, or 1 on file operation errors.
+ */
 int main(int argc, char **argv) {
 
     // Validate arguments
@@ -52,7 +68,7 @@ int main(int argc, char **argv) {
     std::ofstream outfile(argv[2]);
     if ( !outfile.good() ) {
         std::cerr << "Error creating outfile " << argv[2] << std::endl;
-        return -1;
+        return 1;
     }
 
     std::string operation(argv[3]);
@@ -81,7 +97,7 @@ int main(int argc, char **argv) {
 
     while (true) {
 
-        if ( infile.gets(buffer, sizeof(buffer)) == Z_NULL ) {
+        if ( infile.gets(buffer, BUFFERSIZE) == Z_NULL ) {
             // End of file or an error
             if ( ! infile.eof() ) {
                 std::cerr << "Error reading file." << std::endl;
