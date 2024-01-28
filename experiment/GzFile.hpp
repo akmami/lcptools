@@ -3,7 +3,9 @@
 
 #include <zlib.h>
 
-#define BUFFERSIZE  100000
+#ifndef BUFFERSIZE
+#define BUFFERSIZE      100000
+#endif
 
 
 class GzFile {
