@@ -17,14 +17,15 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include "../string.cpp"
 #include "process.cpp"
 #include "GzFile.hpp"
 
 
-#define READ_COUNT              1000
+#define READ_COUNT              10
 #define MAX_DISTANCE_DIFF       30
-#define RESULT_ARRAY_SIZE       5000
+#define RESULT_ARRAY_SIZE       11
 
 
 /**
@@ -41,17 +42,31 @@
  */
 void analyze(lcp::string* seq1, lcp::string* seq2, int& match, int& total ) {
     
-    std::deque<lcp::core *>::iterator it1;
-    std::deque<lcp::core *>::iterator lastMatchIt = seq2->cores.begin() - 1;
+    if ( seq2->cores.empty() ) { 
+        return;
+    }
 
-    for(std::deque<lcp::core *>::iterator it1 = seq1->cores.begin(); it1 != seq1->cores.end(); it1++ ) {
-        for(std::deque<lcp::core *>::iterator it2 = lastMatchIt + 1; it2 != seq2->cores.end(); it2++ ) {
-            if ( *(*it1) == *(*it2) && ( (*it1)->start < (*it2)->start ? (*it2)->start - (*it1)->start : (*it1)->start - (*it2)->start) < MAX_DISTANCE_DIFF ) {
+    std::vector<lcp::core *>::iterator lastMatchIt = seq2->cores.begin();
+    bool isFound = false;
+
+    for(std::vector<lcp::core *>::iterator it1 = seq1->cores.begin(); it1 != seq1->cores.end(); it1++ ) {
+        for(std::vector<lcp::core *>::iterator it2 = ( isFound ? lastMatchIt + 1 : lastMatchIt ); it2 != seq2->cores.end(); it2++ ) {
+            if ( *(*it1) == *(*it2) && std::abs( (*it1)->start - (*it2)->start) < MAX_DISTANCE_DIFF ) {
                 match++;
                 lastMatchIt = it2;
+                isFound = true;
                 break;
             }
         }
+
+        
+        while ( lastMatchIt != seq2->cores.end() && MAX_DISTANCE_DIFF < (*it1)->start - (*lastMatchIt)->start ) {
+            if( std::next(lastMatchIt) == seq2->cores.end() ) {
+                break;
+            }
+            lastMatchIt++;
+        }
+        
 
         total++;
     }
@@ -94,13 +109,13 @@ int main(int argc, char **argv) {
     int match, total;
     
 	// read file
-    std::cout << "Match:\tTotal" << std::endl;
 
     char buffer[BUFFERSIZE];
     std::istringstream iss;
 
     uint results[RESULT_ARRAY_SIZE] = {0};
     bool isFirstValid, isSecondValid;
+    double ratio;
 
     while ( true ) {
 
@@ -137,39 +152,57 @@ int main(int argc, char **argv) {
         // Process sequences
         lcp::string *str_original = new lcp::string(str1);
         lcp::string *str_error = new lcp::string(str2);
-
-        for ( int i = 1; i < lcp_level; i++ ) {
-            str_original->deepen();
-            str_error->deepen();
-        }
+        
+        str_original->deepen(lcp_level);
+        str_error->deepen(lcp_level);
 
         match = 0;
         total = 0;
         analyze( str_original, str_error, match, total );
 
-        // std::cout << str_original << std::endl;
-        // std::cout << str_error << std::endl;
-
         delete str_original;
         delete str_error;
 
-        std::cout << match << ":\t\t" << total << std::endl;
+        ratio = 0;
 
-        results[match]++;
+        if (total) {
+            ratio = (double) match / total;
+        }
 
         read_count++;
 
-        if ( read_count == READ_COUNT ){
-            break;
+        if ( ratio < 0.001 ) {
+            results[0]++;
+        } else if ( ratio < 0.002 ) {
+            results[1]++;
+        } else if ( ratio < 0.004 ) {
+            results[2]++;
+        } else if ( ratio < 0.008 ) {
+            results[3]++;
+        } else if ( ratio < 0.016 ) {
+            results[4]++;
+        } else if ( ratio < 0.032 ) {
+            results[5]++;
+        } else if ( ratio < 0.064 ) {
+            results[6]++;
+        } else if ( ratio < 0.128 ) {
+            results[7]++;
+        } else if ( ratio < 0.256 ) {
+            results[8]++;
+        } else if ( ratio < 0.512 ) {
+            results[9]++;
+        } else {
+            results[10]++;
         }
+        // if ( read_count == READ_COUNT ){
+        //     break;
+        // }
     }
 
-    std::cout << "Processed reads: " << read_count << " lcp_level" << lcp_level << std::endl;
+    std::cout << "Processed read count: " << read_count << ", LCP level: " << lcp_level << std::endl;
 
     for ( uint i = 0; i < RESULT_ARRAY_SIZE; i++ ) {
-        if ( results[i] != 0 ) {
-            std::cout << i << ": " << results[i] << ",\t";
-        }
+        std::cout << results[i] << ", " << std::endl;
     }
 
     return 0;
