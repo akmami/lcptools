@@ -227,13 +227,13 @@ namespace lcp {
             return true;
         }
 
-        bool deepen(int count) {
+        bool deepen(int lcp_level) {
 
-            if ( count < 1 ) {
+            if ( lcp_level <= this->level ) {
                 return false;
             }
 
-            for (int i = 0; i < count; i++ ) {
+            while ( this->level <= lcp_level) {
                 this->deepen();
             }
 
