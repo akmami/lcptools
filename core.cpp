@@ -1,7 +1,7 @@
 #ifndef   CORE_CPP
 #define   CORE_CPP
 
-#include <deque>
+#include <vector>
 #include "base_core.cpp"
 
 namespace lcp {
@@ -45,7 +45,7 @@ namespace lcp {
 			this->label_length = this->label_length > 2 ? this->label_length : 2;
 		}
 		
-		core(std::deque<lcp::base_core*>::iterator it1, std::deque<lcp::base_core*>::iterator it2) {
+		core(std::vector<lcp::base_core*>::iterator it1, std::vector<lcp::base_core*>::iterator it2) {
 			
 			this->start = (*it1)->start;
 			this->end = (*(it2-1))->end;
@@ -56,7 +56,7 @@ namespace lcp {
 			// Concatinating cores
 		    uchar index = 0;
 		    
-		    for( std::deque<base_core*>::iterator it = it2-1; it != it1-1; it-- ) {
+		    for( std::vector<base_core*>::iterator it = it2-1; it != it1-1; it-- ) {
 				this->label |= (*it)->label() << index;
 				index += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
 			}
@@ -64,7 +64,7 @@ namespace lcp {
 			this->label_length = index > 31 ? 32 : index + 1;
 		}
 
-		core(std::deque<core*>::iterator it1, std::deque<core*>::iterator it2) {
+		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2) {
 			this->start = (*it1)->start;
 			this->end = (*(it2-1))->end;
 			
@@ -72,7 +72,7 @@ namespace lcp {
 			this->label_length = 0;
 			
 			// Concatinating cores		    
-		    for( std::deque<core*>::iterator it = it2-1; it != it1-1; it-- ) {
+		    for( std::vector<core*>::iterator it = it2-1; it != it1-1; it-- ) {
 				this->label |= (*it)->label << this->label_length;
 				this->label_length += (*it)->label_length;
 			}

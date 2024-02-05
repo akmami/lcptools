@@ -1,7 +1,7 @@
 #ifndef   BASE_CORE_CPP
 #define   BASE_CORE_CPP
 
-#include <deque>
+#include <vector>
 
 namespace lcp {
 
@@ -87,12 +87,12 @@ namespace lcp {
 		    }
 		}
 
-		base_core(std::deque<base_core*>::iterator it1, std::deque<base_core*>::iterator it2) {
+		base_core(std::vector<base_core*>::iterator it1, std::vector<base_core*>::iterator it2) {
 			this->start = (*it1)->start;
 			this->end = (*(it2-1))->end;
 
 			int bit_size = 0;
-			for ( std::deque<base_core*>::iterator it = it1; it != it2; it++ ) {
+			for ( std::vector<base_core*>::iterator it = it1; it != it2; it++ ) {
 				bit_size += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
 			}
 			
@@ -112,7 +112,7 @@ namespace lcp {
 			}
 
 			int index = block_number * SIZE_PER_BLOCK - 1;
-			for( std::deque<base_core*>::iterator it = it2-1; it != it1-1; it-- ) {
+			for( std::vector<base_core*>::iterator it = it2-1; it != it1-1; it-- ) {
 
 				for ( int i = (*it)->block_number-1; i >= 0; i--) {
 					if ( index > SIZE_PER_BLOCK ){
