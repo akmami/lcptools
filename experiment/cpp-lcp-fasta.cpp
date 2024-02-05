@@ -47,7 +47,7 @@
  */
 void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, int chrom_index ) {
     
-    for ( std::deque<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
+    for ( std::vector<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
 
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
@@ -99,7 +99,7 @@ void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEV
     
     int level = 0;
     
-    for ( std::deque<lcp::base_core*>::iterator it = str->base_cores.begin() + 1; it < str->base_cores.end(); it++ ) {
+    for ( std::vector<lcp::base_core*>::iterator it = str->base_cores.begin() + 1; it < str->base_cores.end(); it++ ) {
 
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
