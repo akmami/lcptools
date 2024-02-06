@@ -167,14 +167,14 @@ lcpInvertedIndexing:;
 	$(GXX) -Wall -o $(LCP_INVERTED_BASED) $(LCP_INVERTED_BASED)$(CXX) -lz;
 	@echo "Moving $(LCP_INVERTED_BASED) to $(EXECUTABLE_DIR)";
 	mv $(LCP_INVERTED_BASED) $(EXECUTABLE_DIR);
-	$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_BASED) $(DATA_DIR)/sd_merged_99.fastq.gz $(RESULTS_DIR)/sd_merged_99_test_result.txt.gz;
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_BASED) $(DATA_DIR)/sd_merged_"{1}"_chr20.maf.gz "{2}" > $(RESULTS_DIR)/sd_merged_"{1}"_chr20_"{2}"_output.txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
 
 ######################################################################
 # OTHER
 ######################################################################
 compareGFAs:
 	@echo "Compiling $(COMPARE_GFA)$(CXX)";
-	$(GXX) -Wall -g -o $(COMPARE_GFA) $(COMPARE_GFA)$(CXX);
+	$(GXX) -Wall -o $(COMPARE_GFA) $(COMPARE_GFA)$(CXX);
 	@echo "Moving $(COMPARE_GFA) to $(EXECUTABLE_DIR)";
 	mv $(COMPARE_GFA) $(EXECUTABLE_DIR) && \
 	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GFA) $(RESULTS_DIR)/sd_merged_99_gold.gfa $(RESULTS_DIR)/sd_merged_99_trie.gfa;
