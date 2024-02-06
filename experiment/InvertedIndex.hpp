@@ -81,7 +81,7 @@ public:
         // This structure will hold the current position in the list of document IDs for each term
         iterators_type iterators;
 
-        iterators.reserve(lcp->cores.size())
+        iterators.reserve(lcp->cores.size());
         
         for (std::vector<lcp::core *>::iterator core = lcp->cores.begin(); core != lcp->cores.end(); core++) {
             
