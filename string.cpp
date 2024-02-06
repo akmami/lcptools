@@ -109,14 +109,20 @@ namespace lcp {
         }
 
         bool deepen() {
-
+            
             // compress cores
             if ( this->level == 1 ) {
 
                 this->cores.reserve( this->base_cores.size() / CONSTANT_FACTOR );
                 
-                if ( this->base_cores.size() < 2 )
+                if ( this->base_cores.size() < 2 ) {
+                    for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
+                        delete *it;
+                    }
+                    this->base_cores.clear();
+                    this->level++;
                     return false;
+                }
 
                 std::vector<base_core*>::iterator it_curr = this->base_cores.begin() + 1, it_left = this->base_cores.begin();
 
@@ -153,8 +159,14 @@ namespace lcp {
 
             for( ; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
                 
-                if (this->cores.size() < 2)
+                if (this->cores.size() < 2) {
+                    for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+                        delete *it;
+                    }
+                    this->cores.clear();
+                    this->level++;
                     return false;
+                }
 
                 std::vector<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end() - 2;
 
@@ -233,7 +245,7 @@ namespace lcp {
                 return false;
             }
 
-            while ( this->level <= lcp_level) {
+            while ( this->level < lcp_level ) {
                 this->deepen();
             }
 
