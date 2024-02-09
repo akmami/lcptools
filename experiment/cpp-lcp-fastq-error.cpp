@@ -23,7 +23,7 @@
 #include "GzFile.hpp"
 
 
-#define READ_COUNT              10
+#define READ_COUNT              100
 #define MAX_DISTANCE_DIFF       30
 #define RESULT_ARRAY_SIZE       11
 
@@ -41,34 +41,36 @@
  * @param match Reference to an integer that stores the count of matches found.
  */
 void analyze(lcp::string* seq1, lcp::string* seq2, int& match, int& total ) {
-    
+        
     if ( seq2->cores.empty() ) { 
         return;
     }
 
-    std::vector<lcp::core *>::iterator lastMatchIt = seq2->cores.begin();
-    bool isFound = false;
+    std::vector<lcp::core *>::iterator lastMatchIt = seq2->cores.begin(), it1, it2;
 
-    for(std::vector<lcp::core *>::iterator it1 = seq1->cores.begin(); it1 != seq1->cores.end(); it1++ ) {
-        for(std::vector<lcp::core *>::iterator it2 = ( isFound ? lastMatchIt + 1 : lastMatchIt ); it2 != seq2->cores.end(); it2++ ) {
-            if ( *(*it1) == *(*it2) && std::abs( (*it1)->start - (*it2)->start) < MAX_DISTANCE_DIFF ) {
-                match++;
-                lastMatchIt = it2;
-                isFound = true;
-                break;
-            }
-        }
-
+    for( it1 = seq1->cores.begin(); it1 != seq1->cores.end() && lastMatchIt != seq2->cores.end(); ) {
         
-        while ( lastMatchIt != seq2->cores.end() && MAX_DISTANCE_DIFF < (*it1)->start - (*lastMatchIt)->start ) {
-            if( std::next(lastMatchIt) == seq2->cores.end() ) {
-                break;
-            }
+        if ( (*lastMatchIt)->start + MAX_DISTANCE_DIFF < (*it1)->start ) {
             lastMatchIt++;
+            continue;
         }
-        
 
         total++;
+
+        for( it2 = lastMatchIt; it2 != seq2->cores.end(); it2++ ) {
+            
+            if ( (*it1)->start + MAX_DISTANCE_DIFF < (*it2)->start ) {
+                break;
+            }
+            
+            if ( *(*it1) == *(*it2) ) {
+                match++;
+                lastMatchIt = it2;
+                break;
+            }
+        }
+
+        it1++;
     }
 };
 
@@ -82,12 +84,12 @@ void analyze(lcp::string* seq1, lcp::string* seq2, int& match, int& total ) {
  * The function outputs the matches found and maintains a count of the number of reads
  * processed. It ensures proper flow and error handling throughout the execution.
  *
- * Usage: <ExecutableName> <InputFile.fastq.gz> <LCP_Level>
+ * Usage: <ExecutableName> <InputFile.fastq.gz> <OutFile.txt> <LCP_Level>
  */
 int main(int argc, char **argv) {
 
-    if (argc != 3) {
-        std::cerr << "Wrong format: " << argv[0] << " [infile] [lcp-level]" << std::endl;
+    if (argc != 4) {
+        std::cerr << "Wrong format: " << argv[0] << " [infile] [outfile] [lcp-level]" << std::endl;
         return -1;  
     }
 
@@ -98,7 +100,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int lcp_level = atoi(argv[2]);
+    // open output file
+    std::ofstream outfile( argv[2] );
+    if ( !outfile.good() ) {
+        std::cerr << "Failed to open file: " << argv[2] << std::endl;
+        return 1;
+    }
+
+    int lcp_level = atoi(argv[3]);
     
     // initializing coefficients of the alphabet
     lcp::init_coefficients();
@@ -198,12 +207,16 @@ int main(int argc, char **argv) {
         //     break;
         // }
     }
-
-    std::cout << "Processed read count: " << read_count << ", LCP level: " << lcp_level << std::endl;
+    
+    outfile << "Processed read count: " << read_count << ", LCP level: " << lcp_level << std::endl;
 
     for ( uint i = 0; i < RESULT_ARRAY_SIZE; i++ ) {
-        std::cout << results[i] << ", " << std::endl;
+        outfile << results[i] << ", ";
     }
+
+    outfile << std::endl;
+
+    outfile.close();
 
     return 0;
 };
