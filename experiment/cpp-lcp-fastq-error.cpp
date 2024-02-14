@@ -125,6 +125,7 @@ int main(int argc, char **argv) {
     uint results[RESULT_ARRAY_SIZE] = {0};
     bool isFirstValid, isSecondValid;
     double ratio;
+    size_t none_count = 0;
 
     while ( true ) {
 
@@ -176,39 +177,43 @@ int main(int argc, char **argv) {
 
         if (total) {
             ratio = (double) match / total;
+
+            if ( ratio < 0.001 ) {
+                results[0]++;
+            } else if ( ratio < 0.002 ) {
+                results[1]++;
+            } else if ( ratio < 0.004 ) {
+                results[2]++;
+            } else if ( ratio < 0.008 ) {
+                results[3]++;
+            } else if ( ratio < 0.016 ) {
+                results[4]++;
+            } else if ( ratio < 0.032 ) {
+                results[5]++;
+            } else if ( ratio < 0.064 ) {
+                results[6]++;
+            } else if ( ratio < 0.128 ) {
+                results[7]++;
+            } else if ( ratio < 0.256 ) {
+                results[8]++;
+            } else if ( ratio < 0.512 ) {
+                results[9]++;
+            } else {
+                results[10]++;
+            }
+        } else {
+            none_count++;
         }
 
         read_count++;
 
-        if ( ratio < 0.001 ) {
-            results[0]++;
-        } else if ( ratio < 0.002 ) {
-            results[1]++;
-        } else if ( ratio < 0.004 ) {
-            results[2]++;
-        } else if ( ratio < 0.008 ) {
-            results[3]++;
-        } else if ( ratio < 0.016 ) {
-            results[4]++;
-        } else if ( ratio < 0.032 ) {
-            results[5]++;
-        } else if ( ratio < 0.064 ) {
-            results[6]++;
-        } else if ( ratio < 0.128 ) {
-            results[7]++;
-        } else if ( ratio < 0.256 ) {
-            results[8]++;
-        } else if ( ratio < 0.512 ) {
-            results[9]++;
-        } else {
-            results[10]++;
-        }
+        
         // if ( read_count == READ_COUNT ){
         //     break;
         // }
     }
     
-    outfile << "Processed read count: " << read_count << ", LCP level: " << lcp_level << std::endl;
+    outfile << "Processed read count: " << read_count << " reads where no cores extracted: " << none_count << ", LCP level: " << lcp_level << std::endl;
 
     for ( uint i = 0; i < RESULT_ARRAY_SIZE; i++ ) {
         outfile << results[i] << ", ";
