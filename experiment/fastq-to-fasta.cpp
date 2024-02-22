@@ -24,7 +24,7 @@
 
 #include <iostream>
 #include <fstream>
-#include "GzFile.hpp"
+#include "../utils/GzFile.hpp"
 
 
 int main(int argc, char* argv[]) {

@@ -19,8 +19,8 @@
 #include <sstream>
 #include <vector>
 #include "../string.cpp"
-#include "process.cpp"
-#include "GzFile.hpp"
+#include "../utils/process.cpp"
+#include "../utils/GzFile.hpp"
 
 
 #define READ_COUNT              100
