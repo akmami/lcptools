@@ -23,7 +23,7 @@
 #include <iostream>
 #include <sstream>
 #include <cstring>
-#include "GzFile.hpp"
+#include "../utils/GzFile.hpp"
 #include "MafRead.hpp"
 #include <vector>
 #include <algorithm>

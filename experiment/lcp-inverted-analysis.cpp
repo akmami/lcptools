@@ -19,9 +19,9 @@
 
 #include <iostream>
 #include <sstream>
-#include "GzFile.hpp"
+#include "../utils/GzFile.hpp"
 #include "InvertedIndex.hpp"
-#include "process.cpp"
+#include "../utils/process.cpp"
 #include "../string.cpp"
 
 

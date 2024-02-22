@@ -16,7 +16,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "GzFile.hpp"
+#include "../utils/GzFile.hpp"
 
 #define FIRST_LINE_BUFFERSIZE   128
 
