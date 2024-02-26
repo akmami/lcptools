@@ -13,6 +13,15 @@
 #ifndef THREAD_SAFE_QUEUE_HPP
 #define THREAD_SAFE_QUEUE_HPP
 
+
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <condition_variable>
+
+#define AVAILABILITY_THRESHOLD      100
+
 template <typename T>
 class ThreadSafeQueue {
 private:
@@ -41,7 +50,7 @@ public:
         cond_var.notify_one();
     }
 
-    
+
     /**
      * @fn      bool pop(T& value)
      * @brief   Removes and returns the front element from the queue in a thread-safe manner.
@@ -97,6 +106,23 @@ public:
     bool isFinished() const {
         return finished;
     }
+
+
+    /**
+     * @brief Checks if the queue is available for more elements.
+     *
+     * Determines whether the queue has space for more elements by comparing its current size
+     * to a predefined availability threshold. This can be used to control the flow of elements
+     * into the queue, preventing it from growing beyond a manageable size.
+     *
+     * @return True if the queue size is less than or equal to the availability threshold, indicating
+     *         it is available for more elements. False otherwise.
+     */
+    bool isAvailable() {
+        std::lock_guard<std::mutex> lock(mutex);
+        return queue.size() <= AVAILABILITY_THRESHOLD;
+    }
+
 };
 
 #endif
