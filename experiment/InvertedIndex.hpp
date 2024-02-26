@@ -23,8 +23,11 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
-#include "GzFile.hpp"
+#include <fstream>
+#include "../utils/GzFile.hpp"
 #include "../string.cpp"
+
+#define ANALYZE_ARRAY_SIZE  10000
 
 
 typedef size_t doc_id_type;
@@ -83,6 +86,8 @@ public:
 
         iterators.reserve(lcp->cores.size());
         
+        std::cout << "Assigning iterators" << std::endl;
+
         for (std::vector<lcp::core *>::iterator core = lcp->cores.begin(); core != lcp->cores.end(); core++) {
             
             inverted_index_type::iterator it = this->index.find((*core)->label);
@@ -93,45 +98,70 @@ public:
             }
         }
 
-        doc_id_type maxDocId = std::numeric_limits<doc_id_type>::max();
+        std::cout << "Iterators assigned" << std::endl;
+
         size_t maxCount = 0;
+        doc_id_type maxDocId = std::numeric_limits<doc_id_type>::max();
+        
         bool allIteratorsAtEnd = false;
 
-        while (!allIteratorsAtEnd) {
+        std::cout << "Iterating in inverted index" << std::endl;
+
+        while ( true ) {
+
+            // for (iterators_type::iterator it = iterators.begin(); it != iterators.end(); it++ ) {
+            //     if ( it->first != it->second ) {
+            //         std::cout << *(it->first) << "\t";
+            //     } else {
+            //         std::cout << "end\t";   
+            //     }
+            // }
+
+            // std::cout << std::endl;
+
+            
             // Find the minimum and maximum document ID among the current positions of the iterators
-            doc_id_type minDocId = std::numeric_limits<doc_id_type>::max(), maxDocIdCurrent = 0;
+            doc_id_type minDocId = std::numeric_limits<doc_id_type>::max();
+            size_t minDocCount = 0;
+            
             allIteratorsAtEnd = true;
 
             for (iterators_type::iterator it = iterators.begin(); it != iterators.end(); it++ ) {
+                
                 if (it->first != it->second) {
+                    
                     allIteratorsAtEnd = false;
-                    minDocId = std::min(minDocId, *(it->first));
-                    maxDocIdCurrent = std::max(maxDocIdCurrent, *(it->first));
+
+                    if ( *(it->first) == minDocId ) {
+                        minDocCount++;
+                    } else if ( *(it->first) < minDocId ) {
+                        minDocCount = 0;
+                        minDocId = *(it->first);
+                    }
                 }
             }
 
-            if (allIteratorsAtEnd) {
+            if ( allIteratorsAtEnd ) {
+                std::cout << "All iterators ended." << std::endl;
                 break; // All iterators have reached the end
             }
 
-            // Count how many lists contain the maxDocIdCurrent
-            size_t count = std::count_if(iterators.begin(), iterators.end(), [maxDocIdCurrent](const auto& it)
-                                      { return it.first != it.second && *(it.first) == maxDocIdCurrent; });
-
-            if (count > maxCount && maxDocId != id) {
-                maxCount = count;
-                maxDocId = maxDocIdCurrent;
+            if ( minDocCount > maxCount && minDocId != id ) {
+                maxCount = minDocCount;
+                maxDocId = minDocId;
             }
 
             // Move all iterators pointing to the minDocId to the next document ID
-            for (iterators_type::iterator it = iterators.begin(); it != iterators.end(); it++ ) {
-                if (it->first != it->second && *(it->first) == minDocId) {
+            for ( iterators_type::iterator it = iterators.begin(); it != iterators.end(); it++ ) {
+                if ( it->first != it->second && *(it->first) == minDocId ) {
                     (it->first)++;
                 }
             }
         }
 
-        return {maxDocId, maxCount};
+        std::cout << "Max count: " << maxCount << ", Max ID: " << maxDocId << std::endl;
+
+        return { maxDocId, maxCount };
     }
 
 
@@ -200,6 +230,50 @@ public:
         }
         
         std::cout << std::endl;
+    }
+
+
+    /**
+     * @brief Analyzes and outputs statistics about the distribution of reads across LCP core values in the inverted index.
+     *
+     * This function compiles statistics on the distribution of reads (document IDs) associated with specific LCP core values
+     * within the inverted index at a given LCP analysis level. It calculates the frequency of LCP core values associated with
+     * varying numbers of reads, identifying core values linked to large numbers of reads. The results, including the
+     * distribution of read counts for LCP core values and the count of core values associated with a higher than expected
+     * number of reads, are output to a specified file. This analysis aids in understanding the diversity and repetition of
+     * genomic sequences at the specified level of LCP analysis, providing insights into the genomic data's complexity.
+     *
+     * @param outfile Reference to an ofstream object for writing the analysis results. The output includes detailed
+     *                statistics on the distribution of reads among LCP core values, highlighting both common and rare
+     *                genomic patterns as represented by the inverted index.
+     * @param lcp_level The LCP level at which the analysis is performed, indicating the granularity or depth of
+     *                  sequence analysis for identifying LCP core values. The LCP level directly impacts the interpretation
+     *                  of genomic sequence complexity and repetitiveness.
+     */
+    void analyze(std::ofstream &outfile, int lcp_level) {
+
+        size_t counts[ANALYZE_ARRAY_SIZE] = { 0 };
+        std::vector<size_t> larger_values;
+
+        for (inverted_index_type::const_iterator it = index.begin(); it != index.end(); ++it) {
+            // core_label_type term = it->first;
+            // const std::vector<doc_id_type>& docs = it->second;
+
+            if ( it->second.size() < ANALYZE_ARRAY_SIZE ) {
+                counts[it->second.size()]++;
+            } else {
+                larger_values.push_back( it->second.size() );
+            }
+        }
+
+        outfile << "(" << lcp_level << ", [" << counts[0];
+
+        for ( size_t i = 1; i < ANALYZE_ARRAY_SIZE; i++ ) {
+            outfile << "," << counts[i];
+        }
+        outfile << "]),     #  - " << lcp_level << std::endl;
+        outfile << "Number of terms that has size larger than " << ANALYZE_ARRAY_SIZE << " is " << larger_values.size() << std::endl;
+        outfile << "Number of terms is " << this->index.size() << std::endl;
     }
 };
 
