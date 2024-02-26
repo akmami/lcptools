@@ -12,9 +12,11 @@ FASTQ_TO_FASTA := fastq-to-fasta
 GOLD_STANDARD_GFA := gold-standard-gfa
 LCP_TRIE_BASED := lcp-trie-based-stat
 LCP_INVERTED_BASED := lcp-inverted-based
+LCP_INVERTED_ANALYSIS := lcp-inverted-analysis
 COMPARE_GFA := compare-gfa
 EXTRACT_CHROM_FROM_MAF := extract-chrom-from-maf
 EXTRACT_CHROM_FROM_FASTQ := extract-chrom-from-fastq
+EXTRACT_READS := extract-reads
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -125,32 +127,32 @@ lcpFasta: MKDIR_BIN MKDIR_RESULTS
 	$(GXX) -Wall -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA)$(CXX);
 	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)";
 	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR);
-	@echo "Preprocessing $(DATA_DIR)/$(HUMAN_V38_FASTA). Output will be put into $(RESULTS_DIR)/$(CPP_LCP_FASTA)-output.txt"; \
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(DATA_DIR)/$(HUMAN_V38_FASTA) > $(RESULTS_DIR)/$(CPP_LCP_FASTA)-output.txt 2>&1;
+	@echo "Preprocessing $(DATA_DIR)/$(HUMAN_V38_FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(DATA_DIR)/$(HUMAN_V38_FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt 2>&1;
 
 lcpFastq: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)";
-	$(GXX) -Wall -g -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
+	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
 	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
 	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}"_chr1.maf.gz "{2}" > $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}"_chr1.maf.gz $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}"-output.txt 2>&1;" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
 
 ######################################################################
 # MINIMIZER
 ######################################################################
 minimizerFasta: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(CPP_MINIMIZER_FASTA)$(CXX)";
-	$(GXX) -Wall -g -o $(CPP_MINIMIZER_FASTA) $(CPP_MINIMIZER_FASTA)$(CXX);
+	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTA) $(CPP_MINIMIZER_FASTA)$(CXX);
 	@echo "Moving $(CPP_MINIMIZER_FASTA) to $(EXECUTABLE_DIR)";
 	mv $(CPP_MINIMIZER_FASTA) $(EXECUTABLE_DIR);
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA)" "$(DATA_DIR)/$(HUMAN_V38_FASTA)" {1} {2} ">" "$(RESULTS_DIR)/$(CPP_MINIMIZER_FASTA)-k{1}-w{2}.txt 2>&1;"  ::: 4 10 16 ::: 8 20 32
+	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA)" "$(DATA_DIR)/$(HUMAN_V38_FASTA)" {1} {2} ">" "$(OUT_DIR)/$(CPP_MINIMIZER_FASTA)-k{1}-w{2}.txt 2>&1;"  ::: 4 10 16 ::: 8 20 32
 
 minimizerFastq: MKDIR_BIN MKDIR_RESULTS
 	@echo "Compiling $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX)";
 	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTQ_ERROR) $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX);
 	@echo "Moving $(CPP_MINIMIZER_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
 	mv $(CPP_MINIMIZER_FASTQ_ERROR) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}".maf.gz > $(RESULTS_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR)-"{1}".txt 2>&1" ::: 85 90 95 99
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}".maf.gz > $(OUT_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR)-"{1}".txt 2>&1" ::: 85 90 95 99
 
 ######################################################################
 # INDEXING
@@ -159,15 +161,22 @@ lcpTrieIndexing:
 	@echo "Compiling $(LCP_TRIE_BASED)$(CXX)";
 	$(GXX) -Wall -o $(LCP_TRIE_BASED) $(LCP_TRIE_BASED)$(CXX) -lz; 
 	@echo "Moving $(LCP_TRIE_BASED) to $(EXECUTABLE_DIR)";
-	mv $(LCP_TRIE_BASED) $(EXECUTABLE_DIR) && \
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_TRIE_BASED) $(DATA_DIR)/sd_merged_"{}".fastq.gz $(RESULTS_DIR)/sd_merged_"{}"_trie.gfa > $(RESULTS_DIR)/$(LCP_TRIE_BASED)-"{}".txt 2>&1" ::: 85 90 95 99;
+	mv $(LCP_TRIE_BASED) $(EXECUTABLE_DIR);
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_TRIE_BASED) $(DATA_DIR)/sd_merged_"{}".fastq.gz $(RESULTS_DIR)/sd_merged_"{}"_trie.gfa > $(OUT_DIR)/$(LCP_TRIE_BASED)-"{}".txt 2>&1" ::: 85 90 95 99;
 
 lcpInvertedIndexing:;
 	@echo "Compiling $(LCP_INVERTED_BASED)$(CXX)";
-	$(GXX) -Wall -o $(LCP_INVERTED_BASED) $(LCP_INVERTED_BASED)$(CXX) -lz;
+	$(GXX) -Wall -g -o $(LCP_INVERTED_BASED) $(LCP_INVERTED_BASED)$(CXX) -lz;
 	@echo "Moving $(LCP_INVERTED_BASED) to $(EXECUTABLE_DIR)";
 	mv $(LCP_INVERTED_BASED) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_BASED) $(DATA_DIR)/sd_merged_"{1}"_chr20.maf.gz "{2}" > $(RESULTS_DIR)/sd_merged_"{1}"_chr20_"{2}"_output.txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_BASED) $(DATA_DIR)/sd_merged_"{1}"_chr20.maf.gz "{2}" > $(OUT_DIR)/$(LCP_INVERTED_BASED)-chr20-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
+
+lcpInvertedAnalysis:
+	@echo "Compiling $(LCP_INVERTED_ANALYSIS)$(CXX)";
+	$(GXX) -Wall -o $(LCP_INVERTED_ANALYSIS) $(LCP_INVERTED_ANALYSIS)$(CXX) -lz;
+	@echo "Moving $(LCP_INVERTED_ANALYSIS) to $(EXECUTABLE_DIR)";
+	mv $(LCP_INVERTED_ANALYSIS) $(EXECUTABLE_DIR);
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_ANALYSIS) $(DATA_DIR)/sd_merged_"{1}"_chr20.fastq.gz $(RESULTS_DIR)/$(LCP_INVERTED_ANALYSIS)-chr20-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(LCP_INVERTED_ANALYSIS)-chr20-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
 
 ######################################################################
 # OTHER
@@ -176,19 +185,26 @@ compareGFAs:
 	@echo "Compiling $(COMPARE_GFA)$(CXX)";
 	$(GXX) -Wall -o $(COMPARE_GFA) $(COMPARE_GFA)$(CXX);
 	@echo "Moving $(COMPARE_GFA) to $(EXECUTABLE_DIR)";
-	mv $(COMPARE_GFA) $(EXECUTABLE_DIR) && \
+	mv $(COMPARE_GFA) $(EXECUTABLE_DIR);
 	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GFA) $(RESULTS_DIR)/sd_merged_99_gold.gfa $(RESULTS_DIR)/sd_merged_99_trie.gfa;
 
 extractChromFromMaf:
 	@echo "Compiling $(EXTRACT_CHROM_FROM_MAF)$(CXX)";
 	$(GXX) -Wall -o $(EXTRACT_CHROM_FROM_MAF) $(EXTRACT_CHROM_FROM_MAF)$(CXX) -lz;
 	@echo "Moving $(EXTRACT_CHROM_FROM_MAF) to $(EXECUTABLE_DIR)";
-	mv $(EXTRACT_CHROM_FROM_MAF) $(EXECUTABLE_DIR) && \
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_MAF) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/sd_merged_"{1}"_chr"{2}".maf.gz "{2} ::: 85 90 95 99 ::: 20;
+	mv $(EXTRACT_CHROM_FROM_MAF) $(EXECUTABLE_DIR);
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_MAF) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/sd_merged_"{1}"_chr"{2}".maf.gz "{2} " > $(OUT_DIR)/$(EXTRACT_CHROM_FROM_MAF)-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 20;
 
 extractChromFromFastq:
 	@echo "Compiling $(EXTRACT_CHROM_FROM_FASTQ)$(CXX)";
 	$(GXX) -Wall -o $(EXTRACT_CHROM_FROM_FASTQ) $(EXTRACT_CHROM_FROM_FASTQ)$(CXX) -lz;
 	@echo "Moving $(EXTRACT_CHROM_FROM_FASTQ) to $(EXECUTABLE_DIR)";
-	mv $(EXTRACT_CHROM_FROM_FASTQ) $(EXECUTABLE_DIR) && \
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_FASTQ) $(DATA_DIR)/sd_merged_"{1}".fastq.gz $(RESULTS_DIR)/sd_merged_"{1}"_chr"{2}".fastq.gz "{2} ::: 85 90 95 99 ::: 20;
+	mv $(EXTRACT_CHROM_FROM_FASTQ) $(EXECUTABLE_DIR);
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_FASTQ) $(DATA_DIR)/sd_merged_"{1}"_"{3}".fastq.gz $(RESULTS_DIR)/sd_merged_"{1}"_"{3}"_chr"{2}".fastq.gz "{2} " > $(OUT_DIR)/$(EXTRACT_CHROM_FROM_FASTQ)-"{1}"-"{3}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 20 ::: simu gold;
+
+extractReads:
+	@echo "Compiling $(EXTRACT_READS)$(CXX)";
+	$(GXX) -Wall -o $(EXTRACT_READS) $(EXTRACT_READS)$(CXX) -lz;
+	@echo "Moving $(EXTRACT_READS) to $(EXECUTABLE_DIR)";
+	mv $(EXTRACT_READS) $(EXECUTABLE_DIR);
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_READS) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/sd_merged_"{1}"_gold.fastq.gz $(RESULTS_DIR)/sd_merged_"{1}"_simu.fastq.gz > $(OUT_DIR)/$(EXTRACT_READS)-"{1}".txt 2>&1" ::: 85 90 95 99;
