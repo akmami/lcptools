@@ -6,11 +6,13 @@
 #include <algorithm>
 #include <cstring>
 #include <functional>
-#include "GzFile.hpp"
+#include "../utils/GzFile.hpp"
 #include "../string.cpp"
 
 #define IDSIZE              128
 #define MIN_PATH_LENGTH     3
+#define MAX_TRY_COLLECT     10
+#define LCP_LEVEL           5
 
 
 // Hash function type
@@ -78,7 +80,7 @@ void remove(struct trie_node* root, std::vector<uint>& read, size_t id) {
         if ( node->children[*it]->num_leaves == 1 ) {
             delete node->children[*it];
             node->children.erase(*it);
-            // std::cout << "deleted" << std::endl;
+
             return;
         }
         node = node->children[*it];
@@ -89,11 +91,8 @@ void remove(struct trie_node* root, std::vector<uint>& read, size_t id) {
         std::vector<size_t>::iterator it_pos = std::find(node->leaf->ids.begin(), node->leaf->ids.end(), id);
         
         if (it_pos != node->leaf->ids.end()) {
-            // std::cout << "deleted ";
             node->leaf->ids.erase(it_pos);
         }
-
-        // std::cout << "on leaf" << std::endl;
     }
 }
 
@@ -136,16 +135,16 @@ uint find_best_overlap(struct trie_node* root, std::vector<uint>& read, size_t& 
         std::unordered_map<uint, struct trie_node *>::iterator found = current->children.find(*it);
         
         if (found != current->children.end()) {
-            // move to the child
-            current = found->second;
-
             // check if there's a divergence
             if (current->num_leaves > 1) {
                 lastDivergentNode = current;
                 length++;
-            }
 
-            continue;
+                // move to the child
+                current = found->second;
+                
+                continue;
+            }
         }
 
         break;
@@ -230,6 +229,7 @@ int main(int argc, char** argv) {
     
     // init trie tree
     struct trie_node* trie_roots[hashing_function_size];
+    size_t scores[hashing_function_size] = { 0 };
     
     for (size_t i = 0; i < hashing_function_size; ++i) {
         trie_roots[i] = new struct trie_node();
@@ -277,15 +277,16 @@ int main(int argc, char** argv) {
 
         // Process read
         lcp::string* lcp = new lcp::string(read);
-        lcp->deepen();
-        lcp->deepen();
-        lcp->deepen();
+
+        for ( int i = 0; i < LCP_LEVEL; i++ ) {
+            lcp->deepen();
+        }
 
         std::array<std::vector<uint>, hashing_function_size> cores;
         
         // Get hash the values
         for (uint i = 0; i < hashing_function_size; ++i) {
-            for( std::deque<lcp::core*>::iterator it = lcp->cores.begin(); it != lcp->cores.end(); it++ ) {
+            for( std::vector<lcp::core*>::iterator it = lcp->cores.begin(); it != lcp->cores.end(); it++ ) {
                 cores[i].push_back(array_of_functions[i]( (*it)->label ));
             }
             // Sort the hashed values
@@ -318,7 +319,7 @@ int main(int argc, char** argv) {
             while(true) {
 
                 std::vector<size_t> result;
-                size_t max_length = 0, length;
+                size_t max_length = 0, length, max_index;
                 struct trie_node* last_divergent_node = NULL;
                 struct trie_node* last_best_divergent_node = NULL;
             
@@ -329,12 +330,13 @@ int main(int argc, char** argv) {
                     if (length > max_length) {
                         last_best_divergent_node = last_divergent_node;
                         max_length = length;
+                        max_index = i;
                     }
                 }
 
                 if (last_best_divergent_node != NULL) {
 
-                    for( size_t i = 0; result.size() < 1; i++) {
+                    for( size_t i = 0; result.size() == 0 && i < MAX_TRY_COLLECT; i++) {
                         collect(last_best_divergent_node, result, i, curr_index);
                     }
 
@@ -352,6 +354,8 @@ int main(int argc, char** argv) {
                         remove(trie_roots[i], (*curr_it)[i], curr_index);
                     }
 
+                    processed[curr_index] = true;
+
                     for ( result_it = result.begin(); result_it != result.end() && processed[*result_it]; result_it++ ) {}
 
                     if ( result_it != result.end() ) {
@@ -359,10 +363,11 @@ int main(int argc, char** argv) {
                             break;
                         }
 
+                        scores[max_index]++;
+
                         outfile << "L\t" << strings[curr_index] << "\t+\t" << strings[*result_it] << "\t-\t" << 0 << "M\n";
 
                         std::cout << strings[curr_index] << " " << strings[*result_it] << std::endl;
-                        processed[curr_index] = true;
 
                         curr_index = *result_it;
 
@@ -381,166 +386,15 @@ int main(int argc, char** argv) {
         }
     }
 
-    // infile.rewind();
-
-    // while (true) {
-        
-    //     if ( infile.gets(buffer, BUFFERSIZE) == Z_NULL) {
-    //         // End of file or an error
-    //         if ( ! infile.eof() ) {
-    //             std::cerr << "Error reading file." << std::endl;
-    //         }
-    //         break;
-    //     }
-
-    //     // Get id
-    //     buffer[strlen(buffer)-1] = '\0';
-    //     std::string id(buffer+1);
-
-    //     // Get read
-    //     infile.gets(buffer, BUFFERSIZE);
-    //     buffer[strlen(buffer)-1] = '\0';
-    //     std::string read(buffer);
-
-    //     // Process read
-    //     lcp::string* lcp = new lcp::string(read);
-    //     lcp->deepen();
-    //     lcp->deepen();
-    //     lcp->deepen();
-
-    //     std::vector<size_t> result;
-    //     size_t query_id = mapped[id], max_index = 0, length;
-    //     uint max_length = 0;
-    //     struct trie_node* last_divergent_node = NULL;
-    //     struct trie_node* last_best_divergent_node = NULL;
-    //     std::vector<uint> reads[hashing_function_size];
-
-    //     for (uint i = 0; i < hashing_function_size; ++i) {
-        
-    //         for( std::deque<lcp::core*>::iterator it = lcp->cores.begin(); it != lcp->cores.end(); it++ ) {
-    //             reads[i].push_back(array_of_functions[i]( (*it)->label ));
-    //         }
-            
-    //         // Sort the hashed values
-    //         std::sort(reads[i].begin(), reads[i].end());
-    //         length = find_best_overlap(trie_roots[i], reads[i], query_id, last_divergent_node);
-    //         if (length > max_length) {
-    //             last_best_divergent_node = last_divergent_node;
-    //             max_length = length;
-    //             max_index = i;
-    //         }
-    //     }
-
-    //     if (max_length != 0) {
-
-    //         for( uint i = 0; result.size() < 1; i++) {
-    //             collect(last_best_divergent_node, result, i, query_id);
-    //         }
-            
-    //         // Print best possible results for id
-    //         std::cout << id << ": ";
-    //         for (std::vector<size_t>::iterator it = result.begin(); it != result.end(); it++) {
-    //             std::cout << strings[*it] << " ";
-    //         }
-    //         std::cout << std::endl;
-
-    //         size_t best_first = result[0];
-
-    //         if ( ! processed[best_first] ) {
-    //             processed[best_first] = true;
-    //         } else {
-    //             // Remove read from trie tree
-    //             for (uint i = 0; i < hashing_function_size; ++i) {
-    //                 remove(trie_roots[i], reads[i], best_first);
-    //             }
-    //         }
-
-    //         if ( ! processed[query_id] ) {
-    //             processed[query_id] = true;
-    //         } else {
-    //             // Remove read from trie tree
-    //             for (uint i = 0; i < hashing_function_size; ++i) {
-    //                 remove(trie_roots[i], reads[i], query_id);
-    //             }
-    //         }
-    //     }
-
-    //     delete lcp;
-        
-    //     // Read quality scores
-    //     infile.gets(buffer, BUFFERSIZE);
-    //     infile.gets(buffer, BUFFERSIZE);
-    // }
-
-
-    // // Test
-    // std::string id = "S_116_12855";
-    // std::string str = "TCGTCGCCAACGAGGCATAGGTCTCAGCTCATCCGGCAACGTTACGCGACCTGACCGCGGATACTCGTTAAACCCGAATAGGACACTTATTTTTCGTTCTAGCCGTGACCTGAGACACGCGGGGCGGCCGAATGAATTTAGTTGGAGGAAGGTGATTACGACGTATTACATCACCATCCTAGGGCCTCATACCACTGTTTGCATTCCCACATGGTGCCTACGAGACACAGTCCCGTGGTCGACAATAGAATATTTGGCGTTTCACGTCCACAATTTATGCCATATGAACTACCAAACTGATGCCTCCGTAGGCCCTCTTTCGATCCAGTTACCTTTTTGTATGCGGGAGGCATAGTCATGTCGATGGCTTTAGATGAAATGTTGGAAGGGTTCAGGCGTGCACCCGCGCGCGGGCAAAAGCACTCGTTCGTTACAATGATGAGTCTCAGGTTCAGGGCAGCGAAATGGCGCGTCCACGAGCAATTCCGTACAGTTAACTTGTAAGGAAGCCCACGCCTGCTGGTTACAGTAATCAGCCGTATAATGCATAGATAGGCATTGCACTAGAGAGTTTAGCGGAGAGACTCCCTACGCAACGGGAACCCCACAAGTTCTAACTTTGCGCTCCCGCGTCGGTGTAGCGTCAATGACTACTTATGGTGCTCGAACAACACGCACATGCGTACAAAGCGGTGGAGATACATGTCGCTTTCCAAACGAGACATCTACTACAAATAATCCACACCGAAACTAGTGAGTCGATTGAAGTGAGCTTGATTTCTAAACCCCCTAAGACGCTCACGTTGCTTTCTACCTTTAGACTCGATCCTCCTGCTAACAGCGCTGCCCCTCTTTCCTCGTCCCTACATTCCCCGTCATCCATGATTTCGGGAGCCATTCTACATAGCAGCGGTTCAGCGGTTGTCCAAATTGTTTGCTCATAACTGATAATCACCGCTGATTGACAATACCACCGATGGGGCTCGAAGACTCATACCAATCCGCTCAATGGGCAACAATAAAGTGTAGCTTCTACTAAACCGTTGTGATGTGCTTGAGTAGGTAAAACTAAATTGTTGAACGCTCCTTACCTTAGCGGGCTCGCCACGAGAGCGCATTCATCTTGGGCTTGAACCAAAAAACCGATATCCTCCCCCACTCGCTCGTGTTGGCCGCTCGCGTCGAAATTCCCGCGGACGACCCCGTAAACCAGAGAGGATAGTGGAGCCACCCCCCTCACCCCAATCTACATCCTTG";
-    // lcp::string* test = new lcp::string(str);
-    // test->deepen();
-    // test->deepen();
-    // test->deepen();
-
-    // std::vector<size_t> result;
-    // size_t query_id = mapped[id];
-    // uint max_length = 0;
-    // size_t max_index = 0;
-
-    // for (uint i = 0; i < hashing_function_size; ++i) {
-    
-    //     std::vector<uint> read;
-        
-    //     for( std::deque<lcp::core*>::iterator it = test->cores.begin(); it != test->cores.end(); it++ ) {
-    //         read.push_back(array_of_functions[i]( (*it)->label ));
-    //     }
-        
-    //     // Sort the hashed values
-    //     std::sort(read.begin(), read.end());
-
-    //     uint length = findOverlappingRead(trie_roots[i], read, query_id, false, result);
-
-    //     std::cout << "query: ";
-    //     for (std::vector<uint>::iterator it = read.begin(); it != read.end(); it++) {
-    //         std::cout << (*it) << " ";
-    //     }
-    //     std::cout << std::endl;
-        
-    //     std::cout << "Largest common prefix for hash " << i << " is " << length << std::endl << std::endl;
-
-    //     if (length > max_length) {
-    //         max_length = length;
-    //         max_index = i;
-    //     }
-    // }
-
-    // if (max_length != 0) {
-
-    //     std::vector<uint> read;
-        
-    //     for( std::deque<lcp::core*>::iterator it = test->cores.begin(); it != test->cores.end(); it++ ) {
-    //         read.push_back(array_of_functions[max_index]( (*it)->label ));
-    //     }
-        
-    //     // Sort the hashed values
-    //     std::sort(read.begin(), read.end());
-
-    //     findOverlappingRead(trie_roots[max_index], read, query_id, true, result);
-
-    //     for (std::vector<size_t>::iterator it = result.begin(); it != result.end(); it++) {
-    //         std::cout << strings[*it] << " ";
-    //     }
-    //     std::cout << std::endl;
-
-    // }
-
-    // delete test;
+    for (uint i = 0; i < hashing_function_size; ++i) {
+        std::cout << i << ": " << scores[i] << " ";
+    }
+    std::cout << std::endl;
 
     // clean up
     for (uint i = 0; i < hashing_function_size; ++i) {
         delete trie_roots[i];
     }
-
- 
 
     return 0;
 }
