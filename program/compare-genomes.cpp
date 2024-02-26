@@ -14,7 +14,7 @@
  * files, and processing LCP structures, respectively.
  *
  * Usage:
- *     ./GenomeAnalysis genome-input-1.gz genome-input-2.gz lcp-level
+ *     ./GenomeAnalysis genome-input-1.gz genome-input-2.gz -t lcp-level -t 8 --genome-1-len 3088269832 -genome-2-len 3088269832
  */
 
 
@@ -26,14 +26,14 @@
 #include "../utils/process.cpp"
 #include "../utils/GzFile.hpp"
 #include "../utils/ThreadSafeQueue.hpp"
-#include <thread>
+#include "../utils/argp.hpp"
+#include <stdexcept>
 #include <mutex>
-#include <atomic>
-#include <queue>
-#include <condition_variable>
 
-#define     THREAD_NUMBER           4
+
+#define     THREAD_NUMBER           8
 #define     MERGE_CORE_THRESHOLD    200
+
 
 std::mutex results_mutex; // mutex for protecting access to the results vector
 
@@ -43,8 +43,21 @@ struct Task {
 };
 
 
-// Worker function that processes tasks and merges results periodically
-void worker_function(ThreadSafeQueue<Task>& task_queue, std::vector<uint>& lcp_cores, int lcp_level) {
+/**
+ * @brief Processes genomic reads from a queue, extracts LCP cores, and aggregates results in a shared vector.
+ *
+ * This function runs in a worker thread and is responsible for processing genomic reads
+ * retrieved from a thread-safe queue. For each read, it computes the LCP cores at a specified
+ * LCP level, processes the reverse complement of the read, computes its LCP cores, and then
+ * aggregates these cores in a shared vector. The function ensures thread-safe access to the
+ * shared vector using mutexes and minimizes locking overhead by merging local results into
+ * the shared vector periodically.
+ *
+ * @param task_queue The thread-safe queue from which tasks (genomic reads) are retrieved.
+ * @param lcp_cores A shared vector to store the labels of LCP cores extracted from the reads.
+ * @param lcp_level The depth of analysis for extracting LCP cores from the reads.
+ */
+void processRead( ThreadSafeQueue<Task>& task_queue, std::vector<uint>& lcp_cores, int lcp_level ) {
     std::vector<uint> local_cores;
     Task task;
 
@@ -90,7 +103,59 @@ void worker_function(ThreadSafeQueue<Task>& task_queue, std::vector<uint>& lcp_c
 };
 
 
-void generate_minhash_signature( std::vector<uint>& hash_values ) {
+/**
+ * @brief Populates vectors with unique LCP cores and their counts from a sorted vector of LCP cores.
+ *
+ * This function analyzes a sorted vector of LCP cores, identifying each unique core and
+ * counting the number of occurrences of that core within the vector. The unique cores
+ * and their counts are then stored in separate vectors. This operation is useful for
+ * summarizing the distribution of LCP cores within a dataset, particularly in genomic
+ * data analysis where understanding the frequency of certain sequences or patterns can
+ * be critical.
+ *
+ * @param lcp_cores The input vector containing sorted LCP cores to be analyzed.
+ * @param unique_lcp_cores An output vector that will contain all unique LCP cores
+ *                         identified in the input vector.
+ * @param lcp_cores_count An output vector that will contain the counts of each unique
+ *                        LCP core corresponding to the unique cores in `unique_lcp_cores`.
+ */
+void fillValuesAndCounts( std::vector<uint>& lcp_cores, std::vector<size_t>& unique_lcp_cores, std::vector<size_t>& lcp_cores_count ) {
+    
+    if( lcp_cores.empty() ) {
+        return;
+    }
+
+    int unique_lcp_core_count = 1;
+
+    for( size_t i = 1; i < lcp_cores.size(); i++ ) {
+        if( lcp_cores[i] != lcp_cores[i - 1] ) {
+            unique_lcp_core_count++;
+        }
+    }
+    
+    // pre-allocate memory for efficiency
+    unique_lcp_cores.reserve( unique_lcp_core_count ); 
+    lcp_cores_count.reserve( unique_lcp_core_count );
+    
+    unique_lcp_cores.push_back(lcp_cores[0]);
+    size_t currentCount = 1;
+    
+    for (size_t i = 1; i < lcp_cores.size(); ++i) {
+        if (lcp_cores[i] == lcp_cores[i - 1]) {
+            currentCount++;
+        } else {
+            lcp_cores_count.push_back(currentCount);
+            unique_lcp_cores.push_back(lcp_cores[i]);
+            currentCount = 1;
+        }
+    }
+
+    // add the count for the last element
+    lcp_cores_count.push_back(currentCount); 
+};
+
+
+void generateMinhashSignature( std::vector<uint>& hash_values ) {
     std::sort(hash_values.begin(), hash_values.end());
 };
 
@@ -107,7 +172,7 @@ void generate_minhash_signature( std::vector<uint>& hash_values ) {
  * @param intersection_size A reference to a size_t variable to store the intersection size.
  * @param union_size A reference to a size_t variable to store the union size.
  */
-void calculate_intersection_and_union_sizes( std::vector<uint>& hashed_cores1, std::vector<uint>& hashed_cores2, size_t& intersection_size, size_t& union_size ) {
+void calculateIntersectionAndUnionSizes( std::vector<uint>& hashed_cores1, std::vector<uint>& hashed_cores2, size_t& intersection_size, size_t& union_size ) {
 
     std::vector<uint>::iterator it1 = hashed_cores1.begin(), it2 = hashed_cores2.begin();
     
@@ -147,7 +212,7 @@ void calculate_intersection_and_union_sizes( std::vector<uint>& hashed_cores1, s
  * @param union_size The size of the union between the two sets of cores.
  * @return The Jaccard similarity coefficient as a double.
  */
-double calculate_jaccard_similarity( size_t intersection_size, size_t union_size ) {
+double calculateJaccardSimilarity( size_t intersection_size, size_t union_size ) {
     return static_cast<double>(intersection_size) / static_cast<double>(union_size);
 };
 
@@ -164,33 +229,108 @@ double calculate_jaccard_similarity( size_t intersection_size, size_t union_size
  * @param second_size The size of the second set of cores.
  * @return The Dice similarity coefficient as a double.
  */
-double calculate_dice_similarity( size_t intersection_size, size_t first_size, size_t second_size ) {
+double calculateDiceSimilarity( size_t intersection_size, size_t first_size, size_t second_size ) {
     return 2 * static_cast<double>(intersection_size) / ( static_cast<double>(first_size) + static_cast<double>(second_size) );
 };
 
 
 /**
- * @brief Reads and processes genomic sequences from a file, extracting LCP cores.
+ * @brief Calculates a similarity score between two sets of hashed LCP cores.
  *
- * This function operates in a multithreaded environment to process genomic sequences
- * from a gzip-compressed file. For each sequence, it extracts LCP cores at a specified
- * depth and stores these cores for later analysis. The function supports parallel
- * processing of two genomes to enhance performance for large-scale genomic datasets.
+ * This function compares two sets of hashed LCP cores, representing genomic sequences
+ * analyzed at specified depths, to compute a similarity score. The score is based on
+ * the normalized Manhattan distance between the weighted counts of matching LCP cores,
+ * adjusted to reflect similarity. This approach considers both the presence and abundance
+ * of LCP cores in relation to the analysis depths, offering a nuanced similarity measure
+ * suitable for genomic comparisons.
  *
- * @param filename Path to the gzip-compressed input file containing genomic sequences.
- * @param infile Reference to an open GzFile object for reading the input file.
- * @param lcp_level The depth for LCP analysis to extract cores.
- * @param lcp_cores Reference to a vector to store the extracted LCP cores.
- * @param read_count Reference to a size_t variable to track the number of processed reads.
+ * @param hashed_cores1 First set of hashed LCP cores.
+ * @param hashed_cores2 Second set of hashed LCP cores.
+ * @param depth_1 Depth of analysis for the first set of cores.
+ * @param depth_2 Depth of analysis for the second set of cores.
+ * @param same_count Reference to store the count of matching cores across both sets.
+ * @return A double representing the similarity score, ranging from 0 (no similarity) to 1 (identical).
  */
-void process_genome(const char* filename, GzFile& infile, int lcp_level, std::vector<uint>& lcp_cores, size_t& read_count) {
+double calculateDistanceSimilarity( std::vector<uint>& hashed_cores1, std::vector<uint>& hashed_cores2, double depth_1, double depth_2, size_t& same_count ) {
+
+    std::vector<size_t> unique_lcp_cores_1, unique_lcp_cores_2;
+    std::vector<size_t> lcp_cores_count_1, lcp_cores_count_2;
+
+    fillValuesAndCounts(hashed_cores1, unique_lcp_cores_1, lcp_cores_count_1);
+    fillValuesAndCounts(hashed_cores2, unique_lcp_cores_2, lcp_cores_count_2);
     
+    double numerator = 0.0;
+    double denominator = 0.0;
+    size_t i = 0, j = 0;
+
+    same_count = 0;
+
+    int diff = 0;
+
+    while( i < unique_lcp_cores_1.size() && j < unique_lcp_cores_2.size() ) {
+        if( unique_lcp_cores_1[i] == unique_lcp_cores_2[j] ) {
+            diff = lcp_cores_count_1[i] * depth_2 - lcp_cores_count_2[j] * depth_1;
+            numerator += diff >= 0 ? diff : -diff;
+            denominator += (lcp_cores_count_1[i] * depth_2 + lcp_cores_count_2[j] * depth_1);
+            same_count += lcp_cores_count_1[i] < lcp_cores_count_2[j] ? lcp_cores_count_1[i] : lcp_cores_count_2[j];
+            i++;
+            j++;
+        } else if (unique_lcp_cores_1[i] < unique_lcp_cores_2[j]) {
+            numerator += lcp_cores_count_1[i] * depth_2;
+            denominator += lcp_cores_count_1[i] * depth_2;
+            i++;
+        } else {
+            numerator += lcp_cores_count_2[j] * depth_1;
+            denominator += lcp_cores_count_2[j] * depth_1;
+            j++;
+        }
+    }
+
+    while( i < unique_lcp_cores_1.size() ) {
+        numerator += lcp_cores_count_1[i] * depth_2;
+        denominator += lcp_cores_count_1[i] * depth_2;
+        i++;
+    }
+
+    while( j < unique_lcp_cores_2.size() ) {
+        numerator += lcp_cores_count_2[j] * depth_1;
+        denominator += lcp_cores_count_2[j] * depth_1;
+        j++;
+    }
+
+    // check for division by zero before returning the result
+    return denominator != 0.0 ? 1 - numerator / denominator : 0.0;
+};
+
+
+/**
+ * @brief Processes a genome file to extract LCP cores using multiple threads.
+ *
+ * This function reads genomic sequences from a specified file and distributes the processing
+ * tasks among several worker threads. Each thread computes LCP cores for the sequences at a
+ * given LCP level and aggregates these cores into a shared vector. The function tracks the
+ * total number of reads processed and their combined length. It ensures efficient and
+ * thread-safe handling of genomic data, leveraging parallel processing to enhance performance.
+ *
+ * @param filename Path to the input file containing genomic sequences.
+ * @param infile Reference to an open GzFile object for reading the input file.
+ * @param lcp_level The depth of LCP analysis for extracting cores from sequences.
+ * @param lcp_cores A reference to a shared vector where extracted LCP cores are aggregated.
+ * @param read_count Reference to a variable that will hold the total number of processed reads.
+ * @param total_length Reference to a variable that will hold the combined length of all reads.
+ * @param thread_number The number of worker threads to use for processing.
+ */
+void processGenome( const char* filename, GzFile& infile, int lcp_level, std::vector<uint>& lcp_cores, size_t& read_count, size_t&total_length, size_t thread_number ) {
+    
+    read_count = 0;
+    total_length = 0;
+
     ThreadSafeQueue<Task> task_queue;
     std::vector<std::thread> workers;
 
     // start worker threads
-    for (int i = 0; i < THREAD_NUMBER; ++i) {
-        workers.emplace_back(worker_function, std::ref(task_queue), std::ref(lcp_cores), lcp_level);
+    for (size_t i = 0; i < thread_number; ++i) {
+        workers.emplace_back(processRead, std::ref(task_queue), std::ref(lcp_cores), lcp_level, thread_number);
     }
 
     std::cout << "Processing is started for " << filename << std::endl;
@@ -215,12 +355,15 @@ void process_genome(const char* filename, GzFile& infile, int lcp_level, std::ve
         infile.gets(buffer, BUFFERSIZE);
         sequence.append(buffer);
 
+        while ( !task_queue.isAvailable() );
+
         // assign read to tasks queue
         Task task;
         task.read = std::string(buffer);
         task_queue.push(task);
 
         read_count++;
+        total_length += task.read.size();
 
         infile.gets(buffer, BUFFERSIZE);
         infile.gets(buffer, BUFFERSIZE);
@@ -235,7 +378,7 @@ void process_genome(const char* filename, GzFile& infile, int lcp_level, std::ve
         }
     }
 
-    generate_minhash_signature(lcp_cores);
+    generateMinhashSignature(lcp_cores);
 
 };
 
@@ -256,9 +399,40 @@ void process_genome(const char* filename, GzFile& infile, int lcp_level, std::ve
  */
 int main(int argc, char **argv) {
 
-    if (argc != 4) {
-        std::cerr << "Wrong format: " << argv[0] << " [genome-input-1] [genome-input-2] [lcp-level]" << std::endl;
+    if (argc < 3) {
+        std::cerr << "Wrong format: " << argv[0] << " [genome-input-1] [genome-input-2] -t [lcp-level] -t [threads] --genome-1-len [number] -genome-2-len [number]" << std::endl;
         return -1;  
+    }
+
+    argp::parser parser;
+    parser.parse(argc, argv);
+
+    std::string arg_lcp_level, arg_threads;
+    size_t thread_number = THREAD_NUMBER;
+    std::string genome_length_1, genome_length_2;
+    size_t genome_1_length, genome_2_length;
+
+    parser({"-l"}) >> arg_lcp_level;
+    parser({"-t"}) >> arg_threads;
+    parser({"--genome-1-len"}) >> genome_length_1;
+    parser({"--genome-2-len"}) >> genome_length_2;
+
+    genome_1_length = std::stoull(genome_length_1);
+    genome_2_length = std::stoull(genome_length_2);
+
+    std::cout << "Size of the genome 1 is set to " << genome_1_length << std::endl;
+    std::cout << "Size of the genome 2 is set to " << genome_2_length << std::endl;
+
+    if ( arg_threads != "" ) {
+        try {
+            thread_number =  static_cast<size_t>(std::stoull(arg_threads));
+            std::cout << "Thread number is set to " << thread_number << " per genome" << std::endl;
+        } catch (...) {
+            std::cerr << "Unable to convert threads parameter to size_t" << std::endl;
+        }
+    } else {
+        std::cout << "Default thread number is set to " << thread_number << " per genome" << std::endl;
+        std::cout << "Warning: 2 more thread is needed for reading 2 genomes and assiging tasks to others." << std::endl;
     }
 
     // validate input file 1
@@ -275,7 +449,14 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    int lcp_level = atoi(argv[3]);
+    int lcp_level;
+    try {
+        lcp_level = std::stoi(arg_lcp_level);
+        std::cout << "LCP Level is set to " << lcp_level << std::endl;
+    } catch (...) {
+        std::cerr << "Unable to convert LCP Level parameter to int" << std::endl;
+        exit(-1);
+    }
 
     // initializing coefficients of the alphabet
     lcp::init_coefficients();
@@ -285,35 +466,49 @@ int main(int argc, char **argv) {
     lcp_cores_2.reserve(1000000000);
 
     size_t read_count_1 = 0, read_count_2 = 0;
+    size_t total_length_1 = 0, total_length_2 = 0;
 
-    // create threads to process each genome in parallel
-    std::thread thread1(process_genome, argv[1], std::ref(infile1), lcp_level, std::ref(lcp_cores_1), std::ref(read_count_1));
-    std::thread thread2(process_genome, argv[2], std::ref(infile2), lcp_level, std::ref(lcp_cores_2), std::ref(read_count_2));
-
-    // wait for both threads to finish
+    // create thread to process first genome in parallel
+    std::thread thread1(processGenome, argv[1], std::ref(infile1), lcp_level, std::ref(lcp_cores_1), std::ref(read_count_1), std::ref(total_length_1), thread_number);
+    
+    // process second genome in main thread, no need for running in seperate thread
+    processGenome(argv[2], infile2, lcp_level, lcp_cores_2, read_count_2, total_length_2, thread_number);
+    
+    // wait for thread to finish
     thread1.join();
-    thread2.join();
+
+    double depth_1 = static_cast<double>(total_length_1) / genome_1_length;
+    double depth_2 = static_cast<double>(total_length_2) / genome_2_length;
     
     std::cout << "Processing is done for " << argv[1] << std::endl;
+    std::cout << "Depth is calculated as " << depth_1 << std::endl;
     std::cout << "Total number of processed reads count: " << read_count_1 << std::endl;
     std::cout << "Total number of cores: " << lcp_cores_1.size() << std::endl;
 
     std::cout << "Processing is done for " << argv[2] << std::endl;
+    std::cout << "Depth is calculated as " << depth_2 << std::endl;
     std::cout << "Total number of processed reads count: " << read_count_2 << std::endl;
     std::cout << "Total number of cores: " << lcp_cores_2.size() << std::endl; 
 
-    size_t intersection_size = 0, union_size = 0;
+    size_t intersection_size = 0, union_size = 0, same_count;
 
-    calculate_intersection_and_union_sizes(lcp_cores_1, lcp_cores_2, intersection_size, union_size);
+    calculateIntersectionAndUnionSizes(lcp_cores_1, lcp_cores_2, intersection_size, union_size);
 
-    double jaccard_similarity = calculate_jaccard_similarity(intersection_size, union_size);
-    double dice_similarity = calculate_dice_similarity(intersection_size, lcp_cores_1.size(), lcp_cores_2.size());
+    double jaccard_similarity = calculateJaccardSimilarity(intersection_size, union_size);
+    double dice_similarity = calculateDiceSimilarity(intersection_size, lcp_cores_1.size(), lcp_cores_2.size());
+    double distance_similarity = calculateDistanceSimilarity(lcp_cores_1, lcp_cores_2, depth_1, depth_2, same_count);
+
+    std::vector<int> uniqueValues;
+    std::vector<int> counts;
 
     std::cout << "Intersection Size: " << intersection_size << std::endl;
     std::cout << "Union Size: " << union_size << std::endl;
+    std::cout << "Same Core Count: " << same_count << std::endl;
     std::cout << std::endl;
     std::cout << "Jaccard Similarity: " << jaccard_similarity << std::endl;
     std::cout << "Dice Similarity: " << dice_similarity << std::endl;
+    std::cout << "Distance Based Similarity: " << distance_similarity << std::endl;
+    std::cout << std::endl;
 
     return 0;
 };
