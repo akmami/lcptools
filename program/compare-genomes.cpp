@@ -320,7 +320,7 @@ double calculateDistanceSimilarity( std::vector<uint>& hashed_cores1, std::vecto
  * @param total_length Reference to a variable that will hold the combined length of all reads.
  * @param thread_number The number of worker threads to use for processing.
  */
-void processGenome( const char* filename, GzFile& infile, int lcp_level, std::vector<uint>& lcp_cores, size_t& read_count, size_t&total_length, size_t thread_number ) {
+void processGenome( const char* filename, GzFile& infile, int lcp_level, std::vector<uint>& lcp_cores, size_t& read_count, size_t& total_length, size_t thread_number ) {
     
     read_count = 0;
     total_length = 0;
@@ -330,7 +330,7 @@ void processGenome( const char* filename, GzFile& infile, int lcp_level, std::ve
 
     // start worker threads
     for (size_t i = 0; i < thread_number; ++i) {
-        workers.emplace_back(processRead, std::ref(task_queue), std::ref(lcp_cores), lcp_level, thread_number);
+        workers.emplace_back(processRead, std::ref(task_queue), std::ref(lcp_cores), lcp_level);
     }
 
     std::cout << "Processing is started for " << filename << std::endl;
@@ -481,11 +481,13 @@ int main(int argc, char **argv) {
     double depth_2 = static_cast<double>(total_length_2) / genome_2_length;
     
     std::cout << "Processing is done for " << argv[1] << std::endl;
+    std::cout << "Total length of reads calculated as " << total_length_1 << std::endl;
     std::cout << "Depth is calculated as " << depth_1 << std::endl;
     std::cout << "Total number of processed reads count: " << read_count_1 << std::endl;
     std::cout << "Total number of cores: " << lcp_cores_1.size() << std::endl;
 
     std::cout << "Processing is done for " << argv[2] << std::endl;
+    std::cout << "Total length of reads calculated as " << total_length_2 << std::endl;
     std::cout << "Depth is calculated as " << depth_2 << std::endl;
     std::cout << "Total number of processed reads count: " << read_count_2 << std::endl;
     std::cout << "Total number of cores: " << lcp_cores_2.size() << std::endl; 
