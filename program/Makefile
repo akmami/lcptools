@@ -58,7 +58,7 @@ TEST_DATA:
 
 compile:
 	@echo "Compiling $(COMPARE_GENOMES)$(CXX)";
-	$(GXX) -Wall -o $(COMPARE_GENOMES) $(COMPARE_GENOMES)$(CXX) -lz;
+	$(GXX) -Wall -o $(COMPARE_GENOMES) $(COMPARE_GENOMES)$(CXX) -lz -lpthread;
 	@echo "Moving $(COMPARE_GENOMES) to $(EXECUTABLE_DIR)";
 	mv $(COMPARE_GENOMES) $(EXECUTABLE_DIR);
 
