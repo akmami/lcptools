@@ -62,6 +62,9 @@ compile:
 	@echo "Moving $(COMPARE_GENOMES) to $(EXECUTABLE_DIR)";
 	mv $(COMPARE_GENOMES) $(EXECUTABLE_DIR);
 
+test: compile
+	$(EXECUTABLE_DIR)/$(COMPARE_GENOMES) ../data/simulated.fastq.gz ../data/simulated.fastq.gz -l 7 --genome-1-len 1500000 --genome-2-len 1500000
+
 ######################################################################
 # PROGRAM
 ######################################################################
@@ -69,7 +72,7 @@ compareGenomes: compile
 	parallel "$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/sd_merged_"{1}"_gold_chr20.fastq.gz $(DATA_DIR)/sd_merged_"{1}"_simu_chr20.fastq.gz -l "{2} " > $(OUT_DIR)/$(COMPARE_GENOMES)-"{1}"-"{2}"-output.txt 2>&1 " ::: 85 ::: 6 7;
 
 compareTrio: compile
-	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/HG002_son.fastq.gz $(DATA_DIR)/HG003_father.fastq.gz -l 7 --genome-1-len 3088269832 --genome-2-len 3088269832 > $(OUT_DIR)/$(COMPARE_GENOMES)-HG002_son-HG003_father-7-output.txt 2>&1
+	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/HG002_son.fastq.gz $(DATA_DIR)/HG003_father.fastq.gz $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/HG002_son.fastq 3088269832 > $(OUT_DIR)/$(COMPARE_GENOMES)-HG002_son-HG003_father-7-output.txt 2>&1
 	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/HG002_son.fastq.gz $(DATA_DIR)/HG004_mother.fastq.gz -l 7 --genome-1-len 3088269832 --genome-2-len 3088269832 > $(OUT_DIR)/$(COMPARE_GENOMES)-HG002_son-HG003_mother-7-output.txt 2>&1
 	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GENOMES) $(DATA_DIR)/HG003_father.fastq.gz $(DATA_DIR)/HG004_mother.fastq.gz -l 7 --genome-1-len 3088269832 --genome-2-len 3088269832 > $(OUT_DIR)/$(COMPARE_GENOMES)-HG003_father-HG004_mother-7-output.txt 2>&1
 

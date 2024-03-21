@@ -54,6 +54,9 @@ make compile
 
 # optionally, move the executable to a directory in your PATH for global access
 sudo cp ../bin/compare-genomes /usr/local/bin
+
+# optionally, you can test the program
+make test
 ```
 
 These instructions assume that you have `git`, a C++ compiler, and `make` installed on your system. 
@@ -77,7 +80,7 @@ Parameters
 
 * `genome-input-1.gz`: Path to the first compressed FASTQ file.
 * `genome-input-2.gz`: Path to the second compressed FASTQ file.
-* `--lcp-level <lcp_level>`: Sets the LCP level for the analysis. 
+* `-l <lcp_level>`: Sets the LCP level for the analysis. 
 Replace <lcp_level> with the desired level. 
 It is advised to set it to *7*.
 * `-t <threads_per_genome>` *(optional)*: Indicates the number of threads allocated for processing each genome. Default is set to *8*.
@@ -91,7 +94,7 @@ Since the program analyzes two genomes simultaneously, the total number of threa
 To run a comparison between two genomes, specifying their lengths and using an optimal number of threads for processing:
 
 ```cpp
-./compare-genomes genome1.fastq.gz genome2.fastq.gz --lcp-level 7 -t 4 --genome-1-len 3088269832 --genome-2-len 3088269832
+./compare-genomes genome1.fastq.gz genome2.fastq.gz -l 7 -t 4 --genome-1-len 3088269832 --genome-2-len 3088269832
 ```
 
 This command compares genome1.fastq.gz and genome2.fastq.gz, applying an LCP level of *7* and allocating *4* threads for the processing of each genome. Considering the architecture of the program, this setup results in using *1* thread for reading and *4* threads for processing per genome, totaling *10* threads for the analysis of two genomes.
