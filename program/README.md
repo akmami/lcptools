@@ -46,6 +46,9 @@ git clone https://github.com/akmami/lcptools.git
 # navigate to the project directory
 cd lcptools/program
 
+# create necessary directories
+make
+
 # compile the source code using Makefile
 make compile
 
