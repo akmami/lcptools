@@ -121,15 +121,15 @@ This approach aims to offer a detailed perspective on similarity, factoring in n
 
 Given two genomic sequences, `G1` and `G2`:
 
-* `G1` = <img src="../img/cores1.png" alt="Cores of the first genome" style="display:inline-block; vertical-align:middle;" /> denotes the set of cores in the first genome.
-* `counts1` = <img src="../img/counts1.png" alt="Number of occurrences of each core in the first genome" style="display:inline-block; vertical-align:middle;" /> corresponds to the number of occurrences of each core in `G1`.
-* `G2` = <img src="../img/cores1.png" alt="Cores of the second genome" style="display:inline-block; vertical-align:middle;" /> denotes the set of cores in the second genome.
-* `counts2` = <img src="../img/counts2.png" alt="Number of occurrences of each core in the second genome" style="display:inline-block; vertical-align:middle;" /> corresponds to the number of occurrences of each core in `G2`.
+* `G1` = <img src="../img/cores1.jpg" alt="Cores of the first genome" height="20" style="display:inline-block; vertical-align:middle;" /> denotes the set of cores in the first genome.
+* `counts1` = <img src="../img/counts1.jpg" alt="Number of occurrences of each core in the first genome" height="20" style="display:inline-block; vertical-align:middle;" /> corresponds to the number of occurrences of each core in `G1`.
+* `G2` = <img src="../img/cores1.jpg" alt="Cores of the second genome" height="20" style="display:inline-block; vertical-align:middle;" /> denotes the set of cores in the second genome.
+* `counts2` = <img src="../img/counts2.jpg" alt="Number of occurrences of each core in the second genome" height="20" style="display:inline-block; vertical-align:middle;" /> corresponds to the number of occurrences of each core in `G2`.
 * `d1` and `d2` represent the sequencing depths of genomes `G1` and `G2`, respectively.
 
 The similarity between `G1` and `G2` is calculated using the following formula:
 
-Similarity: <img src="../img/dist_formula.png" alt="Distance Based Similarity Formula" style="display:inline-block; vertical-align:middle;" />
+Similarity: <img src="../img/dist_formula.jpg" alt="Distance Based Similarity Formula" height="50" style="display:inline-block; vertical-align:middle;" />
 
 #### Interpretation
 
