@@ -74,7 +74,7 @@ It makes the `compare-genomes` executable globally accessible from any terminal 
 Execute `compare-genomes` with the following command structure:
 
 ```cpp
-./compare-genomes genome-input-1.fastq.gz genome-input-2.fastq.gz --lcp-level <lcp_level> -t <threads_per_genome> --genome-1-len <length_of_genome_1> --genome-2-len <length_of_genome_2>
+./compare-genomes genome-input-1.fastq.gz genome-input-2.fastq.gz -l <lcp_level> -t <threads_per_genome> --genome-1-len <length_of_genome_1> --genome-2-len <length_of_genome_2>
 ```
 Parameters
 
