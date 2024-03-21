@@ -53,7 +53,7 @@ make
 make compile
 
 # optionally, move the executable to a directory in your PATH for global access
-sudo mv compare-genomes /usr/local/bin
+sudo cp ../bin/compare-genomes /usr/local/bin
 ```
 
 These instructions assume that you have `git`, a C++ compiler, and `make` installed on your system. 
