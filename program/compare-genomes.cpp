@@ -14,7 +14,7 @@
  * files, and processing LCP structures, respectively.
  *
  * Usage:
- *     ./GenomeAnalysis genome-input-1.gz genome-input-2.gz -t lcp-level -t 8 --genome-1-len 3088269832 -genome-2-len 3088269832
+ *     ./GenomeAnalysis genome-input-1.gz genome-input-2.gz -l lcp-level -t 8 --genome-1-len 3088269832 -genome-2-len 3088269832
  */
 
 
@@ -400,7 +400,7 @@ void processGenome( const char* filename, GzFile& infile, int lcp_level, std::ve
 int main(int argc, char **argv) {
 
     if (argc < 3) {
-        std::cerr << "Wrong format: " << argv[0] << " [genome-input-1] [genome-input-2] -t [lcp-level] -t [threads] --genome-1-len [number] -genome-2-len [number]" << std::endl;
+        std::cerr << "Wrong format: " << argv[0] << " [genome-input-1] [genome-input-2] -l [lcp-level] -t [threads] --genome-1-len [number] --genome-2-len [number]" << std::endl;
         return -1;  
     }
 
