@@ -20,78 +20,93 @@ namespace lcp {
 
     struct string {
 
-        size_t start_index;     // for each DCT, first core is not compressed, hence needs to be removed.
-                                // however, removing first element in vector will cause all the rest to be shifted
+        size_t start_index;     // For each DCT, first core is not compressed, hence needs to be removed.
+                                // However, removing first element in vector will cause all the rest to be shifted
                                 // left, which is 0(N) time task. In order to prevent such inefficient call,
                                 // start index for vector can be shifted to right. This variable serves to that purpose.
         std::vector<core*> cores;
         std::vector<base_core*> base_cores;
-
         int level;
 
-        string(std::string &str) {
-            
+        string(std::string &str, bool rev_comp = false) {
+
             this->level = 1;
             this->start_index = 0;
 
-            std::string::iterator it1 = str.begin(), it2;
-            int index = 0, min_value;
+            std::string::iterator it2;
+            
 
             this->base_cores.reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
                                                                             // and the increase is always above the 2, it makes sense to reserve
                                                                             // half of the size for the cores to prevent expansion of vector.
             
-            while( it1 != str.end() && it1+1 != str.end() && it1+2 != str.end() && *(it1+1) == *(it1+2) ) {
-                it1++;
-                index++;
+            if ( rev_comp ) {
+                process_string(str.rbegin(), str.rbegin(), str.rend());
+            } else {
+                process_string(str.begin(), str.begin(), str.end());
             }
+        }
 
-            for ( ; it1 + 2 <= str.end(); it1++, index++ ) {
+        template<typename Iterator>
+        void process_string(Iterator it1, Iterator it2, Iterator end, bool rev_comp = false) {
+
+            int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
+
+            int index = 0, min_value;
+
+            // Find lcp cores
+            for ( ; it1 + 2 <= end; it1++, index++ ) {
+
+                if ( coefficientsArray[static_cast<unsigned char>(*it1)] == -1 || coefficientsArray[static_cast<unsigned char>(*it1+1)] == -1 || coefficientsArray[static_cast<unsigned char>(*it1)] == coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] ) {
+                    continue;
+                }
                 
-                // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
-                if ( coefficients[static_cast<unsigned char>(*it1)] != coefficients[static_cast<unsigned char>(*(it1 + 1))] && coefficients[static_cast<unsigned char>(*(it1 + 1))] == coefficients[static_cast<unsigned char>(*(it1 + 2))] ) {
+                // If there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
+                if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] == coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] ) {
                     
-                    for ( it2 = it1 + 3; it2 != str.end() && *(it2) == *(it2 - 1); it2++ ) {}
+                    for ( it2 = it1 + 3; it2 != end && *(it2) == *(it2 - 1); it2++ ) {}
                     
-                    if ( it2 == str.end() ) {
+                    if ( it2 == end ) {
                         break;
                     }
 
-                    // check whether there is any invalid character encountered
-                    if ( coefficients[static_cast<unsigned char>(*it1)] == -1 || coefficients[static_cast<unsigned char>(*(it1+1))] == -1 || coefficients[static_cast<unsigned char>(*(it2-1))] == -1 ) {
+                    // If z is invalid character, then do not processed
+                    if ( coefficientsArray[static_cast<unsigned char>(*it2)] == -1 ) {
                         continue;
                     }
 
+                    // Check whether there is any invalid character encountered
+                    if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] == -1 || coefficientsArray[static_cast<unsigned char>(*(it2-1))] == -1 ) {
+                        continue;
+                    }
+
+                    if ( coefficientsArray[static_cast<unsigned char>(*it1)] != -1)
                     it2++;
-                    base_core *new_core = new base_core(it1, it2, index);
+                    base_core *new_core = new base_core(it1, it2, index, rev_comp);
                     this->base_cores.push_back(new_core);
                     
                     continue;
                 }
 
-                if ( it1 + 3 > str.end() ) {
-                    break;
-                }
-                
-                // if there is no subsequent characters such as uxyzv where x!=y and y!=z
-                min_value = coefficients[static_cast<unsigned char>(*it1)];
-
-                for ( it2 = it1 + 1; it2 != it1 + 3; it2++ ) {
-                    if ( min_value > coefficients[static_cast<unsigned char>(*it2)] ) {
-                        min_value = coefficients[static_cast<unsigned char>(*it2)];
-                    }
-                }
-                
-                if (
-                    ( coefficients[static_cast<unsigned char>(*(it1 + 2))] < coefficients[static_cast<unsigned char>(*(it1 + 3))] && coefficients[static_cast<unsigned char>(*(it1 + 2))] < coefficients[static_cast<unsigned char>(*(it1 + 1))] ) ||   // local minima
-                    ( coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 3))] && coefficients[static_cast<unsigned char>(*(it1 + 2))] > coefficients[static_cast<unsigned char>(*(it1 + 1))] &&     // local maxima without immediate local minima neighbours
-                      coefficients[static_cast<unsigned char>(*(it1))] <= coefficients[static_cast<unsigned char>(*(it1 + 1))] && coefficients[static_cast<unsigned char>(*(it1 + 4))] <= coefficients[static_cast<unsigned char>(*(it1 + 3))] )
-                ) {
-                    if ( min_value == -1 ) {    // invalid character encountered
+                // If there is no subsequent characters such as uxyzv where x!=y and y!=z, check local maxima/minima cases
+                if ( it1 + 4 < end ) {
+                    
+                    // It is enough to validate y as u and x has already been checked. If y is invalid, then it will be local minima.
+                    // If z is invalid, then, y cannot be local minima or local maxima not having local minima neighbours.
+                    // Here, z is ignored.
+                    if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] == -1 ) {
                         continue;
                     }
-                    base_core *new_core = new base_core(it1+1, it1+4, index+1);
-                    this->base_cores.push_back(new_core);
+                    
+                    if (
+                        ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] ) ||   // local minima
+                        ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] &&     // local maxima without immediate local minima neighbours
+                        coefficientsArray[static_cast<unsigned char>(*(it1))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 4))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] )
+                    ) {
+                        
+                        base_core *new_core = new base_core(it1+1, it1+4, index+1, rev_comp);
+                        this->base_cores.push_back(new_core);
+                    }
                 }
             }
         }
@@ -110,11 +125,15 @@ namespace lcp {
 
         bool deepen() {
             
-            // compress cores
+            // Compress cores
+
+            // If the lcp level is 1, then the cores are stored in base_cores
+            // Hence, it requires seperate handling
             if ( this->level == 1 ) {
 
                 this->cores.reserve( this->base_cores.size() / CONSTANT_FACTOR );
                 
+                // At least 2 cores are needed for compression
                 if ( this->base_cores.size() < 2 ) {
                     for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
                         delete *it;
@@ -129,7 +148,7 @@ namespace lcp {
                 for( ; it_curr != this->base_cores.end(); it_curr++, it_left++ ) {
                     unsigned int index = (*it_curr)->compress(*it_left);
 
-                    // determine bit count required to represent new core
+                    // Determine bit count required to represent new core
                     uchar bit_size = 0;
                     unsigned int temp = index;
                     
@@ -139,12 +158,12 @@ namespace lcp {
                     }
                     bit_size = bit_size > 2 ? bit_size : 2;
 
-                    // create new core
+                    // Create new core
                     lcp::core* new_core = new core( index, bit_size, (*it_curr)->start, (*it_curr)->end );
                     this->cores.push_back(new_core);
                 }
 
-                // cores are now represented by cores, hence, no need for base cores
+                // Cores are now represented by cores, hence, no need for base cores
                 for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
                     delete *it;
                 }
@@ -153,12 +172,13 @@ namespace lcp {
 
             int compression_iteratin_index = 0;
 
-            if (this->level == 1) {     // if it is first level, then compression is already done once above
+            if (this->level == 1) {     // If it is first level, then compression is already done once above
                 compression_iteratin_index++;
             }
 
             for( ; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
                 
+                // At least 2 cores are needed for compression
                 if (this->cores.size() < 2) {
                     for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
                         delete *it;

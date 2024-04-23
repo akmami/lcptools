@@ -47,13 +47,15 @@ namespace lcp {
 				temp++;
 			}
 			
-			// shift left by 1 bit and set last bit to difference
-			uint index = 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
-
-			return index;
+			// Shift left by 1 bit and set last bit to difference
+			return 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
 		}
 		
-		base_core(std::string::iterator it1, std::string::iterator it2, int start) {
+		template<typename Iter>
+		base_core(Iter it1, Iter it2, int start, bool rev_comp = false) {
+
+			int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
+
 			this->start = start;
 			this->end = start + (it2 - it1);
 
@@ -75,8 +77,8 @@ namespace lcp {
 			// Encoding string to bits
 		    int coefficient, index = 0;
 		    
-		    for(std::string::iterator char_it = it1; char_it != it2; char_it++) {
-		        coefficient = coefficients[static_cast<unsigned char>(*char_it)];
+		    for(Iter char_it = it1; char_it != it2; char_it++) {
+		        coefficient = coefficientsArray[static_cast<unsigned char>(*char_it)];
 		        for (int i = dict_bit_size - 1; i >= 0 ; i--) {
 		        	if (coefficient % 2) {
 		        		this->p[(this->start_index + index + i) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index + i) % SIZE_PER_BLOCK ) - 1 ) );
