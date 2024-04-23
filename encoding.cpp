@@ -3,10 +3,12 @@
 
 #include <map>
 #include <fstream>
+#include <iostream>
 
 namespace lcp {
 
     static int coefficients[128];
+    static int reverse_complement_coefficients[128];
     static char characters[128];
     static int dict_bit_size;
 
@@ -33,6 +35,11 @@ namespace lcp {
         coefficients['T'] = 3; coefficients['t'] = 3;
         coefficients['G'] = 2; coefficients['g'] = 2;
         coefficients['C'] = 1; coefficients['c'] = 1;
+
+        reverse_complement_coefficients['A'] = 3; reverse_complement_coefficients['a'] = 3;
+        reverse_complement_coefficients['T'] = 0; reverse_complement_coefficients['t'] = 0;
+        reverse_complement_coefficients['G'] = 1; reverse_complement_coefficients['g'] = 1;
+        reverse_complement_coefficients['C'] = 2; reverse_complement_coefficients['c'] = 2;
         
         characters[0] = 'A';
         characters[1] = 'C';
@@ -46,7 +53,7 @@ namespace lcp {
         return 0;
     };
 
-    int init_coefficients(std::map<char, int> map, bool verbose=false) {
+    int init_coefficients(std::map<char, int> map, std::map<char, int> rc_map, bool verbose=false) {
 
         // init coefficients A/a=0, T/t=3, G/g=2, C/c=1
         for (int current_index = 0; current_index < 128; current_index++) {
@@ -68,6 +75,21 @@ namespace lcp {
             }
             it++;
         }
+
+        // init reverse complement
+        it = rc_map.begin();
+
+        while (it != map.end()) {
+            if (it->second < 0)
+                throw std::invalid_argument("Invalid value given.");
+            
+            reverse_complement_coefficients[static_cast<unsigned char>(it->first)] = it->second;
+            characters[it->second] = it->first;
+            if (max < it->second) {
+                max = it->second;
+            }
+            it++;
+        }
         
         int bit_count = 0;
         while(max > 0) {
@@ -83,17 +105,18 @@ namespace lcp {
     };
     
     int init_coefficients(std::string encoding_file, bool verbose=false) {
-    	std::map<char, int> map;
+    	std::map<char, int> map, rev_map;
         std::ifstream encodings;
         encodings.open(encoding_file);
 
         char character;
-        int encoding;
-        while( encodings >> character >> encoding ) {
+        int encoding, rev_encoding;
+        while( encodings >> character >> encoding >> rev_encoding ) {
             map[character] = encoding;
+            rev_map[character] = rev_encoding;
         }
         
-        return init_coefficients(map, verbose);
+        return init_coefficients(map, rev_map, verbose);
     };
 };
 
