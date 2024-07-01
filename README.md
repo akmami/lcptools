@@ -19,7 +19,7 @@ You can install lcptools either system-wide (requires sudo privileges) or in a u
 
 To install lcptools system-wide, you need sudo privileges. This will install the library in `/usr/local`.
 
-1. **Clone the repository:**
+1. **Install the repository:**
     ```sh
     git clone https://github.com/akmami/lcptools.git
     cd lcptools
@@ -40,7 +40,7 @@ To install lcptools system-wide, you need sudo privileges. This will install the
 
 To install lcptools in your home directory (or another custom directory), you don't need sudo privileges.
 
-1. **Clone the repository:**
+1. **Install the repository:**
     ```sh
     git clone https://github.com/akmami/lcptools.git
     cd lcptools
@@ -59,7 +59,7 @@ To install lcptools in your home directory (or another custom directory), you do
 
 ## Usage
 
-To compile your program with the GenCore library, you need to specify the include and library paths based on your installation method.
+To compile your program with your program, you need to specify the include and library paths based on your installation method.
 
 ### System-wide Installation
 
@@ -79,7 +79,7 @@ Alternatively, you can include the header directly in your program:
 #include "lcptools/string.cpp"
 ```
 
-Note: Make sure that path is correct.
+Note: Make sure that paths are correct.
 
 ## Character Encoding
 
