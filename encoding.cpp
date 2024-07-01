@@ -1,16 +1,6 @@
-#ifndef   ENCODING_CPP
-#define   ENCODING_CPP
-
-#include <map>
-#include <fstream>
-#include <iostream>
+#include "encoding.h"
 
 namespace lcp {
-
-    static int coefficients[128];
-    static int reverse_complement_coefficients[128];
-    static char characters[128];
-    static int dict_bit_size;
 
     void encoding_summary() {
         std::cout << "# Alphabet encoding summary" << std::endl;
