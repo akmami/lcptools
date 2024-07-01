@@ -5,6 +5,82 @@
 
 This repository contains an implementation of the Locally Consistent Parsing (LCP) algorithm, applied to strings using a specific binary alphabet encoding. The implementation is in C++ and is designed for efficient computation of LCP on large datasets.
 
+## Features
+
+- **Efficient LCP Computation:** Implemented in C++ for efficient and scalable computation on large datasets.
+- **High Accuracy:** Achieves highly accurate comparisons by leveraging the unique LCP approach.
+- **Designed for Genomics:** Specifically caters to the needs of genomic researchers and bioinformaticians.
+
+## Installation
+
+You can install lcptools either system-wide (requires sudo privileges) or in a user-specific directory (no sudo required).
+
+### System-wide Installation
+
+To install lcptools system-wide, you need sudo privileges. This will install the library in `/usr/local`.
+
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/akmami/lcptools.git
+    cd lcptools
+
+    # Build the library
+    make
+
+    # Install the library
+    sudo make install
+    ```
+
+2. **Uninstall the library (if needed):**
+    ```sh
+    sudo make uninstall
+    ```
+
+### User-specific Installation
+
+To install lcptools in your home directory (or another custom directory), you don't need sudo privileges.
+
+1. **Clone the repository:**
+    ```sh
+    git clone https://github.com/akmami/lcptools.git
+    cd lcptools
+
+    # Build the library
+    make
+
+    # Install the library to a custom directory (e.g., `~/.local`):**
+    make install PREFIX=$(HOME)/.local
+    ```
+
+2. **Uninstall the library from the custom directory (if needed):**
+    ```sh
+    make uninstall PREFIX=$(HOME)/.local
+    ```
+
+## Usage
+
+To compile your program with the GenCore library, you need to specify the include and library paths based on your installation method.
+
+### System-wide Installation
+
+```sh
+g++ -o your_program your_program.cpp -llcptools
+```
+
+### User-specific Installation
+
+```sh
+g++ -o your_program your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools
+```
+
+Alternatively, you can include the header directly in your program:
+
+```sh
+#include "lcptools/string.cpp"
+```
+
+Note: Make sure that path is correct.
+
 ## Character Encoding
 
 The binary encoding of the alphabet is defined as follows. This default encoding is used unless a custom encoding is provided:
