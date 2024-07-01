@@ -1,6 +1,5 @@
-HUMAN_V38_FASTA := human_v38.fasta
-PBSIM_MAF := *.maf.gz
-PBSIM_FASTQ := *.fastq.gz
+FASTA := hg38.fa
+FASTQ := *.fastq.gz
 LCP_LEVEL := 4
 
 # Programs
@@ -8,15 +7,6 @@ CPP_LCP_FASTA := cpp-lcp-fasta
 CPP_LCP_FASTQ_ERROR := cpp-lcp-fastq-error
 CPP_MINIMIZER_FASTA := cpp-minimizer-fasta
 CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
-FASTQ_TO_FASTA := fastq-to-fasta
-GOLD_STANDARD_GFA := gold-standard-gfa
-LCP_TRIE_BASED := lcp-trie-based-stat
-LCP_INVERTED_BASED := lcp-inverted-based
-LCP_INVERTED_ANALYSIS := lcp-inverted-analysis
-COMPARE_GFA := compare-gfa
-EXTRACT_CHROM_FROM_MAF := extract-chrom-from-maf
-EXTRACT_CHROM_FROM_FASTQ := extract-chrom-from-fastq
-EXTRACT_READS := extract-reads
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -34,9 +24,9 @@ TIME := /usr/bin/time -v
 
 .PHONY: all
 
-all: MKDIR_BIN MKDIR_RESULTS MKDIR_OUT TEST_DATA
+all: mkdir_bin mkdir_results mkdir_out
 
-MKDIR_BIN:
+mkdir_bin:
 	@echo "Checking if $(EXECUTABLE_DIR) exists..."
 	@if [ ! -d "$(EXECUTABLE_DIR)" ]; then \
 		echo "$(EXECUTABLE_DIR) does not exist. Creating..."; \
@@ -45,7 +35,7 @@ MKDIR_BIN:
 		echo "$(EXECUTABLE_DIR) already exists."; \
 	fi
 
-MKDIR_RESULTS:
+mkdir_results:
 	@echo "Checking if $(RESULTS_DIR) exists..."
 	@if [ ! -d "$(RESULTS_DIR)" ]; then \
 		echo "$(RESULTS_DIR) does not exist. Creating..."; \
@@ -54,7 +44,7 @@ MKDIR_RESULTS:
 		echo "$(RESULTS_DIR) already exists."; \
 	fi
 
-MKDIR_OUT:
+mkdir_out:
 	@echo "Checking if $(OUT_DIR) exists..."
 	@if [ ! -d "$(OUT_DIR)" ]; then \
 		echo "$(OUT_DIR) does not exist. Creating..."; \
@@ -63,74 +53,51 @@ MKDIR_OUT:
 		echo "$(OUT_DIR) already exists."; \
 	fi
 
-TEST_DATA:
-	@if [ ! -f $(DATA_DIR)/$(HUMAN_V38_FASTA) ]; then \
-		echo "File $(DATA_DIR)/$(HUMAN_V38_FASTA) does not exist. Exiting."; \
+check_fasta:
+	@if [ ! -f $(DATA_DIR)/$(FASTA) ]; then \
+		echo "File $(DATA_DIR)/$(FASTA) does not exist. Exiting."; \
 		exit 1; \
 	fi
-	@echo "File $(DATA_DIR)/$(HUMAN_V38_FASTA) exists."
-	@if ! ls $(DATA_DIR)/$(PBSIM_MAF) 1> /dev/null; then \
-		echo "No .maf.gz files found. Exiting."; \
-		exit 1; \
-	fi
-	@echo "At least one maf.gz file exists."
-	@if ! ls $(DATA_DIR)/$(PBSIM_FASTQ) 1> /dev/null; then \
+
+check_fastq:
+	@if ! ls $(DATA_DIR)/$(FASTQ) 1> /dev/null; then \
 		echo "No .fastq.gz files found. Exiting."; \
 		exit 1; \
 	fi
-	@echo "At least one fastq.gz file exists."
 
-######################################################################
-# HELPERS
-######################################################################
-fastqToFasta: MKDIR_BIN MKDIR_RESULTS
-	@echo "Compiling $(FASTQ_TO_FASTA)$(CXX)";
-	$(GXX) -Wall -o $(FASTQ_TO_FASTA) $(FASTQ_TO_FASTA)$(CXX) -lz;
-	@echo "Moving $(FASTQ_TO_FASTA) to $(EXECUTABLE_DIR)";
-	mv $(FASTQ_TO_FASTA) $(EXECUTABLE_DIR);
-	@find $(DATA_DIR) -name '$(PBSIM_FASTQ)' | parallel ' \
-		file=$$(basename {}); \
-		rname=$$(echo $$file | sed 's/\.fastq.gz/.fasta.gz/'); \
-		out_file=$(FASTQ_TO_FASTA)-$$(echo $$file | sed 's/\.fastq.gz/-out.txt/'); \
-		echo "Processing $$file" > $(OUT_DIR)/$${out_file}; \
-		if [ -f $(RESULTS_DIR)/$$rname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-			rm -f $(RESULTS_DIR)/$$rname; \
-        fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-		$(TIME) $(EXECUTABLE_DIR)/$(FASTQ_TO_FASTA) {} $(RESULTS_DIR)/$$rname >> $(OUT_DIR)/$${out_file} 2>&1 \
-	'
+install:
+	@if [ ! -f $(DATA_DIR)/$(FASTA) ]; then \
+		wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz -P $(DATA_DIR)/; \
+		gunzip $(DATA_DIR)/hg38.fa.gz; \
+	fi
 
-goldStandartGfa: MKDIR_BIN MKDIR_RESULTS
-	@echo "Compiling $(GOLD_STANDARD_GFA)$(CXX)";
-	$(GXX) -Wall -o $(GOLD_STANDARD_GFA) $(GOLD_STANDARD_GFA)$(CXX) -lz;
-	@echo "Moving $(GOLD_STANDARD_GFA) to $(EXECUTABLE_DIR)";
-	mv $(GOLD_STANDARD_GFA) $(EXECUTABLE_DIR);
-	@find $(DATA_DIR) -name '$(PBSIM_MAF)' | parallel ' \
-		file=$$(basename {}); \
-		rname=$$(echo $$file | sed 's/\.maf.gz/_gold.gfa/'); \
-		out_file=$(GOLD_STANDARD_GFA)-$$(echo $$file | sed 's/\.maf.gz/-out.txt/'); \
-		echo "Processing $$file" > $(OUT_DIR)/$${out_file};  \
-		if [ -f $(RESULTS_DIR)/$$rname ]; then \
-			echo "Removing existing processed file $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-			rm -f $(RESULTS_DIR)/$$rname; \
-        fi; \
-		echo "Preprocessing $$file. Output will be put into $(RESULTS_DIR)/$$rname" >> $(OUT_DIR)/$${out_file}; \
-		$(TIME) $(EXECUTABLE_DIR)/$(GOLD_STANDARD_GFA) {} $(RESULTS_DIR)/$$rname --simple >> $(OUT_DIR)/$${out_file} 2>&1 \
-	'
+clean:
+	@if [ -d "$(OUT_DIR)" ]; then \
+		echo "Removing $(OUT_DIR)"; \
+		rm -r $(OUT_DIR); \
+	fi
+	@if [ -d "$(EXECUTABLE_DIR)" ]; then \
+		echo "Removing $(EXECUTABLE_DIR)"; \
+		rm -r $(EXECUTABLE_DIR); \
+	fi
+	@if [ -d "$(RESULTS_DIR)" ]; then \
+		echo "Removing $(RESULTS_DIR)"; \
+		rm -r $(RESULTS_DIR); \
+	fi
+	@echo "Cleaned."
 
 ######################################################################
 # LCP
 ######################################################################
-lcpFasta: MKDIR_BIN MKDIR_RESULTS
+lcpFasta: mkdir_bin mkdir_results check_fasta
 	@echo "Compiling $(CPP_LCP_FASTA)$(CXX)";
 	$(GXX) -Wall -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA)$(CXX);
 	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)";
 	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR);
-	@echo "Preprocessing $(DATA_DIR)/$(HUMAN_V38_FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(DATA_DIR)/$(HUMAN_V38_FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt 2>&1;
+	@echo "Preprocessing $(DATA_DIR)/$(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(DATA_DIR)/$(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt 2>&1;
 
-lcpFastq: MKDIR_BIN MKDIR_RESULTS
+lcpFastq: mkdir_bin mkdir_results check_fastq
 	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)";
 	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
 	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
@@ -140,71 +107,16 @@ lcpFastq: MKDIR_BIN MKDIR_RESULTS
 ######################################################################
 # MINIMIZER
 ######################################################################
-minimizerFasta: MKDIR_BIN MKDIR_RESULTS
+minimizerFasta: mkdir_bin mkdir_results check_fasta
 	@echo "Compiling $(CPP_MINIMIZER_FASTA)$(CXX)";
 	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTA) $(CPP_MINIMIZER_FASTA)$(CXX);
 	@echo "Moving $(CPP_MINIMIZER_FASTA) to $(EXECUTABLE_DIR)";
 	mv $(CPP_MINIMIZER_FASTA) $(EXECUTABLE_DIR);
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA)" "$(DATA_DIR)/$(HUMAN_V38_FASTA)" {1} {2} ">" "$(OUT_DIR)/$(CPP_MINIMIZER_FASTA)-k{1}-w{2}.txt 2>&1;"  ::: 4 10 16 ::: 8 20 32
+	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA)" "$(DATA_DIR)/$(FASTA)" {1} {2} ">" "$(OUT_DIR)/$(CPP_MINIMIZER_FASTA)-k{1}-w{2}.txt 2>&1;"  ::: 4 10 16 ::: 8 20 32
 
-minimizerFastq: MKDIR_BIN MKDIR_RESULTS
+minimizerFastq: mkdir_bin mkdir_results check_fastq
 	@echo "Compiling $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX)";
 	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTQ_ERROR) $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX);
 	@echo "Moving $(CPP_MINIMIZER_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
 	mv $(CPP_MINIMIZER_FASTQ_ERROR) $(EXECUTABLE_DIR);
 	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}".maf.gz > $(OUT_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR)-"{1}".txt 2>&1" ::: 85 90 95 99
-
-######################################################################
-# INDEXING
-######################################################################
-lcpTrieIndexing:
-	@echo "Compiling $(LCP_TRIE_BASED)$(CXX)";
-	$(GXX) -Wall -o $(LCP_TRIE_BASED) $(LCP_TRIE_BASED)$(CXX) -lz; 
-	@echo "Moving $(LCP_TRIE_BASED) to $(EXECUTABLE_DIR)";
-	mv $(LCP_TRIE_BASED) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_TRIE_BASED) $(DATA_DIR)/sd_merged_"{}".fastq.gz $(RESULTS_DIR)/sd_merged_"{}"_trie.gfa > $(OUT_DIR)/$(LCP_TRIE_BASED)-"{}".txt 2>&1" ::: 85 90 95 99;
-
-lcpInvertedIndexing:;
-	@echo "Compiling $(LCP_INVERTED_BASED)$(CXX)";
-	$(GXX) -Wall -g -o $(LCP_INVERTED_BASED) $(LCP_INVERTED_BASED)$(CXX) -lz;
-	@echo "Moving $(LCP_INVERTED_BASED) to $(EXECUTABLE_DIR)";
-	mv $(LCP_INVERTED_BASED) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_BASED) $(DATA_DIR)/sd_merged_"{1}"_chr20.maf.gz "{2}" > $(OUT_DIR)/$(LCP_INVERTED_BASED)-chr20-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
-
-lcpInvertedAnalysis:
-	@echo "Compiling $(LCP_INVERTED_ANALYSIS)$(CXX)";
-	$(GXX) -Wall -o $(LCP_INVERTED_ANALYSIS) $(LCP_INVERTED_ANALYSIS)$(CXX) -lz;
-	@echo "Moving $(LCP_INVERTED_ANALYSIS) to $(EXECUTABLE_DIR)";
-	mv $(LCP_INVERTED_ANALYSIS) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(LCP_INVERTED_ANALYSIS) $(DATA_DIR)/sd_merged_"{1}"_chr20.fastq.gz $(RESULTS_DIR)/$(LCP_INVERTED_ANALYSIS)-chr20-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(LCP_INVERTED_ANALYSIS)-chr20-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
-
-######################################################################
-# OTHER
-######################################################################
-compareGFAs:
-	@echo "Compiling $(COMPARE_GFA)$(CXX)";
-	$(GXX) -Wall -o $(COMPARE_GFA) $(COMPARE_GFA)$(CXX);
-	@echo "Moving $(COMPARE_GFA) to $(EXECUTABLE_DIR)";
-	mv $(COMPARE_GFA) $(EXECUTABLE_DIR);
-	$(TIME) $(EXECUTABLE_DIR)/$(COMPARE_GFA) $(RESULTS_DIR)/sd_merged_99_gold.gfa $(RESULTS_DIR)/sd_merged_99_trie.gfa;
-
-extractChromFromMaf:
-	@echo "Compiling $(EXTRACT_CHROM_FROM_MAF)$(CXX)";
-	$(GXX) -Wall -o $(EXTRACT_CHROM_FROM_MAF) $(EXTRACT_CHROM_FROM_MAF)$(CXX) -lz;
-	@echo "Moving $(EXTRACT_CHROM_FROM_MAF) to $(EXECUTABLE_DIR)";
-	mv $(EXTRACT_CHROM_FROM_MAF) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_MAF) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/sd_merged_"{1}"_chr"{2}".maf.gz "{2} " > $(OUT_DIR)/$(EXTRACT_CHROM_FROM_MAF)-"{1}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 20;
-
-extractChromFromFastq:
-	@echo "Compiling $(EXTRACT_CHROM_FROM_FASTQ)$(CXX)";
-	$(GXX) -Wall -o $(EXTRACT_CHROM_FROM_FASTQ) $(EXTRACT_CHROM_FROM_FASTQ)$(CXX) -lz;
-	@echo "Moving $(EXTRACT_CHROM_FROM_FASTQ) to $(EXECUTABLE_DIR)";
-	mv $(EXTRACT_CHROM_FROM_FASTQ) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_CHROM_FROM_FASTQ) $(DATA_DIR)/sd_merged_"{1}"_"{3}".fastq.gz $(RESULTS_DIR)/sd_merged_"{1}"_"{3}"_chr"{2}".fastq.gz "{2} " > $(OUT_DIR)/$(EXTRACT_CHROM_FROM_FASTQ)-"{1}"-"{3}"-"{2}".txt 2>&1" ::: 85 90 95 99 ::: 20 ::: simu gold;
-
-extractReads:
-	@echo "Compiling $(EXTRACT_READS)$(CXX)";
-	$(GXX) -Wall -o $(EXTRACT_READS) $(EXTRACT_READS)$(CXX) -lz;
-	@echo "Moving $(EXTRACT_READS) to $(EXECUTABLE_DIR)";
-	mv $(EXTRACT_READS) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(EXTRACT_READS) $(DATA_DIR)/sd_merged_"{1}".maf.gz $(RESULTS_DIR)/sd_merged_"{1}"_gold.fastq.gz $(RESULTS_DIR)/sd_merged_"{1}"_simu.fastq.gz > $(OUT_DIR)/$(EXTRACT_READS)-"{1}".txt 2>&1" ::: 85 90 95 99;
