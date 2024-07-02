@@ -1,5 +1,3 @@
-
-#include "base_core.h"
 #include "core.h"
 
 namespace lcp {

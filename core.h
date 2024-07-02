@@ -2,6 +2,10 @@
 #define   CORE_H
 
 #include <vector>
+#include <ostream>
+#include "base_core.h"
+#include "constant.h"
+#include "encoding.h"
 
 namespace lcp {
 
