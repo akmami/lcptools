@@ -2,50 +2,56 @@
 
 namespace lcp {
 	
-	template<typename Iter>
-	base_core::base_core(Iter it1, Iter it2, int start, bool rev_comp) {
+	base_core::base_core(std::string::iterator begin, std::string::iterator end, int start, bool rev_comp) {
 
 		int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
 		this->start = start;
-		this->end = start + (it2 - it1);
+		this->end = start + (end - begin);
 
-		this->block_number = ( (it2 - it1) * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
-		this->start_index = this->block_number * SIZE_PER_BLOCK - (it2 - it1) * dict_bit_size;
+		this->block_number = ( (end - begin) * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
+		this->start_index = this->block_number * SIZE_PER_BLOCK - (end - begin) * dict_bit_size;
 		
-		// Make allocation for the bit representation
-		this->p = (unsigned char *)malloc( this->block_number );
+		// make allocation for the bit representation
+		this->p = (unsigned int *)malloc(this->block_number * sizeof(unsigned int));
 
 		if (this->p == NULL) {
 			throw std::bad_alloc();
 		}
 
 		// clear dumps
-		for( int i=0; i<this->block_number; i++ ) {
+		for (int i = 0; i < this->block_number; i++) {
 			this->p[i] = 0;
 		}
 
-		// Encoding string to bits
+		// encoding string to bits
 		int coefficient, index = 0;
-		
-		for(Iter char_it = it1; char_it != it2; char_it++) {
+		int shift, block_index;
+
+		for (std::string::iterator char_it = begin; char_it != end; char_it++) {
 			coefficient = coefficientsArray[static_cast<unsigned char>(*char_it)];
-			for (int i = dict_bit_size - 1; i >= 0 ; i--) {
-				if (coefficient % 2) {
-					this->p[(this->start_index + index + i) / SIZE_PER_BLOCK] |= ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index + i) % SIZE_PER_BLOCK ) - 1 ) );
+			block_index = (this->start_index + index) / SIZE_PER_BLOCK;
+			shift = SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - dict_bit_size;
+
+			if (shift >= 0) {
+				this->p[block_index] |= (coefficient << shift);
+			} else {
+				this->p[block_index] |= (coefficient >> (-shift));
+				if (block_index + 1 < this->block_number) {
+					this->p[block_index + 1] |= (coefficient << (SIZE_PER_BLOCK + shift));
 				}
-				coefficient = coefficient / 2;
 			}
 			index += dict_bit_size;
 		}
 	};
 
-	base_core::base_core(std::vector<base_core*>::iterator it1, std::vector<base_core*>::iterator it2) {
-		this->start = (*it1)->start;
-		this->end = (*(it2-1))->end;
+	base_core::base_core(std::vector<base_core*>::iterator begin, std::vector<base_core*>::iterator end) {
+		
+		this->start = (*begin)->start;
+		this->end = (*(end-1))->end;
 
 		int bit_size = 0;
-		for ( std::vector<base_core*>::iterator it = it1; it != it2; it++ ) {
+		for ( std::vector<base_core*>::iterator it = begin; it != end; it++ ) {
 			bit_size += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
 		}
 		
@@ -65,7 +71,7 @@ namespace lcp {
 		}
 
 		int index = block_number * SIZE_PER_BLOCK - 1;
-		for( std::vector<base_core*>::iterator it = it2-1; it != it1-1; it-- ) {
+		for( std::vector<base_core*>::iterator it = end-1; it != begin-1; it-- ) {
 
 			for ( int i = (*it)->block_number-1; i >= 0; i--) {
 				if ( index > SIZE_PER_BLOCK ){
@@ -88,10 +94,12 @@ namespace lcp {
 		}
 	};
 
-	base_core::base_core(uchar* p, int block_number, int start_index) {
+	base_core::base_core(uchar* p, int block_number, int start_index, int start, int end) {
 		this->p = p;
 		this->block_number = block_number;
 		this->start_index = start_index;
+		this->start = start;
+		this->end = end;
 	};
 
 	base_core::~base_core() {
