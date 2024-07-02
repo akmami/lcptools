@@ -1,19 +1,15 @@
 #ifndef STRING_H
 #define STRING_H
 
-typedef unsigned char uchar;
-
-#define SIZE_PER_BLOCK                  8
-#define COMPRESSION_ITERATION_COUNT     1
-#define MAXIMUM_LENGTH                  10000
-#define CONSTANT_FACTOR                 2
-
 #include <iostream>
 #include <string>
 #include <vector>
+#include <ostream>
+#include <iterator>
 #include "encoding.h"
 #include "base_core.h"
 #include "core.h"
+#include "constant.h"
 
 namespace lcp {
 
@@ -30,8 +26,7 @@ namespace lcp {
         string(std::string &str, bool rev_comp = false);
         ~string();
 
-        template<typename Iterator>
-        void process_string(Iterator it1, Iterator it2, Iterator end, bool rev_comp = false);
+        void process_string(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp = false);
         bool deepen();
         bool deepen(int lcp_level);
     };

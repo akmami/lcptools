@@ -1,4 +1,5 @@
 #include "string.h"
+#include <algorithm> 
 
 namespace lcp {
 
@@ -15,14 +16,13 @@ namespace lcp {
                                                                         // half of the size for the cores to prevent expansion of vector.
         
         if ( rev_comp ) {
-            process_string(str.rbegin(), str.rbegin(), str.rend());
-        } else {
-            process_string(str.begin(), str.begin(), str.end());
+            std::reverse(str.begin(), str.end());
         }
+        
+        process_string(str.begin(), str.begin(), str.end(), rev_comp);
     }
 
-    template<typename Iterator>
-    void string::process_string(Iterator it1, Iterator it2, Iterator end, bool rev_comp) {
+    void string::process_string(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
