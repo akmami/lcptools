@@ -14,7 +14,7 @@ namespace lcp {
         std::cout << "# Dictionary bit size: " << dict_bit_size << std::endl;
     };
 
-    int init_coefficients(bool verbose=false) {
+    int init_coefficients(bool verbose) {
         
         // init coefficients A/a=0, T/t=3, G/g=2, C/c=1
         for (int current_index = 0; current_index < 128; current_index++) {
@@ -43,7 +43,7 @@ namespace lcp {
         return 0;
     };
 
-    int init_coefficients(std::map<char, int> map, std::map<char, int> rc_map, bool verbose=false) {
+    int init_coefficients(std::map<char, int> map, std::map<char, int> rc_map, bool verbose) {
 
         // init coefficients A/a=0, T/t=3, G/g=2, C/c=1
         for (int current_index = 0; current_index < 128; current_index++) {
@@ -94,7 +94,7 @@ namespace lcp {
         return 0;
     };
     
-    int init_coefficients(std::string encoding_file, bool verbose=false) {
+    int init_coefficients(std::string encoding_file, bool verbose) {
     	std::map<char, int> map, rev_map;
         std::ifstream encodings;
         encodings.open(encoding_file);
@@ -109,5 +109,3 @@ namespace lcp {
         return init_coefficients(map, rev_map, verbose);
     };
 };
-
-#endif
