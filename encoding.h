@@ -6,11 +6,11 @@
 #include <iostream>
 
 namespace lcp {
-
-    static int coefficients[128];
-    static int reverse_complement_coefficients[128];
-    static char characters[128];
-    static int dict_bit_size;
+    
+    extern int coefficients[128];
+    extern int reverse_complement_coefficients[128];
+    extern char characters[128];
+    extern int dict_bit_size;
 
     void encoding_summary();
     int init_coefficients(bool verbose=false);

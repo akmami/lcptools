@@ -2,6 +2,11 @@
 
 namespace lcp {
 
+    int coefficients[128];
+    int reverse_complement_coefficients[128];
+    char characters[128];
+    int dict_bit_size;
+
     void encoding_summary() {
         std::cout << "# Alphabet encoding summary" << std::endl;
         std::cout << "# Coefficients: ";
