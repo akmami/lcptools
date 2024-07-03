@@ -1,7 +1,7 @@
 #ifndef   CONSTANT_H
 #define   CONSTANT_H
 
-typedef unsigned char uchar;
+typedef unsigned int uchar;
 
 #define SIZE_PER_BLOCK                  32
 #define COMPRESSION_ITERATION_COUNT     1
