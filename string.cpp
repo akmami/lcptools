@@ -22,6 +22,22 @@ namespace lcp {
         process_string(str.begin(), str.begin(), str.end(), rev_comp);
     }
 
+    string::string(std::ifstream& in) {
+        in.read(reinterpret_cast<char*>(&level), sizeof(level));
+        in.read(reinterpret_cast<char*>(&start_index), sizeof(start_index));
+        size_t size;
+        in.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+        // Resize the vector to the appropriate size
+        base_cores.reserve(size);
+
+        // Read each base_core object
+        for (int i = 0; i < size; i++) {
+            base_core* new_core = new base_core(in);
+            base_cores.push_back(new_core);
+        }
+    }
+
     void string::process_string(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
@@ -31,14 +47,14 @@ namespace lcp {
         // Find lcp cores
         for ( ; it1 + 2 <= end; it1++, index++ ) {
 
-            if ( coefficientsArray[static_cast<unsigned char>(*it1)] == -1 || coefficientsArray[static_cast<unsigned char>(*it1+1)] == -1 || coefficientsArray[static_cast<unsigned char>(*it1)] == coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] ) {
+            if ( coefficientsArray[static_cast<unsigned char>(*it1)] == -1 || coefficientsArray[static_cast<unsigned char>(*(it1+1))] == -1 || coefficientsArray[static_cast<unsigned char>(*it1)] == coefficientsArray[static_cast<unsigned char>(*(it1+1))] ) {
                 continue;
             }
             
             // If there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
-            if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] == coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] ) {
+            if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] == coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
                 
-                for ( it2 = it1 + 3; it2 != end && *(it2) == *(it2 - 1); it2++ ) {}
+                for ( it2 = it1 + 3; it2 != end && *(it2) == *(it2-1); it2++ ) {}
                 
                 if ( it2 == end ) {
                     break;
@@ -54,8 +70,10 @@ namespace lcp {
                     continue;
                 }
 
-                if ( coefficientsArray[static_cast<unsigned char>(*it1)] != -1)
-                it2++;
+                if ( coefficientsArray[static_cast<unsigned char>(*it1)] != -1) {
+                    it2++;
+                }
+                
                 base_core *new_core = new base_core(it1, it2, index, rev_comp);
                 this->base_cores.push_back(new_core);
                 
@@ -244,6 +262,30 @@ namespace lcp {
         }
 
         return true;
+    }
+
+    void string::write(std::string filename) {
+        std::ofstream out(filename, std::ios::binary);
+        if (!out) {
+            std::cerr << "Error opening file for writing" << std::endl;
+            return;
+        }
+
+        write(out);
+
+        out.close();
+    }
+
+    void string::write(std::ofstream& out) {
+        out.write(reinterpret_cast<const char*>(&level), sizeof(level));
+        out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
+        size_t size = this->base_cores.size();
+        out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+
+        // write each base_core object
+        for (base_core* c : this->base_cores) {
+            c->write(out);
+        }
     }
 
 
