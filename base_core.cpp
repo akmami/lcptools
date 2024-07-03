@@ -59,14 +59,14 @@ namespace lcp {
 		this->start_index = this->block_number * SIZE_PER_BLOCK - bit_size;
 		
 		// Make allocation for the bit representation
-		this->p = (unsigned char *)malloc( this->block_number );
+		this->p = (unsigned int *)malloc( this->block_number );
 
 		if (this->p == NULL) {
 			throw std::bad_alloc();
 		}
 		
 		// clear dumps
-		for( int i=0; i<this->block_number; i++ ) {
+		for( int i = 0; i < this->block_number; i++ ) {
 			this->p[i] = 0;
 		}
 
@@ -101,6 +101,24 @@ namespace lcp {
 		this->start = start;
 		this->end = end;
 	};
+
+	base_core::base_core(std::ifstream& in) {
+		in.read(reinterpret_cast<char*>(&start), sizeof(start));
+        in.read(reinterpret_cast<char*>(&end), sizeof(end));
+        in.read(reinterpret_cast<char*>(&block_number), sizeof(block_number));
+        in.read(reinterpret_cast<char*>(&start_index), sizeof(start_index));
+		this->p = (unsigned int *)malloc( this->block_number );
+
+		if (this->p == NULL) {
+			throw std::bad_alloc();
+		}
+		
+		for( int i = 0; i < this->block_number; i++ ) {
+			this->p[i] = 0;
+		}
+
+        in.read(reinterpret_cast<char*>(p), this->block_number * sizeof(unsigned char));
+    }
 
 	base_core::~base_core() {
 		if (p != NULL) 
@@ -154,6 +172,13 @@ namespace lcp {
 		return 2 * ( (this->block_number - t_block_index - 1) * SIZE_PER_BLOCK + temp) + t % 2;
 	};
 
+    void base_core::write(std::ofstream& out) {
+		out.write(reinterpret_cast<const char*>(&start), sizeof(start));
+        out.write(reinterpret_cast<const char*>(&end), sizeof(end));
+        out.write(reinterpret_cast<const char*>(&block_number), sizeof(block_number));
+        out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
+        out.write(reinterpret_cast<char*>(p), block_number * sizeof(unsigned char));
+    }
 
 	// base_core operator overloads
 	bool operator == (const base_core& lhs, const base_core& rhs) {
