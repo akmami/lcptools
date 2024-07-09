@@ -1,9 +1,8 @@
-#include "string.h"
-#include <algorithm> 
+#include "lps.h"
 
 namespace lcp {
 
-    string::string(std::string &str, bool rev_comp) {
+    lps::lps(std::string &str, bool rev_comp) {
 
         this->level = 1;
         this->start_index = 0;
@@ -19,10 +18,10 @@ namespace lcp {
             std::reverse(str.begin(), str.end());
         }
         
-        process_string(str.begin(), str.begin(), str.end(), rev_comp);
+        parse(str.begin(), str.begin(), str.end(), rev_comp);
     }
 
-    string::string(std::ifstream& in) {
+    lps::lps(std::ifstream& in) {
         in.read(reinterpret_cast<char*>(&level), sizeof(level));
         in.read(reinterpret_cast<char*>(&start_index), sizeof(start_index));
         size_t size;
@@ -32,13 +31,13 @@ namespace lcp {
         base_cores.reserve(size);
 
         // Read each base_core object
-        for (int i = 0; i < size; i++) {
+        for (size_t i = 0; i < size; i++) {
             base_core* new_core = new base_core(in);
             base_cores.push_back(new_core);
         }
     }
 
-    void string::process_string(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp) {
+    void lps::parse(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
@@ -103,7 +102,7 @@ namespace lcp {
         }
     }
 
-    string::~string() {
+    lps::~lps() {
         for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
             delete *it;
         }
@@ -115,7 +114,7 @@ namespace lcp {
         this->base_cores.clear();
     }
 
-    bool string::deepen() {
+    bool lps::deepen() {
         
         // Compress cores
 
@@ -251,7 +250,7 @@ namespace lcp {
         return true;
     }
 
-    bool string::deepen(int lcp_level) {
+    bool lps::deepen(int lcp_level) {
 
         if ( lcp_level <= this->level ) {
             return false;
@@ -264,7 +263,7 @@ namespace lcp {
         return true;
     }
 
-    void string::write(std::string filename) {
+    void lps::write(std::string filename) {
         std::ofstream out(filename, std::ios::binary);
         if (!out) {
             std::cerr << "Error opening file for writing" << std::endl;
@@ -276,7 +275,7 @@ namespace lcp {
         out.close();
     }
 
-    void string::write(std::ofstream& out) {
+    void lps::write(std::ofstream& out) {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
         size_t size = this->base_cores.size();
@@ -289,7 +288,7 @@ namespace lcp {
     }
 
 
-    std::ostream& operator<<(std::ostream& os, const string& element) {
+    std::ostream& operator<<(std::ostream& os, const lps& element) {
         os << "Level: " << element.level << std::endl;
         if (element.level == 1) {
             for (base_core* c : element.base_cores) {
@@ -303,7 +302,7 @@ namespace lcp {
         return os;
     };
 
-    std::ostream& operator<<(std::ostream& os, const string* element) {
+    std::ostream& operator<<(std::ostream& os, const lps* element) {
         os << "Level: " << element->level << std::endl;
         if (element->level == 1) {
             for (base_core* c : element->base_cores) {
