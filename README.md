@@ -63,8 +63,16 @@ To compile your program with your program, you need to specify the include and l
 
 ### System-wide Installation
 
+If you want to link static library, please use as follows:
+
 ```sh
-g++ -o your_program your_program.cpp -llcptools
+g++ your_program.cpp -static -llcptools -o your_program
+```
+
+If you want to link dynamic library, please use as follows:
+
+```sh
+g++ your_program.cpp -llcptools -o your_program
 ```
 
 ### User-specific Installation
@@ -76,7 +84,7 @@ g++ -o your_program your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)
 Alternatively, you can include the header directly in your program:
 
 ```sh
-#include "lcptools/string.cpp"
+#include "lps.h"
 ```
 
 Note: Make sure that paths are correct.
@@ -121,9 +129,11 @@ Below is an example demonstrating the usage of the LCP algorithm implementation:
 
 ```cpp
 #include <iostream>
-#include "string.cpp"
+#include <string>
+#include "lps.h"
 
 int main() {
+
     // Initialize alphabet coefficients
     lcp::init_coefficients();
 
@@ -131,7 +141,7 @@ int main() {
     std::string str = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
 
     // Create LCP string object
-    lcp::string *lcp_str = new lcp::string(str);
+    lcp::lps *lcp_str = new lcp::lps(str);
 
     // Deepen the LCP analysis
     lcp_str->deepen();
