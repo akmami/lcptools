@@ -77,6 +77,14 @@ g++ your_program.cpp -llcptools -o your_program
 
 ### Compile with User-specific installed library
 
+If you want to link static library, please use as follows:
+
+```sh
+g++ your_program.cpp -static -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools -o your_program
+```
+
+If you want to link dynamic library, please use as follows:
+
 ```sh
 g++ your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools -o your_program
 ```
