@@ -61,7 +61,7 @@ To install lcptools in your home directory (or another custom directory), you do
 
 To compile your program with your program, you need to specify the include and library paths based on your installation method.
 
-### System-wide Installation
+### Compile with System-wide installed library
 
 If you want to link static library, please use as follows:
 
@@ -75,19 +75,13 @@ If you want to link dynamic library, please use as follows:
 g++ your_program.cpp -llcptools -o your_program
 ```
 
-### User-specific Installation
+### Compile with User-specific installed library
 
 ```sh
-g++ -o your_program your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools
+g++ your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools -o your_program
 ```
 
-Alternatively, you can include the header directly in your program:
-
-```sh
-#include "lps.h"
-```
-
-Note: Make sure that paths are correct.
+**Note**: Make sure that paths are correct.
 
 ## Character Encoding
 

@@ -55,14 +55,18 @@ clean:
 $(STATIC): $(OBJ_STATIC)
 	$(AR) $(ARFLAGS) $@ $^
 	rm -f $(OBJ_STATIC)
+	mkdir -p $(LIB_DIR);
 	mv $@ $(LIB_DIR)
+	mkdir -p $(INCLUDE_DIR);
 	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
 # target for dynamic library
 $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) -shared -o $@ $^
 	rm -f $(OBJ_DYNAMIC)
+	mkdir -p $(LIB_DIR);
 	mv $@ $(LIB_DIR)
+	mkdir -p $(INCLUDE_DIR);
 	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
 # rule to compile .cpp files to .o files for static library
