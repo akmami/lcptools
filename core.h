@@ -23,6 +23,9 @@ namespace lcp {
 		core(std::vector<lcp::base_core*>::iterator it1, std::vector<lcp::base_core*>::iterator it2);
 		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2);
 		core(uint label, uchar label_length, int start, int end);
+		core(std::ifstream& in);
+
+		void write(std::ofstream& out);
 	};
 
     // core operator overloads

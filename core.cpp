@@ -73,6 +73,20 @@ namespace lcp {
 		this->end = end;
 	};
 
+	core::core(std::ifstream& in) {
+		in.read(reinterpret_cast<char*>(&start), sizeof(start));
+        in.read(reinterpret_cast<char*>(&end), sizeof(end));
+        in.read(reinterpret_cast<char*>(&label), sizeof(label));
+        in.read(reinterpret_cast<char*>(&label_length), sizeof(label_length));
+    };
+	
+	void core::write(std::ofstream& out) {
+		out.write(reinterpret_cast<const char*>(&start), sizeof(start));
+        out.write(reinterpret_cast<const char*>(&end), sizeof(end));
+        out.write(reinterpret_cast<const char*>(&label), sizeof(label));
+        out.write(reinterpret_cast<const char*>(&label_length), sizeof(label_length));
+    };
+
 	// core operator overloads
 	bool operator == (const core& lhs, const core& rhs) {
 	    return lhs.label == rhs.label;
