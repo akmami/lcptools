@@ -28,11 +28,6 @@ namespace lcp {
         in.read(reinterpret_cast<char*>(&size), sizeof(size));
 
         // Read each base_core object
-        for (size_t i = 0; i < size; i++) {
-            base_core* new_core = new base_core(in);
-            base_cores.push_back(new_core);
-        }
-
         if ( this->level == 1 ) {
             // Resize the vector to the appropriate size
             base_cores.reserve(size);
@@ -295,7 +290,7 @@ namespace lcp {
     void lps::write(std::ofstream& out) {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
-        size_t size = this->base_cores.size();
+        size_t size = this->level == 1 ? this->base_cores.size() : this->cores.size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
 
         // write each base_core object
