@@ -74,7 +74,7 @@ namespace lcp {
         // init reverse complement
         it = rc_map.begin();
 
-        while (it != map.end()) {
+        while (it != rc_map.end()) {
             if (it->second < 0)
                 throw std::invalid_argument("Invalid value given.");
             
