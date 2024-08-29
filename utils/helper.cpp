@@ -110,7 +110,7 @@ double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}
  * @return The standard deviation of all provided distances.
  */
 double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}) {
-    double mean = mean(distances, distancesXL);
+    double mean_value = mean(distances, distancesXL);
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
         count += distances[i];
@@ -118,10 +118,10 @@ double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {
     count += distancesXL.size();
     double variance = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        variance += ( mean - i ) * ( mean - i ) * distances[i];
+        variance += ( mean_value - i ) * ( mean_value - i ) * distances[i];
     }
     for ( uint i = 0; i < distancesXL.size(); i++ ) {
-        variance += ( mean - distancesXL[i] ) * ( mean - distancesXL[i] );
+        variance += ( mean_value - distancesXL[i] ) * ( mean_value - distancesXL[i] );
     }
     return sqrt(variance / count);
 };
