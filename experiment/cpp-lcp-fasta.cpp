@@ -21,7 +21,7 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
-#include "../string.cpp"
+#include "lps.h"
 #include "../utils/helper.cpp"
 
 
@@ -30,44 +30,36 @@
  *
  * This function analyzes genomic data, specifically focusing on overlapping
  * counts, distances, and lengths at a given level of analysis. It iterates
- * through genomic cores, calculates relevant statistics, and stores them in
+ * through LCP cores, calculates relevant statistics, and stores them in
  * provided arrays and vectors. It supports analysis at different levels,
- * allowing for multi-layered examination of genomic sequences.
+ * allowing for multi-layered (LCP level) examination of genomic sequences.
  *
  * @param level The level of analysis (used in multi-level processing).
  * @param overlapping_counts Array to store counts of overlapping genomic segments.
- * @param all_distances Multidimensional array to store distances between genomic features.
- * @param all_distances_pos Multidimensional array to store position-based distances.
- * @param all_lengths Multidimensional array to store lengths of genomic segments.
- * @param all_larger_distances_vec Vector to store larger distances.
- * @param all_larger_distances_pos_vec Vector to store larger position-based distances.
- * @param all_larger_lengths_vec Vector to store larger lengths.
+ * @param distances Multidimensional array to store position-based distances.
+ * @param distancesXL Vector to store larger position-based distances.
+ * @param lengths Multidimensional array to store lengths of genomic segments.
+ * @param lengthsXL Vector to store larger lengths.
  * @param str Pointer to the genomic string being analyzed.
- * @param chrom_index Index of the current chromosome being processed.
  */
-void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, int chrom_index ) {
+void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
     
     for ( std::vector<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
 
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
         }
-        if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < DISTANCE_LENGTH ) {
-            all_distances[level][(*it)->start - (*(it-1))->end + DISTANCE_LENGTH]++;
-        } else {
-            all_larger_distances_vec[level].push_back((*it)->start - (*(it-1))->end);
-        }
 
         if ( 0 <= (*it)->start - (*(it-1))->start && (*it)->start - (*(it-1))->start < DISTANCE_LENGTH ) {
-            all_distances_pos[level][(*it)->start - (*(it-1))->start]++;
+            distances[level][(*it)->start - (*(it-1))->start]++;
         } else {
-            all_larger_distances_pos_vec[level].push_back( (*it)->start - (*(it-1))->start );
+            distancesXL[level].push_back( (*it)->start - (*(it-1))->start );
         }
         
         if ( 0 <= (*it)->end - (*it)->start && (*it)->end - (*it)->start < DISTANCE_LENGTH ) {
-            all_lengths[level][(*it)->end - (*it)->start] += 1;
+            lengths[level][(*it)->end - (*it)->start] += 1;
         } else {
-            all_larger_lengths_vec[level].push_back( (*it)->end - (*it)->start );
+            lengthsXL[level].push_back( (*it)->end - (*it)->start );
         }
     }
 };
@@ -78,24 +70,21 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&all_distanc
  *
  * This function analyzes genomic data, specifically focusing on overlapping
  * counts, distances, and lengths at a given level of analysis. It iterates
- * through genomic cores, calculates relevant statistics, and stores them in
+ * through LCP cores, calculates relevant statistics, and stores them in
  * provided arrays and vectors. It supports analysis at different levels,
- * allowing for multi-layered examination of genomic sequences.
+ * allowing for multi-layered (LCP level) examination of genomic sequences.
  * 
  * The difference between the other analyze function is that this function is targetting
  * first level analyses of the given string.
  *
  * @param overlapping_counts Array to store counts of overlapping genomic segments.
- * @param all_distances Multidimensional array to store distances between genomic features.
- * @param all_distances_pos Multidimensional array to store position-based distances.
- * @param all_lengths Multidimensional array to store lengths of genomic segments.
- * @param all_larger_distances_vec Vector to store larger distances.
- * @param all_larger_distances_pos_vec Vector to store larger position-based distances.
- * @param all_larger_lengths_vec Vector to store larger lengths.
- * @param str Pointer to the genomic string being analyzed.
- * @param chrom_index Index of the current chromosome being processed.
+ * @param distances Multidimensional array to store position-based distances.
+ * @param distancesXL Vector to store larger position-based distances.
+ * @param lengths Multidimensional array to store lengths of genomic segments.
+ * @param lengthsXL Vector to store larger lengths.
+ * @param str Pointer to the parsed string being analyzed.
  */
-void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, lcp::string *str, int chrom_index ) {
+void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
     
     int level = 0;
     
@@ -104,22 +93,17 @@ void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEV
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
         }
-        if ( 0 <= (*it)->start - (*(it-1))->end + DISTANCE_LENGTH && (*it)->start - (*(it-1))->end < DISTANCE_LENGTH ) {
-            all_distances[level][(*it)->start - (*(it-1))->end + DISTANCE_LENGTH]++;
-        } else {
-            all_larger_distances_vec[level].push_back((*it)->start - (*(it-1))->end);
-        }
 
         if ( 0 <= (*it)->start - (*(it-1))->start && (*it)->start - (*(it-1))->start < DISTANCE_LENGTH ) {
-            all_distances_pos[level][(*it)->start - (*(it-1))->start]++;
+            distances[level][(*it)->start - (*(it-1))->start]++;
         } else {
-            all_larger_distances_pos_vec[level].push_back( (*it)->start - (*(it-1))->start );
+            distancesXL[level].push_back( (*it)->start - (*(it-1))->start );
         }
         
         if ( 0 <= (*it)->end - (*it)->start && (*it)->end - (*it)->start < DISTANCE_LENGTH ) {
-            all_lengths[level][(*it)->end - (*it)->start] += 1;
+            lengths[level][(*it)->end - (*it)->start] += 1;
         } else {
-            all_larger_lengths_vec[level].push_back( (*it)->end - (*it)->start );
+            lengthsXL[level].push_back( (*it)->end - (*it)->start );
         }
     }
 };
@@ -161,16 +145,13 @@ int main(int argc, char **argv) {
     std::fstream genome;
     genome.open(argv[1], std::ios::in);
 
-    int chrom_index = 0;
-    int all_overlapping_counts[LCP_LEVEL] = {0};
-    int all_core_count[LCP_LEVEL] = {0};
-    int all_distances[LCP_LEVEL][2*DISTANCE_LENGTH] = {0};  // in order to store overlapping cores as well (as distance will be negative)
-    int all_distances_pos[LCP_LEVEL][DISTANCE_LENGTH] = {0};
-    int all_lengths[LCP_LEVEL][DISTANCE_LENGTH] = {0};
-    std::vector<std::chrono::milliseconds> all_durations(LCP_LEVEL);
-    std::vector<std::vector<int>> all_larger_distances_vec(LCP_LEVEL);
-    std::vector<std::vector<int>> all_larger_distances_pos_vec(LCP_LEVEL);
-    std::vector<std::vector<int>> all_larger_lengths_vec(LCP_LEVEL);
+    int overlapping_counts[LCP_LEVEL] = {0};
+    int core_counts[LCP_LEVEL] = {0};
+    int distances[LCP_LEVEL][DISTANCE_LENGTH] = {0};
+    std::vector<std::vector<int>> distancesXL(LCP_LEVEL);
+    int lengths[LCP_LEVEL][DISTANCE_LENGTH] = {0};
+    std::vector<std::vector<int>> lengthsXL(LCP_LEVEL);
+    std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
 
 	// read file
     if ( genome.is_open() ) {  
@@ -184,20 +165,18 @@ int main(int argc, char **argv) {
 
             if (line[0] == '>') {
 
-                chrom_index++;
-
                 // process previous chromosome before moving into new one
                 if (sequence.size() != 0) {
                     auto start = std::chrono::high_resolution_clock::now();
                 
-                    lcp::string *str = new lcp::string(sequence);
+                    lcp::lps *str = new lcp::lps(sequence);
                     
                     auto extraction_end = std::chrono::high_resolution_clock::now();
-                    all_durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-                    all_core_count[0] += str->base_cores.size();
+                    durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
+                    core_counts[0] += str->base_cores.size();
                     
                     // Base cores are stored in level 0 instead of cores. Hence, need seperation
-                    analyze(all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
+                    analyze(overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
                     
                     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
@@ -206,10 +185,10 @@ int main(int argc, char **argv) {
                         str->deepen();
                         
                         auto stop_level = std::chrono::high_resolution_clock::now();
-                        all_durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
-                        all_core_count[i] += str->cores.size();
+                        durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
+                        core_counts[i] += str->cores.size();
 
-                        analyze(i, all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, str, chrom_index);
+                        analyze(i, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
                     }
 
                     std::cout << "Processing is done for " << id << std::endl;
@@ -219,10 +198,6 @@ int main(int argc, char **argv) {
                     delete str;
 
                     sequence.clear();
-                }
-
-                if ( chrom_index > 23 ) {
-                    break;
                 }
                 
                 id = line.substr(1);
@@ -235,14 +210,14 @@ int main(int argc, char **argv) {
             }
         }
 
-        summaryLCP( all_overlapping_counts, all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, all_durations, all_core_count);
+        summaryLCP( overlapping_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts);
 
         genome.close();
     }
 
     // std::ofstream outfile ( "detailed_summary.lcp.fasta.txt" );
     
-    // print2file( all_distances, all_distances_pos, all_lengths, all_larger_distances_vec, all_larger_distances_pos_vec, all_larger_lengths_vec, outfile );
+    // print2file( distances, lengths, distancesXL, lengthsXL, outfile );
 
     // outfile.close();
 
