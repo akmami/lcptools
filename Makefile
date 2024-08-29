@@ -101,5 +101,6 @@ test: $(TESTS)
 	@for test in $(TESTS); do \
 		echo "Running $$test..."; \
 		./$$test || exit 1; \
+		rm tests/$${test}.o; \
 	done
 
