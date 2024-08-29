@@ -17,11 +17,59 @@
 #include <cmath>
 #include <vector>
 #include <chrono>
+#include <iomanip>
+#include <sstream>
+
 
 #define DISTANCE_LENGTH     10000
 #define LCP_LEVEL           8
 #define KMER_SIZE           10
 #define WINDOW_SIZE         15
+
+
+/**
+ * @brief Formats an integer with thousands separators for better readability.
+ *
+ * This function converts an integer to a string representation that includes thousands
+ * separators, based on the current locale settings. The resulting string makes large
+ * numbers more readable by grouping digits into thousands using separators (e.g., commas
+ * in English locales).
+ *
+ * @param value The integer to be formatted.
+ * @return A std::string containing the formatted integer with thousands separators.
+ *
+ * Example:
+ *     format_int(1234567) returns "1,234,567" (in an English locale).
+ */
+std::string format_int(int value) {
+    std::stringstream ss;
+    ss.imbue(std::locale(""));
+    ss << std::fixed << value;
+    return ss.str();
+};
+
+
+/**
+ * @brief Formats a double value with two decimal places and thousands separators.
+ *
+ * This function converts a double to a string representation that includes thousands
+ * separators and ensures that the number is formatted to two decimal places. The
+ * thousands separators are applied based on the current locale settings, making the
+ * number easier to read, especially for large values.
+ *
+ * @param value The double value to be formatted.
+ * @return A std::string containing the formatted double with thousands separators
+ *         and two decimal places.
+ *
+ * Example:
+ *     format_double(1234567.89123) returns "1,234,567.89" (in an English locale).
+ */
+std::string format_double(double value) {
+    std::stringstream ss;
+    ss.imbue(std::locale(""));
+    ss << std::fixed << std::setprecision(2) << value;
+    return ss.str();
+};
 
 
 /**
@@ -32,21 +80,21 @@
  * and additional larger distances provided as a vector.
  * 
  * @param distances Array of distances within the predefined range.
- * @param larger_distances Vector of distances outside the predefined range.
+ * @param distancesXL Vector of distances outside the predefined range.
  * @return The mean of all provided distances.
  */
-double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
-    double m = 0;
+double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}) {
+    double sum = 0;
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        m += i * distances[i];
+        sum += i * distances[i];
         count += distances[i];
     }
-    for ( uint i = 0; i < larger_distances.size(); i++ ) {
-        m += larger_distances[i];
+    for ( uint i = 0; i < distancesXL.size(); i++ ) {
+        sum += distancesXL[i];
     }
-    count += larger_distances.size();
-    return m / count;
+    count += distancesXL.size();
+    return sum / count;
 };
 
 
@@ -58,101 +106,22 @@ double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances
  * and larger distances.
  *
  * @param distances Array of distances within the predefined range.
- * @param larger_distances Vector of distances outside the predefined range.
+ * @param distancesXL Vector of distances outside the predefined range.
  * @return The standard deviation of all provided distances.
  */
-double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
-    double m = mean(distances, larger_distances);
+double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}) {
+    double mean = mean(distances, distancesXL);
     double count = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
         count += distances[i];
     }
-    count += larger_distances.size();
+    count += distancesXL.size();
     double variance = 0;
     for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        variance += ( m - i ) * ( m - i ) * distances[i];
+        variance += ( mean - i ) * ( mean - i ) * distances[i];
     }
-    for ( uint i = 0; i < larger_distances.size(); i++ ) {
-        variance += ( m - larger_distances[i] ) * ( m - larger_distances[i] );
-    }
-    return sqrt(variance / count);
-};
-
-
-/**
- * @brief Calculates the shifted mean of a set of distances.
- *
- * This function computes the mean of an array of distances, where each distance is
- * shifted by subtracting a predefined offset (DISTANCE_LENGTH). It is designed to
- * handle cases where distances are symmetrically distributed around DISTANCE_LENGTH.
- * The function also accommodates an optional vector of additional distances that are
- * not subject to the shifting but are included in the mean calculation. The vector
- * contains elements that are not in interval of [-DISTANCE_LENGTH, DISTANCE_LENGTH].
- *
- * @param distances A reference to an array of integers, size 2*DISTANCE_LENGTH,
- *        containing the primary set of distances. Each distance is adjusted by
- *        subtracting DISTANCE_LENGTH before being included in the mean calculation.
- * @param larger_distances (Optional) A vector of integers for additional distances.
- *        These distances are included directly in the mean calculation without any
- *        shifting.
- *
- * @return The mean of the combined set of distances as a double. This mean includes
- *         both the shifted values from the array and the direct values from the vector.
- */
-double mean_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
-    double m = 0;
-    double count = 0;
-    for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
-        m += (i-DISTANCE_LENGTH) * distances[i];
-        count += distances[i];
-    }
-    for ( uint i = 0; i < larger_distances.size(); i++ ) {
-        m += larger_distances[i];
-    }
-    count += larger_distances.size();
-    return m / count;
-};
-
-
-/**
- * @brief Calculates the shifted standard deviation of a set of distances.
- *
- * This function computes the standard deviation for an array of distances, 
- * with each distance shifted by subtracting a predefined offset (DISTANCE_LENGTH).
- * It is particularly useful in scenarios where the distances are symmetrically 
- * distributed around DISTANCE_LENGTH. The function also supports an optional vector 
- * of additional distances, which are included directly in the standard deviation 
- * calculation without shifting.
- *
- * The standard deviation is calculated based on the shifted mean of the distances,
- * which is computed using the mean_shifted function. This ensures consistency in 
- * the statistical analysis of the data.
- *
- * @param distances A reference to an array of integers, size 2*DISTANCE_LENGTH,
- *        containing the primary set of distances. Each distance in this array 
- *        is adjusted by subtracting DISTANCE_LENGTH before contributing to the
- *        standard deviation calculation.
- * @param larger_distances (Optional) A vector of integers for additional distances.
- *        These distances are included directly in the standard deviation calculation 
- *        without any shifting.
- *
- * @return The standard deviation of the combined set of distances as a double. This 
- *         includes both the shifted values from the array and the direct values from 
- *         the vector, based on the shifted mean.
- */
-double stdev_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> larger_distances = {}) {
-    double m = mean_shifted(distances, larger_distances);
-    double count = 0;
-    for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
-        count += distances[i];
-    }
-    count += larger_distances.size();
-    double variance = 0;
-    for ( int i = 0; i < 2*DISTANCE_LENGTH; i++ ) {
-        variance += ( m - (i-DISTANCE_LENGTH) ) * ( m - (i-DISTANCE_LENGTH) ) * distances[i];
-    }
-    for ( uint i = 0; i < larger_distances.size(); i++ ) {
-        variance += ( m - larger_distances[i] ) * ( m - larger_distances[i] );
+    for ( uint i = 0; i < distancesXL.size(); i++ ) {
+        variance += ( mean - distancesXL[i] ) * ( mean - distancesXL[i] );
     }
     return sqrt(variance / count);
 };
@@ -165,52 +134,38 @@ double stdev_shifted(int (&distances)[2*DISTANCE_LENGTH], std::vector<int> large
  * This includes distances, positions, and lengths of the cores in the alignments.
  * The data is formatted for easy analysis and visualization.
  *
- * @param all_distances Array of all distances for each LCP level.
- * @param all_distances_pos Array of all position distances for each LCP level.
- * @param all_lengths Array of all lengths for each LCP level.
- * @param all_larger_distances_vec Vector containing larger distances for each LCP level.
- * @param all_larger_distances_pos_vec Vector containing larger position distances for each LCP level.
- * @param all_larger_lengths_vec Vector containing larger lengths for each LCP level.
+ * @param distances Array of all distances for each LCP level.
+ * @param distancesXL Vector containing larger distances for each LCP level.
+ * @param lengths Array of all lengths for each LCP level.
+ * @param lengthsXL Vector containing larger lengths for each LCP level.
  * @param outfile Reference to the output file stream.
  */
-void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::ofstream &outfile ) { 
+void print2file(int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::ofstream &outfile ) { 
     
     for ( int i = 0; i < LCP_LEVEL; i++ ) {
         
-        outfile << "Level " << i << std::endl;
+        outfile << "Level " << i + 1 << std::endl;
 
-        outfile << "Distances ( core_curr->pos - core_prev->end ) " << std::endl;
-        for ( int j = 0; j < 2*DISTANCE_LENGTH; j++ ) {
-            for ( int k = 0; k < all_distances[i][j]; k++ ) {
+        outfile << "Distances ( core_curr->pos - core_prev->pos ) " << std::endl;
+        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
+            for ( int k = 0; k < distances[i][j]; k++ ) {
                 outfile << j - DISTANCE_LENGTH << ',';
             }
         }
-        for ( uint j = 0; j < all_larger_distances_vec[i].size(); j++ ) {
-            outfile << all_larger_distances_vec[i][j] << ',';
-        }
-        outfile << std::endl;
-
-        outfile << "Distances btw pos ( core_curr->pos - core_prev->pos ) " << std::endl;
-        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
-            for ( int k = 0; k < all_distances_pos[i][j]; k++ ) {
-                outfile << j << ',';
-            }
-        }
-        for ( uint j = 0; j < all_larger_distances_pos_vec[i].size(); j++ ) {
-            outfile << all_larger_distances_pos_vec[i][j] << ',';
+        for ( uint j = 0; j < distancesXL[i].size(); j++ ) {
+            outfile << distancesXL[i][j] << ',';
         }
         outfile << std::endl;
 
         outfile << "Lengths ( core_curr->end - core_curr->pos ) " << std::endl;
         for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
-            for ( int k = 0; k < all_lengths[i][j]; k++ ) {
+            for ( int k = 0; k < lengths[i][j]; k++ ) {
                 outfile << j << ',';
             }
         }
-        for ( uint j = 0; j < all_larger_lengths_vec[i].size(); j++ ) {
-            outfile << all_larger_lengths_vec[i][j] << ',';
+        for ( uint j = 0; j < lengthsXL[i].size(); j++ ) {
+            outfile << lengthsXL[i][j] << ',';
         }
-
         outfile << std::endl << std::endl;
     }
 };
@@ -230,13 +185,13 @@ void print2file(int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_di
  *
  * @param distances A reference to an array of integers, size DISTANCE_LENGTH,
  *        representing the primary set of distances between minimizers.
- * @param all_larger_distances_vec A vector of integers representing distances
+ * @param distancesXL A vector of integers representing distances
  *        between minimizers that are outside the predefined range.
  * @param total_duration The total execution time of the minimizer analysis,
  *        represented as a duration in milliseconds.
  * @param total_count The total number of minimizers analyzed.
  */
-void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_larger_distances_vec, std::chrono::milliseconds total_duration, size_t total_count ) {
+void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &distancesXL, std::chrono::milliseconds total_duration, size_t total_count ) {
     
     std::cout << "Level execution time:                         " << ( (double) total_duration.count() ) / 1000 << " sec" << std::endl;
     std::cout << "Total number of minimizers:                   " << total_count << std::endl;
@@ -248,15 +203,14 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_
 
     std::cout << "----------------------------------------------" << std::endl;
         
-    std::cout << "Mean of distances btw minimizers (with):      " << mean(distances, all_larger_distances_vec) << std::endl;
-    std::cout << "Std of distances btw minimizers (with):       " << stdev(distances, all_larger_distances_vec) << std::endl;
+    std::cout << "Mean of distances btw minimizers (with):      " << mean(distances, distancesXL) << std::endl;
+    std::cout << "Std of distances btw minimizers (with):       " << stdev(distances, distancesXL) << std::endl;
 
     std::cout << "----------------------------------------------" << std::endl;
 
-    std::cout << "dist # not in [-10k,10k):                     " << all_larger_distances_vec.size() << std::endl;
+    std::cout << "dist # not in [-10k,10k):                     " << distancesXL.size() << std::endl;
         
 };
-
 
 /**
  * @brief Prints a summary of the analysis to the console.
@@ -266,48 +220,79 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &all_
  * for each LCP level.
  *
  * @param overlapping_counts Array of counts of overlapping cores for each LCP level.
- * @param all_distances Array of all distances for each LCP level.
- * @param all_distances_pos Array of all position distances for each LCP level.
- * @param all_lengths Array of all lengths for each LCP level.
- * @param all_larger_distances_vec Vector containing larger distances for each LCP level.
- * @param all_larger_distances_pos_vec Vector containing larger position distances for each LCP level.
- * @param all_larger_lengths_vec Vector containing larger lengths for each LCP level.
- * @param all_durations Vector containing execution durations for each LCP level.
- * @param all_core_count Array of total number of cores for each LCP level.
+ * @param distances Array of all position distances for each LCP level.
+ * @param distancesXL Vector containing larger position distances for each LCP level.
+ * @param lengths Array of all lengths for each LCP level.
+ * @param lengthsXL Vector containing larger lengths for each LCP level.
+ * @param durations Vector containing execution durations for each LCP level.
+ * @param core_counts Array of total number of cores for each LCP level.
  */
-void summaryLCP( int (&overlapping_counts)[LCP_LEVEL], int (&all_distances)[LCP_LEVEL][2*DISTANCE_LENGTH], int (&all_distances_pos)[LCP_LEVEL][DISTANCE_LENGTH], int (&all_lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &all_larger_distances_vec, std::vector<std::vector<int>> &all_larger_distances_pos_vec, std::vector<std::vector<int>> &all_larger_lengths_vec, std::vector<std::chrono::milliseconds> &all_durations, int (&all_core_count)[LCP_LEVEL]) {
+void summaryLCP( int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL]) {
 
-    for ( int i = 0; i < LCP_LEVEL; i++ ) {
-
-        std::cout << "Level: " << i << std::endl;
-
-        std::cout << "Level execution time:                     " << ( (double) all_durations[i].count() ) / 1000 << " sec" << std::endl;
-        std::cout << "Total number of cores:                    " << all_core_count[i] << std::endl;
-        std::cout << "Overlapping core counts:                  " << overlapping_counts[i] << std::endl;
-
-        std::cout << "------------------------------------------" << std::endl;
-
-        std::cout << "Mean of distances btw cores (w'out):      " << mean_shifted(all_distances[i]) << std::endl; 
-        std::cout << "Std of distances btw cores (w'out):       " << stdev_shifted(all_distances[i]) << std::endl;
-        std::cout << "Mean of distances btw starts (w'out):     " << mean(all_distances_pos[i]) << std::endl;
-        std::cout << "Std of distances btw starts (w'out):      " << stdev(all_distances_pos[i]) << std::endl;
-        std::cout << "Mean of lengths (w'out):                  " << mean(all_lengths[i]) << std::endl;
-        std::cout << "Std of lengths (w'out):                   " << stdev(all_lengths[i]) << std::endl;
-
-        std::cout << "------------------------------------------" << std::endl;
-        
-        std::cout << "Mean of distances btw cores (with):       " << mean_shifted(all_distances[i], all_larger_distances_vec[i]) << std::endl;
-        std::cout << "Std of distances btw cores (with):        " << stdev_shifted(all_distances[i], all_larger_distances_vec[i]) << std::endl;
-        std::cout << "Mean of distances btw starts (with):      " << mean(all_distances_pos[i], all_larger_distances_pos_vec[i]) << std::endl;
-        std::cout << "Std of distances btw starts (with):       " << stdev(all_distances_pos[i], all_larger_distances_pos_vec[i]) << std::endl;
-        std::cout << "Mean of lengths (with):                   " << mean(all_lengths[i], all_larger_lengths_vec[i]) << std::endl;
-        std::cout << "Std of lengths (with):                    " << stdev(all_lengths[i], all_larger_lengths_vec[i]) << std::endl;
-
-        std::cout << "------------------------------------------" << std::endl;
-            
-        std::cout << "dist # not in [-10k,10k):                 " << all_larger_distances_vec[i].size() << std::endl;
-        std::cout << "dist btw pos # not in [0,10k):            " << all_larger_distances_pos_vec[i].size() << std::endl; 
-        std::cout << "length # not in [0,10k):                  " << all_larger_lengths_vec[i].size() << std::endl;
-        std::cout << std::endl;
+    std::cout << "Metric";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << i + 1;
     }
+    std::cout << std::endl;
+
+    // Total Cores
+    std::cout << "Total Cores";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_int(core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Overlapping Cores
+    std::cout << "Overlapping Cores";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_int(overlapping_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Execution Time
+    std::cout << "Execution Time (sec)";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_double(((double) durations[i].count()) / 1000);
+    }
+    std::cout << std::endl;
+
+    // Mean Distances Starts (with)
+    std::cout << "Mean of Pos Difference";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_double(mean(distances[i], distancesXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Std Distances Starts (with)
+    std::cout << "Std of Pos Difference";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_double(stdev(distances[i], distancesXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Mean Lengths (with)
+    std::cout << "Mean of Lengths";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_double(mean(lengths[i], lengthsXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Std Lengths (with)
+    std::cout << "Std of Lengths";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_double(stdev(lengths[i], lengthsXL[i]));
+    }
+    std::cout << std::endl;
+
+    std::cout << "Pos Diff >10K Count";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_int(distancesXL[i].size());
+    }
+    std::cout << std::endl;
+
+    std::cout << "Length >10K Count";
+    for (int i = 0; i < LCP_LEVEL; ++i) {
+        std::cout << "," << format_int(lengthsXL[i].size());
+    }
+    std::cout << std::endl;
 };
