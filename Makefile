@@ -52,8 +52,24 @@ uninstall:
 	done
 
 clean:
-	rm -f $(TEST_OBJS)
-	rm -f $(STATIC) $(DYNAMIC) $(OBJ_STATIC) $(OBJ_DYNAMIC)
+	rm -f $(TEST_OBJS) 
+	@echo "rm $(LIB_DIR)/$(STATIC)";
+	@if [ -f "$(LIB_DIR)/$(STATIC)" ]; then \
+		rm $(LIB_DIR)/$(STATIC) 2>/tmp/lcptools.err || \
+			{ \
+				echo "Couldn't remove $(LIB_DIR)/$(STATIC)"; \
+				exit 1; \
+			}; \
+	fi
+	@echo "rm $(LIB_DIR)/$(DYNAMIC)";
+	@if [ -f "$(LIB_DIR)/$(DYNAMIC)" ]; then \
+		rm $(LIB_DIR)/$(DYNAMIC) 2>/tmp/lcptools.err || \
+			{ \
+				echo "Couldn't remove $(LIB_DIR)/$(DYNAMIC)"; \
+				exit 1; \
+			}; \
+	fi
+	rm -f $(OBJ_STATIC) $(OBJ_DYNAMIC) 
 
 # target for static library
 $(STATIC): $(OBJ_STATIC)
