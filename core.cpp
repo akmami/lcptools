@@ -47,10 +47,11 @@ namespace lcp {
 			index += (*it)->block_number * SIZE_PER_BLOCK - (*it)->start_index;
 		}
 
-		this->label_length = index > 31 ? 32 : index + 1;
+		this->label_length = index > 31 ? 32 : index;
 	};
 
 	core::core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2) {
+		
 		this->start = (*it1)->start;
 		this->end = (*(it2-1))->end;
 		
@@ -62,7 +63,6 @@ namespace lcp {
 			this->label |= (*it)->label << this->label_length;
 			this->label_length += (*it)->label_length;
 		}
-
 		this->label_length = this->label_length > 31 ? 32 : this->label_length;
 	};
 
