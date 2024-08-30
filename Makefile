@@ -31,9 +31,6 @@ LIB_DIR = $(PREFIX)/lib
 
 .PHONY: all clean install uninstall
 
-all:
-	@echo ""
-
 install: $(STATIC) $(DYNAMIC)
 	@echo "";
 	@echo "WARNING! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH";
@@ -55,23 +52,32 @@ uninstall:
 	done
 
 clean:
+	rm -f $(TEST_OBJS)
 	rm -f $(STATIC) $(DYNAMIC) $(OBJ_STATIC) $(OBJ_DYNAMIC)
 
 # target for static library
 $(STATIC): $(OBJ_STATIC)
 	$(AR) $(ARFLAGS) $@ $^
 	rm -f $(OBJ_STATIC)
-	mkdir -p $(LIB_DIR);
-	mv $@ $(LIB_DIR)
-	mkdir -p $(INCLUDE_DIR);
+	mkdir -p $(LIB_DIR)
+	mv $@ $(LIB_DIR) 2>/tmp/lcptools.err || \
+		{ \
+			echo "Couldn't move $@ to $(LIB_DIR)"; \
+			exit 1; \
+		}
+	mkdir -p $(INCLUDE_DIR)
 	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
 # target for dynamic library
 $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) -shared -o $@ $^
 	rm -f $(OBJ_DYNAMIC)
-	mkdir -p $(LIB_DIR);
-	mv $@ $(LIB_DIR)
+	mkdir -p $(LIB_DIR)
+	mv $@ $(LIB_DIR)  2>/tmp/lcptools.err || \
+		{ \
+			echo "Couldn't move $@ to $(LIB_DIR)"; \
+			exit 1; \
+		}
 	mkdir -p $(INCLUDE_DIR);
 	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
