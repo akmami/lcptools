@@ -212,6 +212,7 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &dist
         
 };
 
+
 /**
  * @brief Prints a summary of the analysis to the console.
  *
@@ -229,70 +230,70 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &dist
  */
 void summaryLCP( int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL]) {
 
-    std::cout << "Metric";
+    std::cout << "LCP level";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << i + 1;
+        std::cout << "\t" << i + 1;
     }
     std::cout << std::endl;
 
     // Total Cores
     std::cout << "Total Cores";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_int(core_counts[i]);
+        std::cout << "\t" << format_int(core_counts[i]);
     }
     std::cout << std::endl;
 
     // Overlapping Cores
     std::cout << "Overlapping Cores";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_int(overlapping_counts[i]);
+        std::cout << "\t" << format_int(overlapping_counts[i]);
     }
     std::cout << std::endl;
 
     // Execution Time
     std::cout << "Execution Time (sec)";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_double(((double) durations[i].count()) / 1000);
+        std::cout << "\t" << format_double(((double) durations[i].count()) / 1000);
     }
     std::cout << std::endl;
 
     // Mean Distances Starts (with)
     std::cout << "Mean of Pos Difference";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_double(mean(distances[i], distancesXL[i]));
+        std::cout << "\t" << format_double(mean(distances[i], distancesXL[i]));
     }
     std::cout << std::endl;
 
     // Std Distances Starts (with)
     std::cout << "Std of Pos Difference";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_double(stdev(distances[i], distancesXL[i]));
+        std::cout << "\t" << format_double(stdev(distances[i], distancesXL[i]));
     }
     std::cout << std::endl;
 
     // Mean Lengths (with)
     std::cout << "Mean of Lengths";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_double(mean(lengths[i], lengthsXL[i]));
+        std::cout << "\t" << format_double(mean(lengths[i], lengthsXL[i]));
     }
     std::cout << std::endl;
 
     // Std Lengths (with)
     std::cout << "Std of Lengths";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_double(stdev(lengths[i], lengthsXL[i]));
+        std::cout << "\t" << format_double(stdev(lengths[i], lengthsXL[i]));
     }
     std::cout << std::endl;
 
     std::cout << "Pos Diff >10K Count";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_int(distancesXL[i].size());
+        std::cout << "\t" << format_int(distancesXL[i].size());
     }
     std::cout << std::endl;
 
     std::cout << "Length >10K Count";
     for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "," << format_int(lengthsXL[i].size());
+        std::cout << "\t" << format_int(lengthsXL[i].size());
     }
     std::cout << std::endl;
 };
