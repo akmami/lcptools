@@ -121,7 +121,6 @@ $(TESTS): %: $(TEST_DIR)/%.o
 # run all tests
 test: $(TESTS)
 	@for test in $(TESTS); do \
-		echo "Running $$test..."; \
 		./$$test || exit 1; \
 		rm tests/$${test}.o; \
 	done

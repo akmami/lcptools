@@ -4,9 +4,11 @@
 #include <map>
 #include "encoding.h"
 
+
 void log(const std::string& message) {
     std::cout << message << std::endl;
-}
+};
+
 
 void test_encoding_initialization_default() {
 
@@ -36,7 +38,8 @@ void test_encoding_initialization_default() {
     assert(lcp::dict_bit_size == 2 && "Dictionary bit size should be 2");
 
     log("test_encoding_initialization_default passed!");
-}
+};
+
 
 void test_encoding_initialization_from_map() {
 
@@ -61,7 +64,8 @@ void test_encoding_initialization_from_map() {
     assert(lcp::dict_bit_size == 3 && "Dictionary bit size should be 3");
 
     log("test_encoding_initialization_from_map passed!");
-}
+};
+
 
 void test_encoding_initialization_from_file() {
 
@@ -94,16 +98,17 @@ void test_encoding_initialization_from_file() {
     std::remove("encoding_test.txt");
 
     log("test_encoding_initialization_from_file passed!");
-}
+};
+
 
 int main() {
-    log("Starting tests_encoding...");
+    log("Running test_encoding...");
 
     test_encoding_initialization_default();
     test_encoding_initialization_from_map();
     test_encoding_initialization_from_file();
 
-    log("All tests in tests_encoding completed successfully!");
+    log("All tests in test_encoding completed successfully!");
 
     return 0;
-}
+};
