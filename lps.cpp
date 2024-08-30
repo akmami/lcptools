@@ -18,7 +18,7 @@ namespace lcp {
             std::reverse(str.begin(), str.end());
         }
         
-        parse(str.begin(), str.begin(), str.end(), rev_comp);
+        parse(str.begin(), str.begin(), str.begin(), str.end(), rev_comp);
     }
 
     lps::lps(std::ifstream& in) {
@@ -49,7 +49,7 @@ namespace lcp {
         }
     }
 
-    void lps::parse(std::string::iterator it1, std::string::iterator it2, std::string::iterator end, bool rev_comp) {
+    void lps::parse(std::string::iterator it1, std::string::iterator it2, std::string::iterator begin, std::string::iterator end, bool rev_comp) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
@@ -92,22 +92,22 @@ namespace lcp {
             }
 
             // If there is no subsequent characters such as uxyzv where x!=y and y!=z, check local maxima/minima cases
-            if ( it1 + 4 < end ) {
+            if ( begin <= it1 - 1 && it1 + 3 < end ) {
                 
                 // It is enough to validate y as u and x has already been checked. If y is invalid, then it will be local minima.
                 // If z is invalid, then, y cannot be local minima or local maxima not having local minima neighbours.
                 // Here, z is ignored.
-                if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] == -1 ) {
-                    continue;
-                }
+                // if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] == -1 ) {
+                //     continue;
+                // }
                 
                 if (
-                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] ) ||   // local minima
-                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] &&     // local maxima without immediate local minima neighbours
-                    coefficientsArray[static_cast<unsigned char>(*(it1))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 4))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] )
+                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] < coefficientsArray[static_cast<unsigned char>(*(it1))] ) ||   // local minima
+                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] > coefficientsArray[static_cast<unsigned char>(*(it1))] &&     // local maxima without immediate local minima neighbours
+                    coefficientsArray[static_cast<unsigned char>(*(it1-1))] <= coefficientsArray[static_cast<unsigned char>(*(it1))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] )
                 ) {
                     
-                    base_core *new_core = new base_core(it1+1, it1+4, index+1, rev_comp);
+                    base_core *new_core = new base_core(it1, it1+3, index, rev_comp);
                     this->base_cores.push_back(new_core);
                 }
             }
