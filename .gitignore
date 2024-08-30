@@ -5,6 +5,8 @@ results/*
 bin/*
 out/*
 data/*
+lib/*
+include/*
 
 .nfs*
 *.o
