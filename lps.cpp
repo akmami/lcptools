@@ -10,7 +10,7 @@ namespace lcp {
         std::string::iterator it2;
         
 
-        this->base_cores.reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
+        this->cores.reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
                                                                         // and the increase is always above the 2, it makes sense to reserve
                                                                         // half of the size for the cores to prevent expansion of vector.
         
@@ -18,7 +18,7 @@ namespace lcp {
             std::reverse(str.begin(), str.end());
         }
         
-        parse(str.begin(), str.begin(), str.begin(), str.end(), rev_comp);
+        parse(str.begin(), str.end(), rev_comp);
     }
 
     lps::lps(std::ifstream& in) {
@@ -27,89 +27,82 @@ namespace lcp {
         size_t size;
         in.read(reinterpret_cast<char*>(&size), sizeof(size));
 
-        // Read each base_core object
-        if ( this->level == 1 ) {
-            // Resize the vector to the appropriate size
-            base_cores.reserve(size);
+        // read each core object
+        
+        // resize the vector to the appropriate size
+        cores.reserve(size);
 
-            // Read each base_core object
-            for (size_t i = 0; i < size; i++) {
-                base_core* new_core = new base_core(in);
-                base_cores.push_back(new_core);
-            }
-        } else {
-            // Resize the vector to the appropriate size
-            cores.reserve(size);
-
-            // Read each base_core object
-            for (size_t i = 0; i < size; i++) {
-                core* new_core = new core(in);
-                cores.push_back(new_core);
-            }
+        // read each core object
+        for (size_t i = 0; i < size; i++) {
+            core* new_core = new core(in);
+            this->cores.push_back(new_core);
         }
     }
 
-    void lps::parse(std::string::iterator it1, std::string::iterator it2, std::string::iterator begin, std::string::iterator end, bool rev_comp) {
+    void lps::parse(std::string::iterator begin, std::string::iterator end, bool rev_comp) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
         int index = 0;
+        std::string::iterator it1 = begin;
+        std::string::iterator it2;
 
         // Find lcp cores
-        for ( ; it1 + 2 <= end; it1++, index++ ) {
+        for ( ; it1 + 2 < end; it1++, index++ ) {
 
-            if ( coefficientsArray[static_cast<unsigned char>(*it1)] == -1 || coefficientsArray[static_cast<unsigned char>(*(it1+1))] == -1 || coefficientsArray[static_cast<unsigned char>(*it1)] == coefficientsArray[static_cast<unsigned char>(*(it1+1))] ) {
+            // skip invalid character
+            if ( coefficientsArray[static_cast<unsigned char>(*it1)] == -1 || coefficientsArray[static_cast<unsigned char>(*(it1+1))] == -1 ) {
+                continue;
+            }
+
+            if ( coefficientsArray[static_cast<unsigned char>(*it1)] == coefficientsArray[static_cast<unsigned char>(*(it1+1))] ) {
                 continue;
             }
             
-            // If there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
+            // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
             if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] == coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
                 
-                for ( it2 = it1 + 3; it2 != end && *(it2) == *(it2-1); it2++ ) {}
-                
-                if ( it2 == end ) {
-                    break;
-                }
+                for ( it2 = it1 + 3; it2 < end && *(it2-1) == *(it2); it2++ );
 
-                // If z is invalid character, then do not processed
-                if ( coefficientsArray[static_cast<unsigned char>(*it2)] == -1 ) {
+                // If z is invalid character or end, then do not processed
+                if ( it2 == end || coefficientsArray[static_cast<unsigned char>(*it2)] == -1 || coefficientsArray[static_cast<unsigned char>(*(it2-1))] == -1 ) {
                     continue;
                 }
 
-                // Check whether there is any invalid character encountered
-                if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] == -1 || coefficientsArray[static_cast<unsigned char>(*(it2-1))] == -1 ) {
-                    continue;
-                }
-
-                if ( coefficientsArray[static_cast<unsigned char>(*it1)] != -1) {
-                    it2++;
-                }
-                
-                base_core *new_core = new base_core(it1, it2, index, rev_comp);
-                this->base_cores.push_back(new_core);
+                // core constructor takes end exclusively
+                it2++;
+                            
+                core *new_core = new core(it1, it2, index, index+(it2-it1), rev_comp);
+                this->cores.push_back(new_core);
                 
                 continue;
             }
 
-            // If there is no subsequent characters such as uxyzv where x!=y and y!=z, check local maxima/minima cases
-            if ( begin <= it1 - 1 && it1 + 3 < end ) {
+            // if there is a local minima
+            if ( coefficientsArray[static_cast<unsigned char>(*(it1))] > coefficientsArray[static_cast<unsigned char>(*(it1+1))] && 
+                 coefficientsArray[static_cast<unsigned char>(*(it1+1))] < coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
                 
-                // It is enough to validate y as u and x has already been checked. If y is invalid, then it will be local minima.
-                // If z is invalid, then, y cannot be local minima or local maxima not having local minima neighbours.
-                // Here, z is ignored.
-                // if ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] == -1 ) {
-                //     continue;
-                // }
+                core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
+                this->cores.push_back(new_core);
                 
-                if (
-                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] < coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] < coefficientsArray[static_cast<unsigned char>(*(it1))] ) ||   // local minima
-                    ( coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] > coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 1))] > coefficientsArray[static_cast<unsigned char>(*(it1))] &&     // local maxima without immediate local minima neighbours
-                    coefficientsArray[static_cast<unsigned char>(*(it1-1))] <= coefficientsArray[static_cast<unsigned char>(*(it1))] && coefficientsArray[static_cast<unsigned char>(*(it1 + 3))] <= coefficientsArray[static_cast<unsigned char>(*(it1 + 2))] )
-                ) {
-                    
-                    base_core *new_core = new base_core(it1, it1+3, index, rev_comp);
-                    this->base_cores.push_back(new_core);
-                }
+                continue;
+            } 
+            
+            // validate before checking further (corner cases for initial and last cores)
+            if ( it1 == begin || it1 + 3 == end ) {
+                continue;
+            }
+
+            // if there is local maxima without immediate local minima neighbours
+            if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] > coefficientsArray[static_cast<unsigned char>(*(it1+2))] && 
+                 coefficientsArray[static_cast<unsigned char>(*(it1))] < coefficientsArray[static_cast<unsigned char>(*(it1+1))] && 
+                 coefficientsArray[static_cast<unsigned char>(*(it1-1))] <= coefficientsArray[static_cast<unsigned char>(*(it1))] && 
+                 coefficientsArray[static_cast<unsigned char>(*(it1+2))] >= coefficientsArray[static_cast<unsigned char>(*(it1+3))] ) {
+                
+                core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
+                this->cores.push_back(new_core);
+                
+                continue;
             }
         }
     }
@@ -119,69 +112,14 @@ namespace lcp {
             delete *it;
         }
         this->cores.clear();
-
-        for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
-            delete *it;
-        }
-        this->base_cores.clear();
     }
 
     bool lps::deepen() {
         
         // Compress cores
-
-        // If the lcp level is 1, then the cores are stored in base_cores
-        // Hence, it requires seperate handling
-        if ( this->level == 1 ) {
-
-            this->cores.reserve( this->base_cores.size() / CONSTANT_FACTOR );
+        for( int compression_iteratin_index = 0; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
             
-            // At least 2 cores are needed for compression
-            if ( this->base_cores.size() < 2 ) {
-                for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
-                    delete *it;
-                }
-                this->base_cores.clear();
-                this->level++;
-                return false;
-            }
-
-            std::vector<base_core*>::iterator it_curr = this->base_cores.begin() + 1, it_left = this->base_cores.begin();
-
-            for( ; it_curr != this->base_cores.end(); it_curr++, it_left++ ) {
-                unsigned int index = (*it_curr)->compress(*it_left);
-
-                // Determine bit count required to represent new core
-                uchar bit_size = 0;
-                unsigned int temp = index;
-                
-                while(temp != 0) {
-                    bit_size++;
-                    temp /= 2;
-                }
-                bit_size = bit_size > 2 ? bit_size : 2;
-
-                // Create new core
-                lcp::core* new_core = new core( index, bit_size, (*it_curr)->start, (*it_curr)->end );
-                this->cores.push_back(new_core);
-            }
-
-            // Cores are now represented by cores, hence, no need for base cores
-            for ( std::vector<base_core*>::iterator it = this->base_cores.begin(); it != this->base_cores.end(); it++ ) {
-                delete *it;
-            }
-            this->base_cores.clear();
-        } 
-
-        int compression_iteratin_index = 0;
-
-        if (this->level == 1) {     // If it is first level, then compression is already done once above
-            compression_iteratin_index++;
-        }
-
-        for( ; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
-            
-            // At least 2 cores are needed for compression
+            // at least 2 cores are needed for compression
             if (this->cores.size() < 2) {
                 for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
                     delete *it;
@@ -193,62 +131,65 @@ namespace lcp {
 
             std::vector<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end() - 2;
 
-            for( ; it_curr > cores.begin() + start_index; it_curr--, it_left-- ) {
+            for( ; cores.begin() + start_index < it_curr; it_curr--, it_left-- ) {
+                // std::cout << "compressing: " << *it_left << " " << *it_curr << " = "; 
                 (*it_curr)->compress(*it_left);
+                // std::cout << *it_curr << std::endl;
             }
 
             this->start_index++;
         }
 
-        // Find cores from compressed cores.
-        std::vector<core*>::iterator it1, it2;
-        int index = 0;
-
+        // find cores from compressed cores.
+        std::vector<core*>::iterator it1 = this->cores.begin() + start_index, it2;
         std::vector<core*> temp_cores;
 
-        it1 = this->cores.begin() + start_index;
-        
-        while( it1 + 1 < this->cores.end() && *(*(it1)) == *(*(it1+1)) ) {
-            it1++;
-            index++;
-        }
+        temp_cores.reserve( this->cores.size() / CONSTANT_FACTOR );
 
-        while ( index < COMPRESSION_ITERATION_COUNT && it1 - 1 < this->cores.begin() + start_index ) {
-            it1++;
-            index++;
-        }
+        for ( ; it1 + 2 < this->cores.end(); it1++ ) {
 
-        for ( ; it1 + 2 < this->cores.end(); it1++, index++) {
+            if ( *(*it1) == *(*(it1+1)) ) {
+                continue;
+            }
 
             // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
-            if ( *(*(it1)) != *(*(it1 + 1)) && *(*(it1 + 1)) == *(*(it1 + 2)) ) {
+            if ( *(*(it1 + 1)) == *(*(it1+2)) ) {
 
-                for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2)) == *(*(it2 - 1)); it2++ ) {}
+                for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2-1)) == *(*(it2)); it2++ );
                 
-                if ( it2 < this->cores.end() && (*it2)->end - (*(it1))->start < MAXIMUM_LENGTH ) {
-                    it2++;
+                it2++;
+
+                if ( it2 <= this->cores.end() ) {
                     core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                     temp_cores.push_back(new_core);
-                    continue;
                 } 
+
+                continue;
             }
 
-            if (it1 + 3 < this->cores.end()) {
+            // if there is a local minima
+            if ( *(*(it1)) > *(*(it1+1)) && *(*(it1+1)) < *(*(it1+2)) ) {
+                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
+                temp_cores.push_back(new_core);
+            }
 
-                // if there is no subsequent characters such as xyzuv where z!=y and y!=z and z!=u and u!=v
-                if (
-                    ( *(*(it1 + 1)) < *(*(it1 + 2)) && *(*(it1 + 1)) < *(*(it1)) ) ||     // local minima
-                    ( *(*(it1 + 1)) > *(*(it1 + 2)) && *(*(it1 + 1)) > *(*(it1)) &&       // local maxima without immediate local minima neighbours
-                    *(*(it1-1)) <= *(*(it1)) && *(*(it1 + 3)) <= *(*(it1 + 2)) )    
-                ) { 
-                    if ( (*(it1 + 2))->end - (*(it1 - COMPRESSION_ITERATION_COUNT))->start < MAXIMUM_LENGTH ) {
-                        core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1 + 3);
-                        temp_cores.push_back(new_core);
-                    }
-                }
+            // validate before checking further (corner cases for initial and last cores)
+            if ( it1 == this->cores.begin() || it1 + 3 == this->cores.end() ) {
+                continue;
+            }
+
+            // if there is local maxima without immediate local minima neighbours
+
+
+            if ( *(*(it1)) < *(*(it1 + 1)) && *(*(it1+1)) > *(*(it1+2)) && 
+                 *(*(it1-1)) <= *(*(it1)) && *(*(it1+2)) >= *(*(it1+3)) ) { 
+                
+                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
+                temp_cores.push_back(new_core);
             }
         }
 
+        // remove old cores
         for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
             delete *it;
         }
@@ -290,46 +231,28 @@ namespace lcp {
     void lps::write(std::ofstream& out) {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
-        size_t size = this->level == 1 ? this->base_cores.size() : this->cores.size();
+        size_t size = this->cores.size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
 
-        // write each base_core object
-        if ( this->level == 1 ) {
-            for (base_core* c : this->base_cores) {
-                c->write(out);
-            }
-        } else {
-            for (core* c : this->cores) {
-                c->write(out);
-            }
+        // write each core object
+        for (core* c : this->cores) {
+            c->write(out);
         }
     }
 
 
     std::ostream& operator<<(std::ostream& os, const lps& element) {
         os << "Level: " << element.level << std::endl;
-        if (element.level == 1) {
-            for (base_core* c : element.base_cores) {
-                os << c << " ";
-            }
-        } else {
-            for (core* c : element.cores) {
-                os << c << " ";
-            }
+        for (core* c : element.cores) {
+            os << c << " ";
         }
         return os;
     };
 
     std::ostream& operator<<(std::ostream& os, const lps* element) {
         os << "Level: " << element->level << std::endl;
-        if (element->level == 1) {
-            for (base_core* c : element->base_cores) {
-                os << c << " ";
-            }
-        } else {
-            for (core* c : element->cores) {
-                os << c << " ";
-            }
+        for (core* c : element->cores) {
+            os << c << " ";
         }
         return os;
     };
