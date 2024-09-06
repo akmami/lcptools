@@ -86,7 +86,7 @@ g++ your_program.cpp -static -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/
 If you want to link dynamic library, please use as follows:
 
 ```sh
-g++ your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools -o your_program
+g++ your_program.cpp -I$(HOME)/.local/include/lcptools -L$(HOME)/.local/lib -llcptools -Wl,-rpath,$(HOME)/.local/lib -o your_program
 ```
 
 **Note**: Make sure that paths are correct.
