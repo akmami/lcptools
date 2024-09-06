@@ -116,7 +116,7 @@ namespace lcp {
 			this->p[i] = 0;
 		}
 
-        in.read(reinterpret_cast<char*>(p), this->block_number * sizeof(unsigned char));
+        in.read(reinterpret_cast<char*>(p), this->block_number * sizeof(ublock));
     }
 
 	core::~core() {
@@ -210,7 +210,7 @@ namespace lcp {
         out.write(reinterpret_cast<const char*>(&end), sizeof(end));
         out.write(reinterpret_cast<const char*>(&block_number), sizeof(block_number));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
-        out.write(reinterpret_cast<char*>(p), block_number * sizeof(unsigned char));
+        out.write(reinterpret_cast<char*>(p), block_number * sizeof(ublock));
     }
 
 	// core operator overloads
