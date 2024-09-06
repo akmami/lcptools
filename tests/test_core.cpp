@@ -26,12 +26,12 @@ void test_core_compress() {
     assert(core1.block_number == 1 && "Compressed core's block number should be 1");
     assert(core1.start_index == 30 && "Compressed core's start index should be 30");
     
-    log("test_core_compress passed!");
+    log("...  test_core_compress passed!");
 };
 
 
 void test_core_constructors() {
-    std::cout << "starting" << std::endl;
+
     // test constructor with label, label_length, start, and end
     ublock* p1 = new ublock[1]; 
     p1[0] = 0b1111;
@@ -67,7 +67,7 @@ void test_core_constructors() {
     assert(core5.p[1] == 0b00100000001100111001101100101101 && "First part of concatenated label should be 1");
     assert(core5.start_index == 30 && "Label length should be 30");
     
-    log("test_core_constructors passed!");
+    log("...  test_core_constructors passed!");
 };
 
 
@@ -94,7 +94,7 @@ void test_core_file_io() {
     // clean up the test file
     std::remove("core_test.dat");
 
-    log("test_core_file_io passed!");
+    log("...  test_core_file_io passed!");
 };
 
 
@@ -117,7 +117,7 @@ void test_core_operator_overloads() {
     assert((core1 >= core2) && "core1 should be greater than or equal to core2");
     assert((core3 <= core1) && "core3 should be less than or equal to core1");
 
-    log("test_core_operator_overloads passed!");
+    log("...  test_core_operator_overloads passed!");
 };
 
 

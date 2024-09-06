@@ -37,7 +37,7 @@ void test_encoding_initialization_default() {
     // check dictionary bit size
     assert(lcp::dict_bit_size == 2 && "Dictionary bit size should be 2");
 
-    log("test_encoding_initialization_default passed!");
+    log("...  test_encoding_initialization_default passed!");
 };
 
 
@@ -63,7 +63,7 @@ void test_encoding_initialization_from_map() {
     // check dictionary bit size
     assert(lcp::dict_bit_size == 3 && "Dictionary bit size should be 3");
 
-    log("test_encoding_initialization_from_map passed!");
+    log("...  test_encoding_initialization_from_map passed!");
 };
 
 
@@ -97,7 +97,7 @@ void test_encoding_initialization_from_file() {
     // clean up the temporary file
     std::remove("encoding_test.txt");
 
-    log("test_encoding_initialization_from_file passed!");
+    log("...  test_encoding_initialization_from_file passed!");
 };
 
 
