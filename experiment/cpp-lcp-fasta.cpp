@@ -50,57 +50,13 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[
             overlapping_counts[level] += 1;
         }
 
-        if ( 0 <= (*it)->start - (*(it-1))->start && (*it)->start - (*(it-1))->start < DISTANCE_LENGTH ) {
+        if ( (*it)->start < DISTANCE_LENGTH + (*(it-1))->start ) {
             distances[level][(*it)->start - (*(it-1))->start]++;
         } else {
             distancesXL[level].push_back( (*it)->start - (*(it-1))->start );
         }
         
-        if ( 0 <= (*it)->end - (*it)->start && (*it)->end - (*it)->start < DISTANCE_LENGTH ) {
-            lengths[level][(*it)->end - (*it)->start] += 1;
-        } else {
-            lengthsXL[level].push_back( (*it)->end - (*it)->start );
-        }
-    }
-};
-
-
-/**
- * @brief Performs analysis of genomic data at a specified level.
- *
- * This function analyzes genomic data, specifically focusing on overlapping
- * counts, distances, and lengths at a given level of analysis. It iterates
- * through LCP cores, calculates relevant statistics, and stores them in
- * provided arrays and vectors. It supports analysis at different levels,
- * allowing for multi-layered (LCP level) examination of genomic sequences.
- * 
- * The difference between the other analyze function is that this function is targetting
- * first level analyses of the given string.
- *
- * @param overlapping_counts Array to store counts of overlapping genomic segments.
- * @param distances Multidimensional array to store position-based distances.
- * @param distancesXL Vector to store larger position-based distances.
- * @param lengths Multidimensional array to store lengths of genomic segments.
- * @param lengthsXL Vector to store larger lengths.
- * @param str Pointer to the parsed string being analyzed.
- */
-void analyze( int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
-    
-    int level = 0;
-    
-    for ( std::vector<lcp::base_core*>::iterator it = str->base_cores.begin() + 1; it < str->base_cores.end(); it++ ) {
-
-        if ( (*it)->start < (*(it-1))->end ) {
-            overlapping_counts[level] += 1;
-        }
-
-        if ( 0 <= (*it)->start - (*(it-1))->start && (*it)->start - (*(it-1))->start < DISTANCE_LENGTH ) {
-            distances[level][(*it)->start - (*(it-1))->start]++;
-        } else {
-            distancesXL[level].push_back( (*it)->start - (*(it-1))->start );
-        }
-        
-        if ( 0 <= (*it)->end - (*it)->start && (*it)->end - (*it)->start < DISTANCE_LENGTH ) {
+        if ( (*it)->end < DISTANCE_LENGTH + (*it)->start ) {
             lengths[level][(*it)->end - (*it)->start] += 1;
         } else {
             lengthsXL[level].push_back( (*it)->end - (*it)->start );
@@ -173,10 +129,10 @@ int main(int argc, char **argv) {
                     
                     auto extraction_end = std::chrono::high_resolution_clock::now();
                     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-                    core_counts[0] += str->base_cores.size();
+                    core_counts[0] += str->cores.size();
                     
                     // Base cores are stored in level 0 instead of cores. Hence, need seperation
-                    analyze(overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
+                    analyze(0, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
                     
                     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
