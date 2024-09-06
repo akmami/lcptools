@@ -2,29 +2,32 @@
 #define   CORE_H
 
 #include <vector>
-#include <ostream>
+#include <fstream>
+#include <iterator>
 #include "constant.h"
-#include "base_core.h"
+#include "encoding.h"
 
 namespace lcp {
-
 	class core {
-	public:
+    public:
+        // Core related variables
+		size_t start;
+		size_t end;
+
 		// Represenation related variables
-		uint label;
-		uchar label_length;
+		size_t block_number;
+		size_t start_index;
+		ublock* p;
 
-		// Core related variables
-		int start;
-		int end;
-
-		void compress(const core* other);
-		
-		core(std::vector<lcp::base_core*>::iterator it1, std::vector<lcp::base_core*>::iterator it2);
+		core(std::string::iterator it1, std::string::iterator it2, size_t start_index, size_t end_index, bool rev_comp = false);
 		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2);
-		core(uint label, uchar label_length, int start, int end);
+		core(ublock* p, size_t block_number, size_t start_index, size_t start, size_t end);
 		core(std::ifstream& in);
+		~core();
 
+        bool get(int index) const;
+		void compress(const core* other);
+		uint label();
 		void write(std::ofstream& out);
 	};
 
