@@ -8,8 +8,8 @@ AR = ar
 ARFLAGS = rcs
 
 # variables
-SRC = lps.cpp base_core.cpp core.cpp encoding.cpp
-HDR = lps.h base_core.h core.h encoding.h
+SRC = lps.cpp core.cpp encoding.cpp
+HDR = lps.h core.h encoding.h
 OTHER_HDR = constant.h
 OBJ_STATIC = $(SRC:.cpp=_s.o)
 OBJ_DYNAMIC = $(SRC:.cpp=_d.o)
@@ -76,7 +76,8 @@ $(STATIC): $(OBJ_STATIC)
 	$(AR) $(ARFLAGS) $@ $^
 	rm -f $(OBJ_STATIC)
 	mkdir -p $(LIB_DIR)
-	mv $@ $(LIB_DIR) 2>/tmp/lcptools.err || \
+	@echo "mv $@ $(LIB_DIR)  2>/tmp/lcptools.err"
+	@mv $@ $(LIB_DIR) 2>/tmp/lcptools.err || \
 		{ \
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
@@ -89,7 +90,8 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) -shared -o $@ $^
 	rm -f $(OBJ_DYNAMIC)
 	mkdir -p $(LIB_DIR)
-	mv $@ $(LIB_DIR)  2>/tmp/lcptools.err || \
+	@echo "mv $@ $(LIB_DIR)  2>/tmp/lcptools.err"
+	@mv $@ $(LIB_DIR)  2>/tmp/lcptools.err || \
 		{ \
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
@@ -106,9 +108,8 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) $(CXXFLAGS) -c $(CXXEXTRA) $< -o $@
 
 # dependencies
-lps.o: lps.cpp lps.h core.h base_core.h encoding.h constant.h
-core.o: core.cpp core.h base_core.h constant.h
-base_core.o: base_core.cpp base_core.h encoding.h constant.h
+lps.o: lps.cpp lps.h core.h encoding.h constant.h
+core.o: core.cpp core.h encoding.h constant.h
 encoding.o: encoding.cpp encoding.h
 
 # compile and link test executables
@@ -116,12 +117,13 @@ $(TEST_DIR)/%.o: $(TEST_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
 
 $(TESTS): %: $(TEST_DIR)/%.o
-	$(CXX) $(CXXFLAGS) -o $@ $< -L$(LIB_DIR) -l$(LIB_NAME)
+	$(CXX) $(CXXFLAGS) -o tests/$@ $< -L$(LIB_DIR) -l$(LIB_NAME) -Wl,-rpath,$(LIB_DIR)
 
 # run all tests
 test: $(TESTS)
 	@for test in $(TESTS); do \
-		./$$test || exit 1; \
+		tests/$$test || exit 1; \
 		rm tests/$${test}.o; \
+		rm tests/$$test; \
 	done
 
