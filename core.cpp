@@ -6,8 +6,10 @@ namespace lcp {
 
 		int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
+		#ifdef STATS
 		this->start = start_index;
 		this->end = end_index;
+		#endif
 
 		this->block_number = ( (end_index - start_index) * dict_bit_size - 1) / SIZE_PER_BLOCK + 1 ;
 		this->start_index = this->block_number * SIZE_PER_BLOCK - (end_index - start_index) * dict_bit_size;
@@ -47,8 +49,10 @@ namespace lcp {
 	};
 
 	core::core(std::vector<core*>::iterator begin, std::vector<core*>::iterator end) {
+		#ifdef STATS
 		this->start = (*begin)->start;
 		this->end = (*(end-1))->end;
+		#endif
 
 		// calculate required number of bits to represent core
 		size_t bit_size = 0;
@@ -83,7 +87,6 @@ namespace lcp {
 				// if after shifting, there is overflow
 				// always overflow occurs if block index is not 0 or if so, 
 				// number of bits in first block + index is causing overflow.
-				// std::cout << "index: " << index << ", block: " << block << ", block_size: " << block_size << ", shift: " << shift << std::endl;
 				if (shift >= 0) {
 					this->p[block_index] |= (block << shift);
 				} else {
@@ -101,13 +104,17 @@ namespace lcp {
 		this->p = p;
 		this->block_number = block_number;
 		this->start_index = start_index;
+		#ifdef STATS
 		this->start = start;
 		this->end = end;
+		#endif
 	};
 
 	core::core(std::ifstream& in) {
+		#ifdef STATS
 		in.read(reinterpret_cast<char*>(&start), sizeof(start));
-        in.read(reinterpret_cast<char*>(&end), sizeof(end));
+		in.read(reinterpret_cast<char*>(&end), sizeof(end));
+		#endif
         in.read(reinterpret_cast<char*>(&block_number), sizeof(block_number));
         in.read(reinterpret_cast<char*>(&start_index), sizeof(start_index));
 		this->p = new ublock[this->block_number];
@@ -117,28 +124,11 @@ namespace lcp {
 		}
 
         in.read(reinterpret_cast<char*>(p), this->block_number * sizeof(ublock));
-    }
+    };
 
 	core::~core() {
 		delete[] p;
 		this->p = nullptr;
-	};
-
-	// delete in near future
-	uint core::label() {
-		uint label = 0;
-		for (int i = this->block_number - 1, index = 0; i >= 0 && index < 32; i--, index += SIZE_PER_BLOCK) {
-			if (index + SIZE_PER_BLOCK > 31) {
-				label |= (this->p[i] << index) & ((1u << (32 - index)) - 1);
-				break;
-			}
-			label |= (this->p[i] << index);
-		}
-		return label;
-	};
-
-	bool core::get(int index) const {
-		return ( this->p[(this->start_index + index) / SIZE_PER_BLOCK] & ( 1 << ( SIZE_PER_BLOCK - ( (this->start_index + index) % SIZE_PER_BLOCK ) - 1 ) ) );
 	};
 
 	void core::compress(const core* other) {
@@ -205,13 +195,23 @@ namespace lcp {
 		}
 	};
 
-    void core::write(std::ofstream& out) {
+    void core::write(std::ofstream& out) const {
+		#ifdef STATS
 		out.write(reinterpret_cast<const char*>(&start), sizeof(start));
-        out.write(reinterpret_cast<const char*>(&end), sizeof(end));
+		out.write(reinterpret_cast<const char*>(&end), sizeof(end));
+		#endif
         out.write(reinterpret_cast<const char*>(&block_number), sizeof(block_number));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
         out.write(reinterpret_cast<char*>(p), block_number * sizeof(ublock));
-    }
+    };
+
+	size_t core::memsize() const {
+        size_t size = sizeof(core);
+        if (this->p != nullptr) {
+            size += this->block_number * sizeof(ublock);
+        }
+        return size;
+    };
 
 	// core operator overloads
 	bool operator == (const core& lhs, const core& rhs) {
@@ -330,18 +330,15 @@ namespace lcp {
 	};
 
 	std::ostream& operator<<(std::ostream& os, const core& element) {
-		for (int block_index = element.block_number - 1; 0 <= block_index; block_index-- ){
-			for (size_t index = element.start_index; index < element.block_number * SIZE_PER_BLOCK; index++ ) {
-				os << ((element.p[index / SIZE_PER_BLOCK] >> (SIZE_PER_BLOCK - index % SIZE_PER_BLOCK)) & 1);
-			}
+		for (size_t index = element.start_index; index < element.block_number * SIZE_PER_BLOCK; index++ ) {
+			os << ((element.p[index / SIZE_PER_BLOCK] >> (SIZE_PER_BLOCK - index % SIZE_PER_BLOCK)) & 1);
 		}
 	    return os;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const core* element) {
-		int bit_size = element->block_number * SIZE_PER_BLOCK - element->start_index;
-		for (int index=0; index<bit_size; index++) {
-			os << element->get(index);
+		for (size_t index = element->start_index; index < element->block_number * SIZE_PER_BLOCK; index++ ) {
+			os << ((element->p[index / SIZE_PER_BLOCK] >> (SIZE_PER_BLOCK - index % SIZE_PER_BLOCK)) & 1);
 		}
 	    return os;
 	};

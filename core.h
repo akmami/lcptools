@@ -10,9 +10,11 @@
 namespace lcp {
 	class core {
     public:
-        // Core related variables
+		#ifdef STATS
+		// Core related variables
 		size_t start;
 		size_t end;
+		#endif
 
 		// Represenation related variables
 		size_t block_number;
@@ -25,10 +27,9 @@ namespace lcp {
 		core(std::ifstream& in);
 		~core();
 
-        bool get(int index) const;
 		void compress(const core* other);
-		uint label();
-		void write(std::ofstream& out);
+		void write(std::ofstream& out) const;
+		size_t memsize() const;
 	};
 
     // core operator overloads
