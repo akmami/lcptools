@@ -19,7 +19,7 @@ namespace lcp {
         }
         
         parse(str.begin(), str.end(), rev_comp);
-    }
+    };
 
     lps::lps(std::ifstream& in) {
         in.read(reinterpret_cast<char*>(&level), sizeof(level));
@@ -37,7 +37,7 @@ namespace lcp {
             core* new_core = new core(in);
             this->cores.push_back(new_core);
         }
-    }
+    };
 
     void lps::parse(std::string::iterator begin, std::string::iterator end, bool rev_comp) {
 
@@ -105,14 +105,14 @@ namespace lcp {
                 continue;
             }
         }
-    }
+    };
 
     lps::~lps() {
         for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
             delete *it;
         }
         this->cores.clear();
-    }
+    };
 
     bool lps::deepen() {
         
@@ -132,9 +132,7 @@ namespace lcp {
             std::vector<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end() - 2;
 
             for( ; cores.begin() + start_index < it_curr; it_curr--, it_left-- ) {
-                // std::cout << "compressing: " << *it_left << " " << *it_curr << " = "; 
                 (*it_curr)->compress(*it_left);
-                // std::cout << *it_curr << std::endl;
             }
 
             this->start_index++;
@@ -201,7 +199,7 @@ namespace lcp {
         this->level++;
         
         return true;
-    }
+    };
 
     bool lps::deepen(int lcp_level) {
 
@@ -214,9 +212,9 @@ namespace lcp {
         }
 
         return true;
-    }
+    };
 
-    void lps::write(std::string filename) {
+    void lps::write(std::string filename) const {
         std::ofstream out(filename, std::ios::binary);
         if (!out) {
             std::cerr << "Error opening file for writing" << std::endl;
@@ -226,9 +224,9 @@ namespace lcp {
         write(out);
 
         out.close();
-    }
+    };
 
-    void lps::write(std::ofstream& out) {
+    void lps::write(std::ofstream& out) const {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
         size_t size = this->cores.size();
@@ -238,8 +236,18 @@ namespace lcp {
         for (core* c : this->cores) {
             c->write(out);
         }
-    }
+    };
 
+    double lps::memsize() {
+        double total = sizeof(*this);
+        total += this->cores.capacity() * sizeof(core*);
+
+        for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+            total += (*it)->memsize();
+        }
+
+        return total;
+    }
 
     std::ostream& operator<<(std::ostream& os, const lps& element) {
         os << "Level: " << element.level << std::endl;

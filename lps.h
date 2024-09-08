@@ -29,8 +29,9 @@ namespace lcp {
         void parse(std::string::iterator begin, std::string::iterator end, bool rev_comp = false);
         bool deepen();
         bool deepen(int lcp_level);
-        void write(std::string filename);
-        void write(std::ofstream& out);
+        void write(std::string filename) const;
+        void write(std::ofstream& out) const;
+        double memsize();
     };
 
     std::ostream& operator<<(std::ostream& os, const lps& element);
