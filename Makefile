@@ -3,6 +3,10 @@ CXX = g++
 CXXFLAGS = -std=c++11 -O2 -Wall -Wextra
 CXXEXTRA = -fPIC
 
+ifdef STATS
+    CXXFLAGS += -DSTATS
+endif
+
 # archiver and flags
 AR = ar
 ARFLAGS = rcs
@@ -32,6 +36,8 @@ LIB_DIR = $(PREFIX)/lib
 .PHONY: all clean install uninstall
 
 install: $(STATIC) $(DYNAMIC)
+	mkdir -p $(INCLUDE_DIR)
+	cp $(OTHER_HDR) $(HDR) $(INCLUDE_DIR)
 	@echo "";
 	@echo "WARNING! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH";
 	@echo "If not, you can export it as: ";
@@ -82,8 +88,6 @@ $(STATIC): $(OBJ_STATIC)
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
 		}
-	mkdir -p $(INCLUDE_DIR)
-	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
 # target for dynamic library
 $(DYNAMIC): $(OBJ_DYNAMIC)
@@ -96,8 +100,6 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
 		}
-	mkdir -p $(INCLUDE_DIR);
-	cp $(HDR) $(OTHER_HDR) $(INCLUDE_DIR)
 
 # rule to compile .cpp files to .o files for static library
 %_s.o: %.cpp %.h
