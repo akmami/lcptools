@@ -1,6 +1,6 @@
-FASTA := hg38.fa
-FASTQ := *.fastq.gz
-LCP_LEVEL := 4
+FASTA ?=
+FASTQ ?=
+LCP_LEVEL ?= 4
 
 # Programs
 CPP_LCP_FASTA := cpp-lcp-fasta
@@ -14,12 +14,15 @@ DATA_DIR := $(CURRENT_DIR)/../data
 EXECUTABLE_DIR := $(CURRENT_DIR)/../bin
 RESULTS_DIR := $(CURRENT_DIR)/../results
 OUT_DIR := $(CURRENT_DIR)/../out
+INCLUDE_DIR ?= $(CURRENT_DIR)/../include
+LIB_DIR ?= $(CURRENT_DIR)/../lib
 
 # Extension
 CXX := .cpp
 
 # Compiler
 GXX := g++
+CXXFLAGS = -std=c++11 -O2 -Wall -Wextra
 TIME := /usr/bin/time -v
 
 .PHONY: all
@@ -53,15 +56,33 @@ mkdir_out:
 		echo "$(OUT_DIR) already exists."; \
 	fi
 
+check_lcptools:
+	@if [ ! -d "$(INCLUDE_DIR)" ]; then \
+		echo "$(INCLUDE_DIR) does not exist. Please compile lcptools to headers to $(INCLUDE_DIR)"; \
+		exit 1; \
+	fi
+	@if [ ! -d "$(LIB_DIR)" ]; then \
+		echo "$(LIB_DIR) does not exist. Please compile lcptools and put library to $(LIB_DIR)"; \
+		exit 1; \
+	fi
+
 check_fasta:
-	@if [ ! -f $(DATA_DIR)/$(FASTA) ]; then \
-		echo "File $(DATA_DIR)/$(FASTA) does not exist. Exiting."; \
+	@if [ -z "$(FASTA)" ]; then \
+        echo "FASTA is not set or is empty. Exiting"; \
+		exit 1; \
+    fi
+	@if [ ! -f $(FASTA) ]; then \
+		echo "$(FASTA) does not exist. Exiting."; \
 		exit 1; \
 	fi
 
 check_fastq:
-	@if ! ls $(DATA_DIR)/$(FASTQ) 1> /dev/null; then \
-		echo "No .fastq.gz files found. Exiting."; \
+	@if [ -z "$(FASTQ)" ]; then \
+        echo "FASTA is not set or is empty. Exiting"; \
+		exit 1; \
+    fi
+	@if [ ! -f $(FASTQ) ]; then \
+		echo "$(FASTQ) does not exist. Exiting."; \
 		exit 1; \
 	fi
 
@@ -89,14 +110,17 @@ clean:
 ######################################################################
 # LCP
 ######################################################################
-lcpFasta: mkdir_bin mkdir_results check_fasta
+lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
 	@echo "Compiling $(CPP_LCP_FASTA)$(CXX)";
-	$(GXX) -Wall -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA)$(CXX);
+	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA)$(CXX) -o $(CPP_LCP_FASTA).o;
+	@echo "Linking lcptools library and binary files";
+	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR);
+	rm $(CPP_LCP_FASTA).o;
 	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)";
 	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR);
-	@echo "Preprocessing $(DATA_DIR)/$(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(DATA_DIR)/$(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt 2>&1;
-
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt;
+	
 lcpFastq: mkdir_bin mkdir_results check_fastq
 	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)";
 	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
