@@ -64,110 +64,66 @@ std::string format_int(int value) {
  * Example:
  *     format_double(1234567.89123) returns "1,234,567.89" (in an English locale).
  */
-std::string format_double(double value) {
+std::string format_double(double value, size_t precision = 2) {
     std::stringstream ss;
     ss.imbue(std::locale(""));
-    ss << std::fixed << std::setprecision(2) << value;
+    ss << std::fixed << std::setprecision(precision) << value;
     return ss.str();
 };
 
 
 /**
- * @brief Calculates the mean of distances.
+ * @brief Calculates the mean of integers.
  *
- * This function calculates the mean of distances in a given range. It supports
- * processing of standard distances within a predefined range (DISTANCE_LENGTH)
- * and additional larger distances provided as a vector.
+ * This function calculates the mean of integers in a given range. It supports
+ * processing of standard integers within a predefined range (DISTANCE_LENGTH)
+ * and additional larger integers provided as a vector.
  * 
- * @param distances Array of distances within the predefined range.
- * @param distancesXL Vector of distances outside the predefined range.
- * @return The mean of all provided distances.
+ * @param numbers Array of integers within the predefined range.
+ * @param numbersXL Vector of integers outside the predefined range.
+ * @return The mean of all provided integers.
  */
-double mean(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}) {
+double mean(int (&numbers)[DISTANCE_LENGTH], std::vector<int> numbersXL = {}) {
     double sum = 0;
     double count = 0;
-    for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        sum += i * distances[i];
-        count += distances[i];
+    for ( size_t i = 0; i < DISTANCE_LENGTH; i++ ) {
+        sum += ( i * numbers[i] );
+        count += numbers[i];
     }
-    for ( uint i = 0; i < distancesXL.size(); i++ ) {
-        sum += distancesXL[i];
+    for ( size_t i = 0; i < numbersXL.size(); i++ ) {
+        sum += numbersXL[i];
     }
-    count += distancesXL.size();
+    count += numbersXL.size();
     return sum / count;
 };
 
 
 /**
- * @brief Calculates the standard deviation of distances.
+ * @brief Calculates the standard deviation of integers.
  *
- * This function calculates the standard deviation of distances in a given range.
+ * This function calculates the standard deviation of integers in a given range.
  * It leverages the mean function for its calculation and handles both standard
- * and larger distances.
+ * and larger integers.
  *
- * @param distances Array of distances within the predefined range.
- * @param distancesXL Vector of distances outside the predefined range.
- * @return The standard deviation of all provided distances.
+ * @param numbers Array of integers within the predefined range.
+ * @param numbersXL Vector of integers outside the predefined range.
+ * @return The standard deviation of all provided integers.
  */
-double stdev(int (&distances)[DISTANCE_LENGTH], std::vector<int> distancesXL = {}) {
-    double mean_value = mean(distances, distancesXL);
+double stdev(int (&numbers)[DISTANCE_LENGTH], std::vector<int> numbersXL = {}) {
+    double mean_value = mean(numbers, numbersXL);
     double count = 0;
-    for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        count += distances[i];
+    for ( size_t i = 0; i < DISTANCE_LENGTH; i++ ) {
+        count += numbers[i];
     }
-    count += distancesXL.size();
+    count += numbersXL.size();
     double variance = 0;
-    for ( int i = 0; i < DISTANCE_LENGTH; i++ ) {
-        variance += ( mean_value - i ) * ( mean_value - i ) * distances[i];
+    for ( size_t i = 0; i < DISTANCE_LENGTH; i++ ) {
+        variance += ( ( mean_value - i ) * ( mean_value - i ) * numbers[i] );
     }
-    for ( uint i = 0; i < distancesXL.size(); i++ ) {
-        variance += ( mean_value - distancesXL[i] ) * ( mean_value - distancesXL[i] );
+    for ( size_t i = 0; i < numbersXL.size(); i++ ) {
+        variance += ( ( mean_value - numbersXL[i] ) * ( mean_value - numbersXL[i] ) );
     }
     return sqrt(variance / count);
-};
-
-
-/**
- * @brief Prints detailed alignment data to a file.
- *
- * Outputs detailed alignment data for each LCP level to a specified file.
- * This includes distances, positions, and lengths of the cores in the alignments.
- * The data is formatted for easy analysis and visualization.
- *
- * @param distances Array of all distances for each LCP level.
- * @param distancesXL Vector containing larger distances for each LCP level.
- * @param lengths Array of all lengths for each LCP level.
- * @param lengthsXL Vector containing larger lengths for each LCP level.
- * @param outfile Reference to the output file stream.
- */
-void print2file(int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::ofstream &outfile ) { 
-    
-    for ( int i = 0; i < LCP_LEVEL; i++ ) {
-        
-        outfile << "Level " << i + 1 << std::endl;
-
-        outfile << "Distances ( core_curr->pos - core_prev->pos ) " << std::endl;
-        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
-            for ( int k = 0; k < distances[i][j]; k++ ) {
-                outfile << j - DISTANCE_LENGTH << ',';
-            }
-        }
-        for ( uint j = 0; j < distancesXL[i].size(); j++ ) {
-            outfile << distancesXL[i][j] << ',';
-        }
-        outfile << std::endl;
-
-        outfile << "Lengths ( core_curr->end - core_curr->pos ) " << std::endl;
-        for ( int j = 0; j < DISTANCE_LENGTH; j++ ) {
-            for ( int k = 0; k < lengths[i][j]; k++ ) {
-                outfile << j << ',';
-            }
-        }
-        for ( uint j = 0; j < lengthsXL[i].size(); j++ ) {
-            outfile << lengthsXL[i][j] << ',';
-        }
-        outfile << std::endl << std::endl;
-    }
 };
 
 
@@ -220,6 +176,7 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &dist
  * deviation of distances and lengths, along with execution times and count of cores
  * for each LCP level.
  *
+ * @param sizes An array storing sizes (bytes) of LCP cores found at each level.
  * @param overlapping_counts Array of counts of overlapping cores for each LCP level.
  * @param distances Array of all position distances for each LCP level.
  * @param distancesXL Vector containing larger position distances for each LCP level.
@@ -228,72 +185,81 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &dist
  * @param durations Vector containing execution durations for each LCP level.
  * @param core_counts Array of total number of cores for each LCP level.
  */
-void summaryLCP( int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL]) {
+void summaryLCP( double (&sizes)[LCP_LEVEL], int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL]) {
+
+    std::string sep = " & ";
 
     std::cout << "LCP level";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << i + 1;
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << i + 1;
     }
     std::cout << std::endl;
 
     // Total Cores
     std::cout << "Total Cores";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_int(core_counts[i]);
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Total Sizes
+    std::cout << "Total Sizes(byte)";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(sizes[i]);
     }
     std::cout << std::endl;
 
     // Overlapping Cores
     std::cout << "Overlapping Cores";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_int(overlapping_counts[i]);
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(overlapping_counts[i]);
     }
     std::cout << std::endl;
 
     // Execution Time
     std::cout << "Execution Time (sec)";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_double(((double) durations[i].count()) / 1000);
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(((double) durations[i].count()) / 1000);
     }
     std::cout << std::endl;
 
     // Mean Distances Starts (with)
     std::cout << "Mean of Pos Difference";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_double(mean(distances[i], distancesXL[i]));
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(mean(distances[i], distancesXL[i]));
     }
     std::cout << std::endl;
 
     // Std Distances Starts (with)
     std::cout << "Std of Pos Difference";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_double(stdev(distances[i], distancesXL[i]));
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(stdev(distances[i], distancesXL[i]));
     }
     std::cout << std::endl;
 
     // Mean Lengths (with)
     std::cout << "Mean of Lengths";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_double(mean(lengths[i], lengthsXL[i]));
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(mean(lengths[i], lengthsXL[i]));
     }
     std::cout << std::endl;
 
     // Std Lengths (with)
     std::cout << "Std of Lengths";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_double(stdev(lengths[i], lengthsXL[i]));
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(stdev(lengths[i], lengthsXL[i]));
     }
     std::cout << std::endl;
 
     std::cout << "Pos Diff >10K Count";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_int(distancesXL[i].size());
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(distancesXL[i].size());
     }
     std::cout << std::endl;
 
     std::cout << "Length >10K Count";
-    for (int i = 0; i < LCP_LEVEL; ++i) {
-        std::cout << "\t" << format_int(lengthsXL[i].size());
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(lengthsXL[i].size());
     }
     std::cout << std::endl;
 };
