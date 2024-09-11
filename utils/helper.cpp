@@ -203,9 +203,9 @@ void summaryLCP( double (&sizes)[LCP_LEVEL], int (&overlapping_counts)[LCP_LEVEL
     std::cout << std::endl;
 
     // Total Sizes
-    std::cout << "Total Sizes(byte)";
+    std::cout << "Total Sizes(GB)";
     for (int i = 0; i < LCP_LEVEL; i++) {
-        std::cout << sep << format_double(sizes[i]);
+        std::cout << sep << format_double(sizes[i] / (1024.0 * 1024.0 * 1024.0));
     }
     std::cout << std::endl;
 
