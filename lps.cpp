@@ -177,11 +177,8 @@ namespace lcp {
             }
 
             // if there is local maxima without immediate local minima neighbours
-
-
             if ( *(*(it1)) < *(*(it1 + 1)) && *(*(it1+1)) > *(*(it1+2)) && 
                  *(*(it1-1)) <= *(*(it1)) && *(*(it1+2)) >= *(*(it1+3)) ) { 
-                
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores.push_back(new_core);
             }
