@@ -12,8 +12,8 @@ AR = ar
 ARFLAGS = rcs
 
 # variables
-SRC = lps.cpp core.cpp encoding.cpp
-HDR = lps.h core.h encoding.h
+SRC = $(wildcard *.cpp)
+HDR = $(SRC:.cpp=.h)
 OTHER_HDR = constant.h
 OBJ_STATIC = $(SRC:.cpp=_s.o)
 OBJ_DYNAMIC = $(SRC:.cpp=_d.o)
