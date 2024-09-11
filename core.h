@@ -17,13 +17,12 @@ namespace lcp {
 		#endif
 
 		// Represenation related variables
-		size_t block_number;
-		size_t start_index;
+		size_t size;
 		ublock* p;
 
-		core(std::string::iterator it1, std::string::iterator it2, size_t start_index, size_t end_index, bool rev_comp = false);
-		core(std::vector<core*>::iterator it1, std::vector<core*>::iterator it2);
-		core(ublock* p, size_t block_number, size_t start_index, size_t start, size_t end);
+		core(std::string::iterator begin, std::string::iterator end, size_t begin_index, size_t end_index, bool rev_comp = false);
+		core(std::vector<core*>::iterator begin, std::vector<core*>::iterator end);
+		core(ublock* p, size_t size, size_t start, size_t end);
 		core(std::ifstream& in);
 		~core();
 
