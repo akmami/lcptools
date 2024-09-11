@@ -1,3 +1,29 @@
+/**
+ * @file core.cpp
+ * @brief Implementation of the `core` class and its associated functions.
+ *
+ * This file contains the implementation of the `core` class, which is used to represent 
+ * a sequence of encoded bits for string data. The class supports operations such as
+ * compression, comparison, and writing/reading to files.
+ *
+ * Key operations include:
+ * - Encoding strings into bit arrays using coefficient-based encoding.
+ * - Constructing `core` objects from strings or other `core` objects.
+ * - Compressing bit representations to optimize memory usage.
+ * - Writing and reading `core` objects to and from files.
+ * - Comparing `core` objects with overloaded operators.
+ * - Efficiently handling block-wise bit manipulations.
+ * 
+ * The `block_number` and `start_index` inline functions help manage the allocation and
+ * bitwise operations by computing the number of blocks needed and the starting index
+ * of the first block, respectively.
+ *
+ * @note The `STATS` macro is used to conditionally compile sections of the code that
+ *       track additional metadata such as `start` and `end` indices for performance
+ *       analysis.
+ */
+
+
 #include "core.h"
 
 
@@ -8,7 +34,7 @@ inline size_t block_number(size_t size) {
 
 inline size_t start_index(size_t size) {
 	return SIZE_PER_BLOCK - size % SIZE_PER_BLOCK;
-}
+};
 
 namespace lcp {
 	
@@ -210,106 +236,6 @@ namespace lcp {
         }
         return size;
     };
-
-	// // core operator overloads
-	// bool operator == (const core& lhs, const core& rhs) {
-	//     size_t lhs_block_index = 0;
-	// 	size_t rhs_block_index = 0;
-		
-	// 	if (block_number(lhs.size) < block_number(rhs.size)) {
-	// 		while(block_number(rhs.size) - rhs_block_index != block_number(lhs.size)) {
-	// 			if (rhs.p[rhs_block_index] > 0) {
-	// 				return false;
-	// 			}
-	// 			rhs_block_index++;
-	// 		}
-	// 	}
-	// 	else if (block_number(lhs.size) > block_number(rhs.size)) {
-	// 		while(block_number(lhs.size) - lhs_block_index != block_number(rhs.size)) {
-	// 			if (lhs.p[lhs_block_index] > 0) {
-	// 				return true;
-	// 			}
-	// 			lhs_block_index++;
-	// 		}
-	// 	}
-
-	//     while( lhs_block_index < block_number(lhs.size) ) {
-	//     	if ( lhs.p[lhs_block_index] != rhs.p[rhs_block_index] ) {
-	//     		return false;
-	//     	}
-	//     	lhs_block_index++;
-	//     	rhs_block_index++;
-	//     }
-	//     return true;
-	// };
-
-	// bool operator > (const core& lhs, const core& rhs) {
-	// 	size_t lhs_block_index = 0;
-	// 	size_t rhs_block_index = 0;
-		
-	// 	if (block_number(lhs.size) < block_number(rhs.size)) {
-	// 		while(block_number(rhs.size) - rhs_block_index != block_number(lhs.size)) {
-	// 			if (rhs.p[rhs_block_index] > 0) {
-	// 				return false;
-	// 			}
-	// 			rhs_block_index++;
-	// 		}
-	// 	}
-	// 	else if (block_number(lhs.size) > block_number(rhs.size)) {
-	// 		while(block_number(lhs.size) - lhs_block_index != block_number(rhs.size)) {
-	// 			if (lhs.p[lhs_block_index] > 0) {
-	// 				return true;
-	// 			}
-	// 			lhs_block_index++;
-	// 		}
-	// 	}
-
-	//     while( lhs_block_index < block_number(lhs.size) ) {
-	//     	if ( lhs.p[lhs_block_index] > rhs.p[rhs_block_index] ) {
-	//     		return true;
-	//     	}
-	//     	if ( lhs.p[lhs_block_index] < rhs.p[rhs_block_index] ) {
-	//     		return false;
-	//     	}
-	//     	lhs_block_index++;
-	//     	rhs_block_index++;
-	//     }
-	//     return false;
-	// };
-
-	// bool operator < (const core& lhs, const core& rhs) {
-	//     size_t lhs_block_index = 0;
-	// 	size_t rhs_block_index = 0;
-		
-	// 	if (block_number(lhs.size) < block_number(rhs.size)) {
-	// 		while(block_number(rhs.size) - rhs_block_index != block_number(lhs.size)) {
-	// 			if (rhs.p[rhs_block_index] > 0) {
-	// 				return true;
-	// 			}
-	// 			rhs_block_index++;
-	// 		}
-	// 	}
-	// 	else if (block_number(lhs.size) > block_number(rhs.size)) {
-	// 		while(block_number(lhs.size) - lhs_block_index != block_number(rhs.size)) {
-	// 			if (lhs.p[lhs_block_index] > 0) {
-	// 				return false;
-	// 			}
-	// 			lhs_block_index++;
-	// 		}
-	// 	}
-
-	//     while( lhs_block_index < block_number(lhs.size) ) {
-	//     	if ( lhs.p[lhs_block_index] < rhs.p[rhs_block_index] ) {
-	//     		return true;
-	//     	}
-	//     	if ( lhs.p[lhs_block_index] > rhs.p[rhs_block_index] ) {
-	//     		return false;
-	//     	}
-	//     	lhs_block_index++;
-	//     	rhs_block_index++;
-	//     }
-	//     return false;
-	// };
 
 	// core operator overloads
 	bool operator == (const core& lhs, const core& rhs) {
