@@ -19,7 +19,7 @@ namespace lcp {
                                 // However, removing first element in vector will cause all the rest to be shifted
                                 // left, which is 0(N) time task. In order to prevent such inefficient call,
                                 // start index for vector can be shifted to right. This variable serves to that purpose.
-        std::vector<core*> cores;
+        std::vector<core*> *cores;
         
 
         lps(std::string &str, bool rev_comp = false);

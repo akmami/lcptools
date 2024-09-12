@@ -111,22 +111,22 @@ clean:
 # LCP
 ######################################################################
 lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
-	@echo "Compiling $(CPP_LCP_FASTA)$(CXX)";
-	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA)$(CXX) -o $(CPP_LCP_FASTA).o;
-	@echo "Linking lcptools library and binary files";
-	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR);
-	rm $(CPP_LCP_FASTA).o;
-	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)";
-	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR);
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt";
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt;
+	@echo "Compiling $(CPP_LCP_FASTA)$(CXX)"
+	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA)$(CXX) -o $(CPP_LCP_FASTA).o
+	@echo "Linking lcptools library and binary files"
+	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(CPP_LCP_FASTA).o
+	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)"
+	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt
 	
 lcpFastq: mkdir_bin mkdir_results check_fastq
-	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)";
+	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)"
 	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
-	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
-	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}"_chr1.maf.gz $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}"-output.txt 2>&1;" ::: 85 90 95 99 ::: 2 3 4 5 6 7;
+	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)"
+	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR)
+	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}"_chr1.maf.gz $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}"-output.txt 2>&1;" ::: 85 90 95 99 ::: 2 3 4 5 6 7
 
 ######################################################################
 # MINIMIZER
