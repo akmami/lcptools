@@ -44,7 +44,7 @@
  */
 void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
     
-    for ( std::vector<lcp::core*>::iterator it = str->cores.begin() + 1; it < str->cores.end(); it++ ) {
+    for ( std::vector<lcp::core*>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
 
         if ( (*it)->start < (*(it-1))->end ) {
             overlapping_counts[level] += 1;
@@ -97,7 +97,7 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
     auto extraction_end = std::chrono::high_resolution_clock::now();
     sizes[0] += str->memsize();
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-    core_counts[0] += str->cores.size();
+    core_counts[0] += str->cores->size();
     
     analyze(0, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
     
@@ -110,7 +110,7 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
         auto stop_level = std::chrono::high_resolution_clock::now();
         sizes[i] += str->memsize();
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
-        core_counts[i] += str->cores.size();
+        core_counts[i] += str->cores->size();
 
         analyze(i, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
     }

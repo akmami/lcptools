@@ -9,10 +9,10 @@ namespace lcp {
 
         std::string::iterator it2;
         
-
-        this->cores.reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
-                                                                        // and the increase is always above the 2, it makes sense to reserve
-                                                                        // half of the size for the cores to prevent expansion of vector.
+        this->cores = new std::vector<lcp::core*>;
+        this->cores->reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
+                                                                    // and the increase is always above the 2, it makes sense to reserve
+                                                                    // half of the size for the cores to prevent expansion of vector.
         
         if ( rev_comp ) {
             std::reverse(str.begin(), str.end());
@@ -30,12 +30,12 @@ namespace lcp {
         // read each core object
         
         // resize the vector to the appropriate size
-        cores.reserve(size);
+        this->cores->reserve(size);
 
         // read each core object
         for (size_t i = 0; i < size; i++) {
             core* new_core = new core(in);
-            this->cores.push_back(new_core);
+            this->cores->push_back(new_core);
         }
     };
 
@@ -73,7 +73,7 @@ namespace lcp {
                 it2++;
                             
                 core *new_core = new core(it1, it2, index, index+(it2-it1), rev_comp);
-                this->cores.push_back(new_core);
+                this->cores->push_back(new_core);
                 
                 continue;
             }
@@ -83,7 +83,7 @@ namespace lcp {
                  coefficientsArray[static_cast<unsigned char>(*(it1+1))] < coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
                 
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
-                this->cores.push_back(new_core);
+                this->cores->push_back(new_core);
                 
                 continue;
             } 
@@ -100,7 +100,7 @@ namespace lcp {
                  coefficientsArray[static_cast<unsigned char>(*(it1+2))] >= coefficientsArray[static_cast<unsigned char>(*(it1+3))] ) {
                 
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
-                this->cores.push_back(new_core);
+                this->cores->push_back(new_core);
                 
                 continue;
             }
@@ -108,10 +108,10 @@ namespace lcp {
     };
 
     lps::~lps() {
-        for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+        for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
             delete *it;
         }
-        this->cores.clear();
+        delete this->cores;
     };
 
     bool lps::deepen() {
@@ -120,18 +120,18 @@ namespace lcp {
         for( int compression_iteratin_index = 0; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
             
             // at least 2 cores are needed for compression
-            if (this->cores.size() < 2) {
-                for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+            if (this->cores->size() < 2) {
+                for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
                     delete *it;
                 }
-                this->cores.clear();
+                this->cores->clear();
                 this->level++;
                 return false;
             }
 
-            std::vector<core*>::iterator it_curr = this->cores.end() - 1, it_left = this->cores.end() - 2;
+            std::vector<core*>::iterator it_curr = this->cores->end() - 1, it_left = this->cores->end() - 2;
 
-            for( ; cores.begin() + start_index < it_curr; it_curr--, it_left-- ) {
+            for( ; this->cores->begin() + start_index < it_curr; it_curr--, it_left-- ) {
                 (*it_curr)->compress(*it_left);
             }
 
@@ -139,12 +139,12 @@ namespace lcp {
         }
 
         // find cores from compressed cores.
-        std::vector<core*>::iterator it1 = this->cores.begin() + start_index, it2;
-        std::vector<core*> temp_cores;
+        std::vector<core*>::iterator it1 = this->cores->begin() + start_index, it2;
+        std::vector<core*> *temp_cores = new std::vector<core*>;
 
-        temp_cores.reserve( this->cores.size() / CONSTANT_FACTOR );
+        temp_cores->reserve( this->cores->size() / CONSTANT_FACTOR );
 
-        for ( ; it1 + 2 < this->cores.end(); it1++ ) {
+        for ( ; it1 + 2 < this->cores->end(); it1++ ) {
 
             if ( *(*it1) == *(*(it1+1)) ) {
                 continue;
@@ -153,13 +153,13 @@ namespace lcp {
             // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
             if ( *(*(it1 + 1)) == *(*(it1+2)) ) {
 
-                for ( it2 = it1 + 3; it2 < this->cores.end() && *(*(it2-1)) == *(*(it2)); it2++ );
+                for ( it2 = it1 + 3; it2 < this->cores->end() && *(*(it2-1)) == *(*(it2)); it2++ );
                 
                 it2++;
 
-                if ( it2 <= this->cores.end() ) {
+                if ( it2 <= this->cores->end() ) {
                     core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
-                    temp_cores.push_back(new_core);
+                    temp_cores->push_back(new_core);
                 } 
 
                 continue;
@@ -168,11 +168,11 @@ namespace lcp {
             // if there is a local minima
             if ( *(*(it1)) > *(*(it1+1)) && *(*(it1+1)) < *(*(it1+2)) ) {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
-                temp_cores.push_back(new_core);
+                temp_cores->push_back(new_core);
             }
 
             // validate before checking further (corner cases for initial and last cores)
-            if ( it1 == this->cores.begin() || it1 + 3 == this->cores.end() ) {
+            if ( it1 == this->cores->begin() || it1 + 3 == this->cores->end() ) {
                 continue;
             }
 
@@ -180,17 +180,18 @@ namespace lcp {
             if ( *(*(it1)) < *(*(it1 + 1)) && *(*(it1+1)) > *(*(it1+2)) && 
                  *(*(it1-1)) <= *(*(it1)) && *(*(it1+2)) >= *(*(it1+3)) ) { 
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
-                temp_cores.push_back(new_core);
+                temp_cores->push_back(new_core);
             }
         }
 
         // remove old cores
-        for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+        for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
             delete *it;
         }
-        this->cores.clear();
+        delete this->cores;
 
         this->cores = temp_cores;
+        temp_cores = nullptr;
         this->start_index = 0;
 
         this->level++;
@@ -226,20 +227,20 @@ namespace lcp {
     void lps::write(std::ofstream& out) const {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
         out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
-        size_t size = this->cores.size();
+        size_t size = this->cores->size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
 
         // write each core object
-        for (core* c : this->cores) {
-            c->write(out);
+        for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
+            (*it)->write(out);
         }
     };
 
     double lps::memsize() {
-        double total = sizeof(*this);
-        total += this->cores.capacity() * sizeof(core*);
+        double total = sizeof(lps);
+        total += this->cores->capacity() * sizeof(core*);
 
-        for ( std::vector<core*>::iterator it = this->cores.begin(); it != this->cores.end(); it++ ) {
+        for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
             total += (*it)->memsize();
         }
 
@@ -248,16 +249,16 @@ namespace lcp {
 
     std::ostream& operator<<(std::ostream& os, const lps& element) {
         os << "Level: " << element.level << std::endl;
-        for (core* c : element.cores) {
-            os << c << " ";
+        for ( std::vector<core*>::iterator it = element.cores->begin(); it != element.cores->end(); it++ ) {
+            os << (*it) << " ";
         }
         return os;
     };
 
     std::ostream& operator<<(std::ostream& os, const lps* element) {
         os << "Level: " << element->level << std::endl;
-        for (core* c : element->cores) {
-            os << c << " ";
+        for ( std::vector<core*>::iterator it = element->cores->begin(); it != element->cores->end(); it++ ) {
+            os << (*it) << " ";
         }
         return os;
     };
