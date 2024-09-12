@@ -33,7 +33,7 @@ inline size_t block_number(size_t size) {
 
 
 inline size_t start_index(size_t size) {
-	return SIZE_PER_BLOCK - size % SIZE_PER_BLOCK;
+	return block_number(size) * SIZE_PER_BLOCK - size;
 };
 
 namespace lcp {
