@@ -16,14 +16,15 @@ void test_core_compress() {
     p1[0] = 0b101;
     ublock* p2 = new ublock[1];
     p2[0] = 0b111;
-    lcp::core core1(p1, 3, 0, 10); // 101 in binary
-    lcp::core core2(p2, 3, 0, 10); // 111 in binary
+    lcp::core core1(p1, 3, 0, 0, 10); // 101 in binary
+    lcp::core core2(p2, 3, 1, 0, 10); // 111 in binary
 
     core1.compress(&core2);
 
     // expected result after compressing 101 and 111 is 10 (binary) => 2 in decimal
     assert(core1.p[0] == 0b10 && "Compressed core's label should be 0b10");
     assert(core1.size == 2 && "Compressed core's label length should be 2");
+    assert(core1.label == 0 && "Core's label should be 1");
     
     log("...  test_core_compress passed!");
 };
@@ -34,9 +35,10 @@ void test_core_constructors() {
     // test constructor with label, label_length, start, and end
     ublock* p1 = new ublock[1]; 
     p1[0] = 0b1111;
-    lcp::core core1(p1, 4, 0, 10); // 1111 in binary
+    lcp::core core1(p1, 4, 0, 0, 10); // 1111 in binary
     assert(core1.p[0] == 0b1111 && "Label should be 0b1111");
     assert(core1.size == 4 && "Label length should be 4");
+    assert(core1.label == 0 && "Core label should be 1");
     assert(core1.start == 0 && "Start should be 0");
     assert(core1.end == 10 && "End should be 10");
 
@@ -47,7 +49,7 @@ void test_core_constructors() {
     ublock* p = new ublock[1];
     *p = 0b1110; // binary 1110
     std::vector<lcp::core*> cores = { new lcp::core(str2.begin(), str2.begin()+3, 0, 3),
-                                      new lcp::core(p, 4, 3, 5) };
+                                      new lcp::core(p, 4, 1, 3, 5) };
     lcp::core core4(cores.begin(), cores.end());
     assert(core4.p[0] == 0b0100101110 && "Concatenated label should be 0b0100101110");
     assert(core4.size == 10 && "Label length should be 10");
@@ -96,7 +98,7 @@ void test_core_file_io() {
     // create a core object and write it to a file
     ublock* p1 = new ublock[1]; 
     p1[0] = 0b1011;
-    lcp::core core1(p1, 4, 0, 10); // 1111 in binary
+    lcp::core core1(p1, 4, 8, 0, 10); // 1111 in binary
     std::ofstream outfile("core_test.dat", std::ios::binary);
     core1.write(outfile);
     outfile.close();
@@ -109,6 +111,7 @@ void test_core_file_io() {
     assert(core2.p[0] == 0b1011 && "Label should be 0b1011 after reading from file");
     assert(core2.size == 4 && "Label length should be 4 after reading from file");
     assert(core2.end == 10 && "End should be 10 after reading from file");
+    assert(core2.label == 8 && "Core's label should be 8");
 
     // clean up the test file
     std::remove("core_test.dat");
@@ -125,9 +128,9 @@ void test_core_operator_overloads() {
     p2[0] = 0b1010;
     ublock* p3 = new ublock[1];
     p3[0] = 0b101;
-    lcp::core core1(p1, 4, 0, 10);  // 1010 in binary
-    lcp::core core2(p2, 4, 0, 10);  // 1010 in binary
-    lcp::core core3(p3, 3, 0, 10);  // 101 in binary
+    lcp::core core1(p1, 4, 0, 0, 10);  // 1010 in binary
+    lcp::core core2(p2, 4, 1, 0, 10);  // 1010 in binary
+    lcp::core core3(p3, 3, 2, 0, 10);  // 101 in binary
 
     assert((core1 == core2) && "core1 should be equal to core2");
     assert((core1 != core3) && "core1 should not be equal to core3");

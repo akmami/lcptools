@@ -40,6 +40,9 @@ namespace lcp {
 		size_t size;
 		ublock* p;
 
+		// Other variables
+		uint label;
+
 		/**
 		 * @brief Constructs a `core` object by encoding a string into bit representation.
 		 * 
@@ -78,7 +81,7 @@ namespace lcp {
 		 * @param start The starting index of the sequence.
 		 * @param end The ending index of the sequence.
 		 */
-		core(ublock* p, size_t size, size_t start, size_t end);
+		core(ublock* p, size_t size, uint label, size_t start, size_t end);
 
 		/**
 		 * @brief Constructs a `core` object by reading from an input file stream.

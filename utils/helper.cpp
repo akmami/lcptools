@@ -184,8 +184,9 @@ void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &dist
  * @param lengthsXL Vector containing larger lengths for each LCP level.
  * @param durations Vector containing execution durations for each LCP level.
  * @param core_counts Array of total number of cores for each LCP level.
+ * @param distinct_core_count An array string the number of distinct cores found at each level.
  */
-void summaryLCP( double (&sizes)[LCP_LEVEL], int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL]) {
+void summaryLCP( double (&sizes)[LCP_LEVEL], int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, std::vector<std::chrono::milliseconds> &durations, int (&core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL]) {
 
     std::string sep = " & ";
 
@@ -199,6 +200,13 @@ void summaryLCP( double (&sizes)[LCP_LEVEL], int (&overlapping_counts)[LCP_LEVEL
     std::cout << "Total Cores";
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_int(core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Distinct Cores
+    std::cout << "Distinct Cores";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(distinct_core_counts[i]);
     }
     std::cout << std::endl;
 
