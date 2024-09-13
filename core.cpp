@@ -128,9 +128,10 @@ namespace lcp {
 		}
 	};
 
-	core::core(ublock* p, size_t size, size_t start, size_t end) {
+	core::core(ublock* p, size_t size, uint label, size_t start, size_t end) {
 		this->p = p;
 		this->size = size;
+		this->label = label;
 		#ifdef STATS
 		this->start = start;
 		this->end = end;
@@ -142,6 +143,7 @@ namespace lcp {
 		in.read(reinterpret_cast<char*>(&start), sizeof(start));
 		in.read(reinterpret_cast<char*>(&end), sizeof(end));
 		#endif
+		in.read(reinterpret_cast<char*>(&label), sizeof(label));
         in.read(reinterpret_cast<char*>(&size), sizeof(size));
 		this->p = new ublock[block_number(this->size)];
 
@@ -225,6 +227,7 @@ namespace lcp {
 		out.write(reinterpret_cast<const char*>(&start), sizeof(start));
 		out.write(reinterpret_cast<const char*>(&end), sizeof(end));
 		#endif
+		out.write(reinterpret_cast<const char*>(&label), sizeof(label));
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
         out.write(reinterpret_cast<char*>(p), block_number(this->size) * sizeof(ublock));
     };

@@ -2,10 +2,10 @@
 
 namespace lcp {
 
+
     lps::lps(std::string &str, bool rev_comp) {
 
         this->level = 1;
-        this->start_index = 0;
 
         std::string::iterator it2;
         
@@ -23,13 +23,13 @@ namespace lcp {
 
     lps::lps(std::ifstream& in) {
         in.read(reinterpret_cast<char*>(&level), sizeof(level));
-        in.read(reinterpret_cast<char*>(&start_index), sizeof(start_index));
         size_t size;
         in.read(reinterpret_cast<char*>(&size), sizeof(size));
 
         // read each core object
         
         // resize the vector to the appropriate size
+        this->cores = new std::vector<lcp::core*>;
         this->cores->reserve(size);
 
         // read each core object
@@ -74,7 +74,17 @@ namespace lcp {
                             
                 core *new_core = new core(it1, it2, index, index+(it2-it1), rev_comp);
                 this->cores->push_back(new_core);
-                
+
+                std::string kmer = std::string(it1, it2);
+                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
+                if ( str_map.find(kmer) != str_map.end() ) {
+                    continue;
+                }
+
+                new_core->label = next_id;
+
+                // assign a new ID to this kmer
+                str_map[kmer] = next_id++;
                 continue;
             }
 
@@ -85,6 +95,16 @@ namespace lcp {
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
                 this->cores->push_back(new_core);
                 
+                std::string kmer = std::string(it1, it1+3);
+                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
+                if ( str_map.find(kmer) != str_map.end() ) {
+                    continue;
+                }
+
+                new_core->label = next_id;
+
+                // assign a new ID to this kmer
+                str_map[kmer] = next_id++;
                 continue;
             } 
             
@@ -102,6 +122,16 @@ namespace lcp {
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
                 this->cores->push_back(new_core);
                 
+                std::string kmer = std::string(it1, it1+3);
+                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
+                if ( str_map.find(kmer) != str_map.end() ) {
+                    continue;
+                }
+
+                new_core->label = next_id;
+
+                // assign a new ID to this kmer
+                str_map[kmer] = next_id++;
                 continue;
             }
         }
@@ -115,7 +145,9 @@ namespace lcp {
     };
 
     bool lps::deepen() {
-        
+
+        size_t start_index = 0;
+
         // Compress cores
         for( int compression_iteratin_index = 0; compression_iteratin_index < COMPRESSION_ITERATION_COUNT; compression_iteratin_index++ ) {
             
@@ -135,7 +167,7 @@ namespace lcp {
                 (*it_curr)->compress(*it_left);
             }
 
-            this->start_index++;
+            start_index++;
         }
 
         // find cores from compressed cores.
@@ -160,6 +192,17 @@ namespace lcp {
                 if ( it2 <= this->cores->end() ) {
                     core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                     temp_cores->push_back(new_core);
+
+                    std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it2-1))->label};
+
+                    if ( core_map.find(key) != core_map.end() ) {
+                        continue;
+                    }
+
+                    new_core->label = next_id;
+
+                    // assign a new ID to this kmer
+                    core_map[key] = next_id++;
                 } 
 
                 continue;
@@ -169,6 +212,19 @@ namespace lcp {
             if ( *(*(it1)) > *(*(it1+1)) && *(*(it1+1)) < *(*(it1+2)) ) {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
+                
+                std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it1+2))->label};
+                
+                if ( core_map.find(key) != core_map.end() ) {
+                    continue;
+                }
+
+                new_core->label = next_id;
+
+                // assign a new ID to this kmer
+                core_map[key] = next_id++;
+
+                continue;
             }
 
             // validate before checking further (corner cases for initial and last cores)
@@ -181,6 +237,19 @@ namespace lcp {
                  *(*(it1-1)) <= *(*(it1)) && *(*(it1+2)) >= *(*(it1+3)) ) { 
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
+
+                std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it1+2))->label};
+
+                if ( core_map.find(key) != core_map.end() ) {
+                    continue;
+                }
+
+                new_core->label = next_id;
+
+                // assign a new ID to this kmer
+                core_map[key] = next_id++;
+
+                continue;
             }
         }
 
@@ -192,7 +261,6 @@ namespace lcp {
 
         this->cores = temp_cores;
         temp_cores = nullptr;
-        this->start_index = 0;
 
         this->level++;
         
@@ -226,7 +294,6 @@ namespace lcp {
 
     void lps::write(std::ofstream& out) const {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
-        out.write(reinterpret_cast<const char*>(&start_index), sizeof(start_index));
         size_t size = this->cores->size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
 

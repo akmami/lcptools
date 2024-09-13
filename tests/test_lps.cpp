@@ -21,43 +21,43 @@ void test_lps_constructor() {
 
     // cores to compare
     std::vector<lcp::core*> cores = {
-        new lcp::core(new ublock[1]{0b100001}, 6, 0, 0),  // Core: 100001 (6 bits)
-        new lcp::core(new ublock[1]{0b00010111}, 8, 0, 0),  // Core: 00010111 (8 bits)
-        new lcp::core(new ublock[1]{0b011110}, 6, 0, 0),  // Core: 011110 (6 bits)
-        new lcp::core(new ublock[1]{0b11101011}, 8, 0, 0),  // Core: 11101011 (8 bits)
-        new lcp::core(new ublock[1]{0b101110}, 6, 0, 0),  // Core: 101110 (6 bits)
-        new lcp::core(new ublock[1]{0b100001}, 6, 0, 0),  // Core: 100001 (6 bits)
-        new lcp::core(new ublock[1]{0b000101010100}, 12, 0, 0),  // Core: 000101010100 (12 bits)
-        new lcp::core(new ublock[1]{0b010010}, 6, 0, 0),  // Core: 010010 (6 bits)
-        new lcp::core(new ublock[1]{0b1001010100}, 10, 0, 0),  // Core: 1001010100 (10 bits)
-        new lcp::core(new ublock[1]{0b010001}, 6, 0, 0),  // Core: 010001 (6 bits)
-        new lcp::core(new ublock[1]{0b100001}, 6, 0, 0),  // Core: 100001 (6 bits)
-        new lcp::core(new ublock[1]{0b010010}, 6, 0, 0),  // Core: 010010 (6 bits)
-        new lcp::core(new ublock[1]{0b10010100}, 8, 0, 0),  // Core: 10010100 (8 bits)
-        new lcp::core(new ublock[1]{0b01000010}, 8, 0, 0),  // Core: 01000010 (8 bits)
-        new lcp::core(new ublock[1]{0b100110}, 6, 0, 0),  // Core: 100110 (6 bits)
-        new lcp::core(new ublock[1]{0b10010100}, 8, 0, 0),  // Core: 10010100 (8 bits)
-        new lcp::core(new ublock[1]{0b010010}, 6, 0, 0),  // Core: 010010 (6 bits)
-        new lcp::core(new ublock[1]{0b100111}, 6, 0, 0),  // Core: 100111 (6 bits)
-        new lcp::core(new ublock[1]{0b100010}, 6, 0, 0),  // Core: 100010 (6 bits)
-        new lcp::core(new ublock[1]{0b100111}, 6, 0, 0),  // Core: 100111 (6 bits)
-        new lcp::core(new ublock[1]{0b010010}, 6, 0, 0),  // Core: 010010 (6 bits)
-        new lcp::core(new ublock[1]{0b00101011}, 8, 0, 0),  // Core: 00101011 (8 bits)
-        new lcp::core(new ublock[1]{0b111011}, 6, 0, 0),  // Core: 111011 (6 bits)
-        new lcp::core(new ublock[1]{0b100010}, 6, 0, 0),  // Core: 100010 (6 bits)
-        new lcp::core(new ublock[1]{0b00101000}, 8, 0, 0),  // Core: 00101000 (8 bits)
-        new lcp::core(new ublock[1]{0b100010}, 6, 0, 0),  // Core: 100010 (6 bits)
-        new lcp::core(new ublock[1]{0b100011}, 6, 0, 0),  // Core: 100011 (6 bits)
-        new lcp::core(new ublock[1]{0b010001}, 6, 0, 0),  // Core: 010001 (6 bits)
-        new lcp::core(new ublock[1]{0b010010}, 6, 0, 0),  // Core: 010010 (6 bits)
-        new lcp::core(new ublock[1]{0b101101}, 6, 0, 0),  // Core: 101101 (6 bits)
-        new lcp::core(new ublock[1]{0b11010111}, 8, 0, 0)   // Core: 11010111 (8 bits)
+        new lcp::core(new ublock[1]{0b100001}, 6, 0, 0, 0),  // Core: 100001 (6 bits)
+        new lcp::core(new ublock[1]{0b00010111}, 8, 1, 0, 0),  // Core: 00010111 (8 bits)
+        new lcp::core(new ublock[1]{0b011110}, 6, 2, 0, 0),  // Core: 011110 (6 bits)
+        new lcp::core(new ublock[1]{0b11101011}, 8, 3, 0, 0),  // Core: 11101011 (8 bits)
+        new lcp::core(new ublock[1]{0b101110}, 6, 4, 0, 0),  // Core: 101110 (6 bits)
+        new lcp::core(new ublock[1]{0b100001}, 6, 5, 0, 0),  // Core: 100001 (6 bits)
+        new lcp::core(new ublock[1]{0b000101010100}, 12, 6, 0, 0),  // Core: 000101010100 (12 bits)
+        new lcp::core(new ublock[1]{0b010010}, 6, 7, 0, 0),  // Core: 010010 (6 bits)
+        new lcp::core(new ublock[1]{0b1001010100}, 10, 8, 0, 0),  // Core: 1001010100 (10 bits)
+        new lcp::core(new ublock[1]{0b010001}, 6, 9, 0, 0),  // Core: 010001 (6 bits)
+        new lcp::core(new ublock[1]{0b100001}, 6, 10, 0, 0),  // Core: 100001 (6 bits)
+        new lcp::core(new ublock[1]{0b010010}, 6, 11, 0, 0),  // Core: 010010 (6 bits)
+        new lcp::core(new ublock[1]{0b10010100}, 8, 12, 0, 0),  // Core: 10010100 (8 bits)
+        new lcp::core(new ublock[1]{0b01000010}, 8, 13, 0, 0),  // Core: 01000010 (8 bits)
+        new lcp::core(new ublock[1]{0b100110}, 6, 14, 0, 0),  // Core: 100110 (6 bits)
+        new lcp::core(new ublock[1]{0b10010100}, 8, 15, 0, 0),  // Core: 10010100 (8 bits)
+        new lcp::core(new ublock[1]{0b010010}, 6, 16, 0, 0),  // Core: 010010 (6 bits)
+        new lcp::core(new ublock[1]{0b100111}, 6, 17, 0, 0),  // Core: 100111 (6 bits)
+        new lcp::core(new ublock[1]{0b100010}, 6, 18, 0, 0),  // Core: 100010 (6 bits)
+        new lcp::core(new ublock[1]{0b100111}, 6, 19, 0, 0),  // Core: 100111 (6 bits)
+        new lcp::core(new ublock[1]{0b010010}, 6, 20, 0, 0),  // Core: 010010 (6 bits)
+        new lcp::core(new ublock[1]{0b00101011}, 8, 21, 0, 0),  // Core: 00101011 (8 bits)
+        new lcp::core(new ublock[1]{0b111011}, 6, 22, 0, 0),  // Core: 111011 (6 bits)
+        new lcp::core(new ublock[1]{0b100010}, 6, 23, 0, 0),  // Core: 100010 (6 bits)
+        new lcp::core(new ublock[1]{0b00101000}, 8, 24, 0, 0),  // Core: 00101000 (8 bits)
+        new lcp::core(new ublock[1]{0b100010}, 6, 25, 0, 0),  // Core: 100010 (6 bits)
+        new lcp::core(new ublock[1]{0b100011}, 6, 26, 0, 0),  // Core: 100011 (6 bits)
+        new lcp::core(new ublock[1]{0b010001}, 6, 27, 0, 0),  // Core: 010001 (6 bits)
+        new lcp::core(new ublock[1]{0b010010}, 6, 28, 0, 0),  // Core: 010010 (6 bits)
+        new lcp::core(new ublock[1]{0b101101}, 6, 29, 0, 0),  // Core: 101101 (6 bits)
+        new lcp::core(new ublock[1]{0b11010111}, 8, 30, 0, 0)   // Core: 11010111 (8 bits)
     };
     
     // compare the resulting cores at level 1
-    assert(lps_obj.cores.size() == cores.size() && "Core size at level 1 should match");
-    for (size_t i = 0; i < lps_obj.cores.size(); ++i) {
-        assert(*(lps_obj.cores[i]) == *(cores[i]) && "Cores at level 1 should match");
+    assert(lps_obj.cores->size() == cores.size() && "Core size at level 1 should match");
+    for (size_t i = 0; i < lps_obj.cores->size(); ++i) {
+        assert(*((*(lps_obj.cores))[i]) == *(cores[i]) && "Cores at level 1 should match");
     }
 
     // cleanup dynamically allocated cores
@@ -87,9 +87,9 @@ void test_lps_file_io() {
 
     // compare the read object with the original
     assert(lps_obj.level == lps_obj_from_file.level && "Level should match after reading from file");
-    assert(lps_obj.cores.size() == lps_obj_from_file.cores.size() && "Core size should match after reading from file");
-    for (size_t i = 0; i < lps_obj.cores.size(); ++i) {
-        assert(*(lps_obj.cores[i]) == *(lps_obj_from_file.cores[i]) && "Cores should match after reading from file");
+    assert(lps_obj.cores->size() == lps_obj_from_file.cores->size() && "Core size should match after reading from file");
+    for (size_t i = 0; i < lps_obj.cores->size(); ++i) {
+        assert(*((*(lps_obj.cores))[i]) == *((*(lps_obj_from_file.cores))[i]) && "Cores should match after reading from file");
     }
 
     // clean up the test file

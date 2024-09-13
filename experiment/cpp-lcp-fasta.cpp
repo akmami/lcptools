@@ -83,19 +83,21 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[
  * @param overlapping_counts An array storing the count of overlapping genomic segments 
  *                           for each level.
  * @param core_counts An array storing the number of LCP cores found at each level.
+ * @param distinct_core_counts An array string the number of distinct cores found at each level.
  * @param distances A multidimensional array storing position-based distances between 
  *                  genomic segments at each level.
  * @param distancesXL A vector storing larger distances between genomic segments at each level.
  * @param lengths A multidimensional array storing the lengths of genomic segments at each level.
  * @param lengthsXL A vector storing larger lengths of genomic segments at each level.
  */
-void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std::chrono::milliseconds>& durations, int (&overlapping_counts)[LCP_LEVEL], int (&core_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& lengthsXL ) {
+void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std::chrono::milliseconds>& durations, int (&overlapping_counts)[LCP_LEVEL], int (&core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& lengthsXL ) {
     auto start = std::chrono::high_resolution_clock::now();
-                
+    size_t initial_size = lcp::str_map.size();
     lcp::lps *str = new lcp::lps(sequence);
     
     auto extraction_end = std::chrono::high_resolution_clock::now();
     sizes[0] += str->memsize();
+    distinct_core_counts[0] += lcp::str_map.size() - initial_size;
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
     core_counts[0] += str->cores->size();
     
@@ -104,11 +106,13 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
         auto start_level = std::chrono::high_resolution_clock::now();
+        size_t current_size =  lcp::core_map.size();
 
         str->deepen();
         
         auto stop_level = std::chrono::high_resolution_clock::now();
         sizes[i] += str->memsize();
+        distinct_core_counts[i] += lcp::core_map.size() - current_size;
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
         core_counts[i] += str->cores->size();
 
@@ -161,13 +165,15 @@ int main(int argc, char **argv) {
     double sizes[LCP_LEVEL] = {0};
     int overlapping_counts[LCP_LEVEL] = {0};
     int core_counts[LCP_LEVEL] = {0};
+    int distinct_core_counts[LCP_LEVEL] = {0};
     int distances[LCP_LEVEL][DISTANCE_LENGTH] = {0};
     std::vector<std::vector<int>> distancesXL(LCP_LEVEL);
     int lengths[LCP_LEVEL][DISTANCE_LENGTH] = {0};
     std::vector<std::vector<int>> lengthsXL(LCP_LEVEL);
     std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
 
-	// read file
+    
+    // read file
     if ( genome.is_open() ) {  
 
         std::string sequence, id;
@@ -175,13 +181,21 @@ int main(int argc, char **argv) {
                 
         std::cout << "Program begins" << std::endl;
 
+        std::cout << "str_map.capacity at the begining: " << format_int( lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
+        std::cout << "core_map.capacity at the begining: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
+        
+        lcp::init_hashing();
+        
+        std::cout << "str_map.capacity after reserving: " << format_int( lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
+        std::cout << "core_map.capacity after reserving: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
+
         while (getline(genome, line)) {
 
             if (line[0] == '>') {
 
                 // process previous chromosome before moving into new one
                 if (sequence.size() != 0) {
-                    process( sequence, sizes, durations, overlapping_counts, core_counts, distances, distancesXL, lengths, lengthsXL );
+                    process( sequence, sizes, durations, overlapping_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
                 }
                 
                 id = line.substr(1);
@@ -195,13 +209,26 @@ int main(int argc, char **argv) {
         }
 
         if (sequence.size() != 0) {
-            process( sequence, sizes, durations, overlapping_counts, core_counts, distances, distancesXL, lengths, lengthsXL );
+            process( sequence, sizes, durations, overlapping_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
         }
 
-        summaryLCP( sizes, overlapping_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts);
+        summaryLCP( sizes, overlapping_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts, distinct_core_counts);
 
         genome.close();
     }
+    
+    std::cout << std::endl;
 
+    std::cout << "str_map.capacity at the end: " << format_int(lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
+    std::cout << "str_map.size at the end: " << format_int( lcp::str_map.size() ) << std::endl;
+    
+    std::cout << std::endl;
+
+    std::cout << "core_map.capacity at the end: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
+    std::cout << "core_map.size at the end: " << format_int( lcp::core_map.size() ) << std::endl;
+
+    std::cout << std::endl;
+
+    std::cout << "ID: " << lcp::next_id << std::endl;
     return 0;
 };
