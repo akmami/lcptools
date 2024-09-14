@@ -153,9 +153,6 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    // initializing coefficients of the alphabet
-    lcp::init_coefficients();
-
     // variables
     std::string line;
 
@@ -175,20 +172,19 @@ int main(int argc, char **argv) {
     
     // read file
     if ( genome.is_open() ) {  
-
+        
         std::string sequence, id;
         sequence.reserve(250000000);
+
+        // initializing coefficients of the alphabet and hash tables
+        lcp::init_coefficients();
+        lcp::init_hashing(4000, 150000000);
                 
         std::cout << "Program begins" << std::endl;
 
         std::cout << "str_map.capacity at the begining: " << format_int( lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
         std::cout << "core_map.capacity at the begining: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
         
-        lcp::init_hashing();
-        
-        std::cout << "str_map.capacity after reserving: " << format_int( lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
-        std::cout << "core_map.capacity after reserving: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
-
         while (getline(genome, line)) {
 
             if (line[0] == '>') {
@@ -230,5 +226,6 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     std::cout << "ID: " << lcp::next_id << std::endl;
+    
     return 0;
 };
