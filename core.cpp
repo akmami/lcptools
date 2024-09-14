@@ -135,6 +135,9 @@ namespace lcp {
 		#ifdef STATS
 		this->start = start;
 		this->end = end;
+		#else
+		(void)start;
+		(void)end;
 		#endif
 	};
 

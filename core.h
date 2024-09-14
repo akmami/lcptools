@@ -1,3 +1,45 @@
+/**
+ * @file core.h
+ * @brief Header file for the `core` class, which represents bit-encoded sequences and provides various
+ *        utilities for encoding, compression, and file I/O operations on bit sequences.
+ *
+ * This file contains the declaration of the `core` class along with its member functions, constructors, 
+ * destructors, and operator overloads. It supports operations for encoding strings into bit sequences, 
+ * combining multiple sequences, compressing data, and reading/writing from/to files.
+ * 
+ * Key functionalities include:
+ * - Encoding sequences of characters (e.g., ACGT) into a compact bit-encoded form.
+ * - Supporting reverse complement encoding of DNA sequences.
+ * - Saving and loading core from files.
+ * - Calculating memory usage of the constructed core structure.
+ * 
+ * Dependencies:
+ * - Requires constant.h and encoding.h for auxiliary data structures and utilities.
+ *
+ * Example usage:
+ * @code
+ *   std::string sequence = "ACGT";
+ *   lcp::core c(sequence.begin(), sequence.end(), 0, sequence.size());
+ *   std::ofstream out("output.bin", std::ios::binary);
+ *   c.write(out);
+ *   out.close();
+ * @endcode
+ *
+ * @see constant.h
+ * @see encoding.h
+ * 
+ * @namespace lcp
+ * @class core
+ * 
+ * @note Define `STATS` before including this file to enable the tracking of start and end indices for sequences.
+ * @note Destructor handles clean-up of allocated memory for bits.
+ * 
+ * @author Akmuhammet Ashyralyyev
+ * @version 1.0
+ * @date 2024-09-14
+ * 
+ */
+
 #ifndef   CORE_H
 #define   CORE_H
 
