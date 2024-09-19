@@ -58,6 +58,7 @@
 #include "core.h"
 #include "hash.h"
 
+
 namespace lcp {
 
     class lps {
@@ -133,6 +134,45 @@ namespace lcp {
          * @return The memory size (in bytes) used by the LCP structure.
          */
         double memsize();
+
+        /**
+         * @brief Sets the count of cores in the provided core_count vector.
+         *
+         * This function checks if the reverse_map is empty. If it is empty,
+         * the function returns false, indicating that no core counts were set.
+         * Otherwise, it iterates through the `cores` vector and updates the core
+         * count based on the label of each core by calling the `count_core` function.
+         *
+         * @param core_count A reference to a vector of unsigned integers representing the count of cores.
+         * @return true if the core count was successfully set, false if the reverse_map is empty.
+         */
+        bool set_core_count( std::vector<uint>& core_counts );
+
+        /**
+         * @brief Updates the core count in the provided core_count vector.
+         *
+         * This function iterates through the `cores` vector and increments
+         * the corresponding value in the `core_count` vector based on the label
+         * of each core. Each core's label is used as an index in the `core_count`
+         * vector, and the count for that label is incremented by 1.
+         *
+         * @param core_count A reference to a vector of unsigned integers where each element
+         *                   represents the count of cores for the corresponding label.
+         * @return true Always returns true after updating the core counts.
+         */
+        bool update_core_count( std::vector<uint>& core_counts );
+
+        /**
+         * @brief Retrieves the labels of all cores and stores them in the provided labels vector.
+         *
+         * This function reserves space in the `labels` vector based on the size of the `cores` vector 
+         * and initial size of itself and iterates through the `cores` vector, adding the label of 
+         * each core to the `labels` vector.
+         *
+         * @param labels A reference to a vector of unsigned integers where the labels of the cores will be stored.
+         * @return true if the labels were successfully retrieved.
+         */
+        bool get_labels(std::vector<uint>& labels);
     };
 
     /**
