@@ -2,7 +2,6 @@
 
 namespace lcp {
 
-
     lps::lps(std::string &str, bool rev_comp) {
 
         this->level = 1;
@@ -77,14 +76,14 @@ namespace lcp {
 
                 std::string kmer = std::string(it1, it2);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                if ( str_map.find(kmer) != str_map.end() ) {
-                    continue;
+                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+                
+                if (result.second) {
+                    new_core->label = next_id++;
+                }  else {
+                    new_core->label = result.first->second;
                 }
-
-                new_core->label = next_id;
-
-                // assign a new ID to this kmer
-                str_map[kmer] = next_id++;
+                
                 continue;
             }
 
@@ -97,14 +96,14 @@ namespace lcp {
                 
                 std::string kmer = std::string(it1, it1+3);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                if ( str_map.find(kmer) != str_map.end() ) {
-                    continue;
+                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+                
+                if (result.second) {
+                    new_core->label = next_id++;
+                }  else {
+                    new_core->label = result.first->second;
                 }
 
-                new_core->label = next_id;
-
-                // assign a new ID to this kmer
-                str_map[kmer] = next_id++;
                 continue;
             } 
             
@@ -124,14 +123,14 @@ namespace lcp {
                 
                 std::string kmer = std::string(it1, it1+3);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                if ( str_map.find(kmer) != str_map.end() ) {
-                    continue;
+                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+                
+                if (result.second) {
+                    new_core->label = next_id++;
+                }  else {
+                    new_core->label = result.first->second;
                 }
 
-                new_core->label = next_id;
-
-                // assign a new ID to this kmer
-                str_map[kmer] = next_id++;
                 continue;
             }
         }
@@ -193,16 +192,22 @@ namespace lcp {
                     core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                     temp_cores->push_back(new_core);
 
-                    std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it2-1))->label};
-
-                    if ( core_map.find(key) != core_map.end() ) {
-                        continue;
+                    #ifdef MAP_KEY_VECTOR
+                    std::vector<uint> key(it2 - it1);
+                    for( int i = 0; i < it2 - it1; i++ ) {
+                        key[i] = ( *(it1 + i) )->label;
                     }
+                    #else
+                    struct cores key = { ( *(it1) )->label, ( *(it1 + 1) )->label, ( *(it2 - 1) )->label, static_cast<uint>(it2 - it1) - 2 };
+                    #endif
 
-                    new_core->label = next_id;
+                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
 
-                    // assign a new ID to this kmer
-                    core_map[key] = next_id++;
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
                 } 
 
                 continue;
@@ -213,16 +218,19 @@ namespace lcp {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
                 
-                std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it1+2))->label};
-                
-                if ( core_map.find(key) != core_map.end() ) {
-                    continue;
+                #ifdef MAP_KEY_VECTOR
+                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label };
+                #else
+                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
+                #endif
+
+                std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+
+                if (result.second) {
+                    new_core->label = next_id++;
+                }  else {
+                    new_core->label = result.first->second;
                 }
-
-                new_core->label = next_id;
-
-                // assign a new ID to this kmer
-                core_map[key] = next_id++;
 
                 continue;
             }
@@ -238,16 +246,19 @@ namespace lcp {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
 
-                std::array<uint, 3> key = {(*it1)->label, (*(it1+1))->label, (*(it1+2))->label};
+                #ifdef MAP_KEY_VECTOR
+                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label };
+                #else
+                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
+                #endif
 
-                if ( core_map.find(key) != core_map.end() ) {
-                    continue;
+                std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+
+                if (result.second) {
+                    new_core->label = next_id++;
+                }  else {
+                    new_core->label = result.first->second;
                 }
-
-                new_core->label = next_id;
-
-                // assign a new ID to this kmer
-                core_map[key] = next_id++;
 
                 continue;
             }
@@ -267,7 +278,7 @@ namespace lcp {
         return true;
     };
 
-    bool lps::deepen(int lcp_level) {
+    bool lps::deepen(int lcp_level ) {
 
         if ( lcp_level <= this->level ) {
             return false;
@@ -312,7 +323,39 @@ namespace lcp {
         }
 
         return total;
-    }
+    };
+
+    bool lps::set_core_count( std::vector<uint>& core_count ) {
+
+        if ( reverse_map.size() == 0 ) {
+            return false;
+        }
+        
+        for ( std::vector<lcp::core*>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
+            count_core( core_count, (*it)->label );
+        }
+        
+        return true;
+    };
+
+    bool lps::update_core_count( std::vector<uint>& core_count ) {
+        for ( std::vector<lcp::core*>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
+            core_count[(*it)->label]++;
+        }
+
+        return true;
+    };
+    
+    bool lps::get_labels(std::vector<uint>& labels) {
+
+        labels.reserve( labels.size() + this->cores->size() );
+
+        for ( std::vector<lcp::core*>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
+            labels.push_back( (*it)->label );
+        }
+        
+        return true;
+    };
 
     std::ostream& operator<<(std::ostream& os, const lps& element) {
         os << "Level: " << element.level << std::endl;
