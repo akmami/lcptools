@@ -37,34 +37,49 @@
 
 #include <unordered_map>
 #include <string>
+#include <vector>
 #include <iterator>
 #include <cstddef>
 #include <cstring>
+#include "lps.h"
 #include "constant.h"
 
 
-struct hashing {
-    std::size_t operator() ( const std::array<uint, 3>& arr ) const {
+#define M       0x5bd1e995;
+#define SEED    0x153ac45c;
+#define MAP_KEY_VECTOR
+
+struct cores {
+    uint core1;
+    uint core2;
+    uint core3;
+    uint middle_count;
+};
+
+
+struct hashing_cores {
+    std::size_t operator() ( const struct cores& vec ) const {
         const size_t m = 0x5bd1e995;
-        size_t seed = 0x153ac45c;
-        std::size_t hash = seed ^ 3;
+        std::size_t hash = 0x153ac45c ^ 3;
         size_t chars;
-        // hash first element
-        chars = arr[0];
+
+        chars = vec.core1;
         chars *= m;
         chars ^= chars >> 24;
         chars *= m;
         hash *= m;
         hash ^= chars;
-        // hash second element
-        chars = arr[1];
-        chars *= m;
-        chars ^= chars >> 24;
-        chars *= m;
-        hash *= m;
-        hash ^= chars;
-        // hash third element
-        chars = arr[2];
+
+        // for( uint i = 0; i < vec.middle_count; i++ ) {
+            chars = vec.core2;
+            chars *= m;
+            chars ^= chars >> 24;
+            chars *= m;
+            hash *= m;
+            hash ^= chars;
+        // }
+
+        chars = vec.core3;
         chars *= m;
         chars ^= chars >> 24;
         chars *= m;
@@ -76,22 +91,73 @@ struct hashing {
         hash *= m;
         hash ^= hash >> 15;
         return hash;
-    }
+    };
 };
 
 
-struct equality {
-    bool operator() ( const std::array<uint, 3>& lhs, const std::array<uint, 3>& rhs ) const {
-        return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2];
-    }
+struct equality_cores {
+    bool operator() ( const struct cores& lhs, const struct cores& rhs ) const {
+        return lhs.core1 == rhs.core1 && lhs.core2 == rhs.core2 && lhs.core3 == rhs.core3 && lhs.middle_count == rhs.middle_count;
+    };
 };
 
+
+struct hashing_vector {
+    // std::size_t operator() ( const std::array<uint, 3>& arr ) const {
+    std::size_t operator() ( const std::vector<uint>& arr ) const {
+        const size_t m = 0x5bd1e995;
+        size_t seed = 0x153ac45c;
+        std::size_t hash = seed ^ 3;
+        size_t chars;
+
+        for(size_t i = 0; i < arr.size(); i++ ) {
+            // hash element
+            chars = arr[i];
+            chars *= m;
+            chars ^= chars >> 24;
+            chars *= m;
+            hash *= m;
+            hash ^= chars;
+        }
+
+        // do a few final mixes of the hash.
+        hash ^= hash >> 13;
+        hash *= m;
+        hash ^= hash >> 15;
+        return hash;
+    };
+};
+
+
+struct equality_vector {
+    bool operator() ( const std::vector<uint>& lhs, const struct std::vector<uint>& rhs ) const {
+        if ( lhs.size() != rhs.size() ) {
+            return false;
+        }
+
+        for(size_t i = 0; i < lhs.size(); i++ ) {
+            if ( lhs[i] != rhs[i] ) {
+                return false;
+            }
+        }
+        return true;
+    };
+};
+
+
+#ifdef MAP_KEY_VECTOR
+using core_map_key_type = std::vector<uint>;
+using core_map_type = std::unordered_map<core_map_key_type, uint, hashing_vector, equality_vector>;
+#else
+using core_map_key_type = struct cores;
+using core_map_type = std::unordered_map<core_map_key_type, uint, hashing_cores, equality_cores>;
+#endif
 
 namespace lcp {
 
     extern std::unordered_map<std::string, uint> str_map;
-    extern std::unordered_map<std::array<uint, 3>, uint, hashing, equality> core_map;
-    // extern std::unordered_map<unsigned int, std::vector<unsigned int>*> core_map_reverse;
+    extern core_map_type core_map;
+    extern std::vector<const core_map_key_type*> reverse_map;
     extern uint next_id;
 
     /**
@@ -119,6 +185,68 @@ namespace lcp {
      *
      */
     size_t hash_bytes(std::string::iterator begin, std::string::iterator end, size_t seed=0x153ac45c);
-}
+
+    /**
+     * @brief Initializes the reverse mapping from core IDs to core vectors.
+     *
+     * This function checks if the `next_id` is zero. If it is, the function returns false,
+     * indicating that there are no cores to initialize. Otherwise, it resizes the `reverse_map`
+     * to match the size of `next_id`, which is the size of the labels, initializing all elements to `nullptr`.
+     * Then, it iterates through the `core_map`, setting each entry in `reverse_map` 
+     * to point to the corresponding core vector from `core_map` using the core ID as the index.
+     *
+     * @return true if the reverse map was successfully initialized, false if `next_id` is zero.
+     */
+    bool init_reverse();
+
+    /**
+     * @brief Initializes the core_counts vector to a specified size with all elements set to zero.
+     *
+     * This function resizes the provided `core_counts` vector to the given `size` and 
+     * initializes each element in the vector to zero. It ensures that the vector is 
+     * properly sized and all counts are reset.
+     *
+     * @param core_counts A reference to a vector of unsigned integers representing the core counts.
+     * @param size The number of elements the vector should contain.
+     * @return true Always returns true after initializing the vector.
+     */
+    bool init_core_counts( std::vector<uint>& core_counts, size_t size = next_id);
+
+    /**
+     * @brief Recursively increments core counts for a given core and its dependencies.
+     *
+     * This function increments the count for the specified `core` in the `core_counts` vector.
+     * If the `reverse_map` for the given core is not null, it recursively increments the 
+     * counts for all cores in the associated core vector by calling `count_core` on each 
+     * core in the reverse map.
+     *
+     * @param core_counts A reference to a vector of unsigned integers representing core counts.
+     * @param core The index of the core whose count is to be incremented.
+     */
+    void count_core( std::vector<uint>& core_counts, uint core );
+
+    /**
+     * @brief Retrieves labels and counts for sublevel cores and stores them in the provided 
+     * sub_labels and sub_count vectors.
+     *
+     * This function processes cores that are composed of sub cores (sublevel cores). It checks 
+     * if the `reverse_map` is empty or if the sizes of `labels` and `core_count` don't match, 
+     * in which case it returns false. If the sizes are valid, it reserves space in the `sub_labels` 
+     * and `sub_count` vectors based on 3.6 times the size of `labels`. The function iterates 
+     * through the `labels` vector and retrieves the corresponding subcores from the `reverse_map`. 
+     * For each subcore, it adds its label to `sub_labels` and its count (from `core_count`) to `sub_count`, 
+     * provided its count is greater than 0. The subcore's count is then reset to zero.
+     *
+     * After collecting sublevel labels and counts, the function restores the core counts for the sub_labels.
+     *
+     * @param labels A reference to a vector of unsigned integers representing the core labels.
+     * @param core_count A reference to a vector of unsigned integers representing the count of each core.
+     * @param sub_labels A reference to a vector where sublevel core labels will be stored.
+     * @param sub_count A reference to a vector where sublevel core counts will be stored.
+     * @return true if the sublevel labels and counts were successfully retrieved, false if `reverse_map` 
+     *         is empty or if `labels` and `core_count` sizes do not match.
+     */
+    bool get_sublevel_labels(std::vector<uint>& labels, std::vector<uint>& core_count, std::vector<uint>& sub_labels, std::vector<uint>& sub_count);
+};
 
 #endif
