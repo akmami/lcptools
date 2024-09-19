@@ -23,7 +23,6 @@
  *       analysis.
  */
 
-
 #include "core.h"
 
 
@@ -35,6 +34,7 @@ inline size_t block_number(size_t size) {
 inline size_t start_index(size_t size) {
 	return block_number(size) * SIZE_PER_BLOCK - size;
 };
+
 
 namespace lcp {
 	
@@ -336,5 +336,4 @@ namespace lcp {
 		}
 	    return os;
 	};
-
 };

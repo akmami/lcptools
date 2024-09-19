@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
 
         // initializing coefficients of the alphabet and hash tables
         lcp::init_coefficients();
-        lcp::init_hashing(4000, 150000000);
+        lcp::init_hashing(4000, 750000000);
                 
         std::cout << "Program begins" << std::endl;
 
@@ -226,6 +226,6 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     std::cout << "ID: " << lcp::next_id << std::endl;
-    
+
     return 0;
 };
