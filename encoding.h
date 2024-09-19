@@ -47,6 +47,7 @@
 #include <fstream>
 #include <iostream>
 
+
 namespace lcp {
     
     extern int coefficients[128];

@@ -59,7 +59,6 @@
 inline size_t block_number(size_t size);
 
 
-
 /**
  * @brief Calculates the starting index for bit manipulation in a block.
  * 
@@ -70,6 +69,7 @@ inline size_t start_index(size_t size);
 
 
 namespace lcp {
+	
 	class core {
     public:
 		#ifdef STATS

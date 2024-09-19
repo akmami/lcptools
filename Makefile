@@ -110,10 +110,10 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) $(CXXFLAGS) -c $(CXXEXTRA) $< -o $@
 
 # dependencies
-lps.o: lps.cpp lps.h core.h encoding.h constant.h hash.h
-core.o: core.cpp core.h encoding.h constant.h
 encoding.o: encoding.cpp encoding.h
-hash.o: hash.cpp hash.h
+hash.o: hash.cpp hash.h lps.h
+core.o: core.cpp core.h encoding.h constant.h
+lps.o: lps.cpp lps.h core.h encoding.h constant.h hash.h
 
 # compile and link test executables
 $(TEST_DIR)/%.o: $(TEST_DIR)/%.cpp

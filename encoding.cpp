@@ -7,8 +7,8 @@
  * with default coefficients, specific coefficients, or by reading coefficients from a file.
  */
 
-
 #include "encoding.h"
+
 
 namespace lcp {
 
