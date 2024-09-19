@@ -36,6 +36,7 @@
 #define HASH_H
 
 #include <unordered_map>
+#include <mutex>
 #include <string>
 #include <vector>
 #include <iterator>
@@ -47,7 +48,8 @@
 
 #define M       0x5bd1e995;
 #define SEED    0x153ac45c;
-#define MAP_KEY_VECTOR
+// #define MAP_KEY_VECTOR
+
 
 struct cores {
     uint core1;
@@ -155,6 +157,8 @@ using core_map_type = std::unordered_map<core_map_key_type, uint, hashing_cores,
 
 namespace lcp {
 
+    extern std::mutex str_map_mutex;
+    extern std::mutex core_map_mutex;
     extern std::unordered_map<std::string, uint> str_map;
     extern core_map_type core_map;
     extern std::vector<const core_map_key_type*> reverse_map;
@@ -224,6 +228,8 @@ namespace lcp {
      * @param core The index of the core whose count is to be incremented.
      */
     void count_core( std::vector<uint>& core_counts, uint core );
+
+    void set_lcp_levels( std::vector<unsigned short>& lcp_levels );
 
     /**
      * @brief Retrieves labels and counts for sublevel cores and stores them in the provided 

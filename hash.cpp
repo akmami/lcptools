@@ -14,6 +14,8 @@
 
 namespace lcp {
 
+    std::mutex str_map_mutex;
+    std::mutex core_map_mutex;
     std::unordered_map<std::string, uint> str_map;
     core_map_type core_map;
     std::vector<const core_map_key_type*> reverse_map;
@@ -110,6 +112,40 @@ namespace lcp {
         }
         count_core( core_counts, (reverse_map[core])->core3 );
         #endif
+    };
+
+    void set_lcp_levels( std::vector<unsigned short>& lcp_levels ) {
+        
+        size_t size = str_map.size() + core_map.size();
+
+        lcp_levels.reserve( size );
+        
+        for ( uint i = 0; i < size; i++) {
+            lcp_levels.push_back(0);
+        }
+
+        for ( std::unordered_map<std::string, uint>::iterator it = str_map.begin(); it != str_map.end(); it++ ) {
+            lcp_levels[it->second] = 1;
+        }
+
+        bool done = false;
+
+        while( !done ) {    
+            done = true;        
+            for ( core_map_type::iterator it = core_map.begin(); it != core_map.end(); it++ ) {
+                size_t first_subcore_label = 0;
+                #ifdef MAP_KEY_VECTOR
+                first_subcore_label = it->first[0];
+                #else
+                first_subcore_label = it->first.core1;
+                #endif
+                if ( lcp_levels[it->second] != 0 || lcp_levels[first_subcore_label] == 0 ) {
+                    continue;
+                }
+                done = false;
+                lcp_levels[it->second] = lcp_levels[first_subcore_label] + 1;
+            }
+        }
     };
 
     bool get_sublevel_labels(std::vector<uint>& labels, std::vector<uint>& core_counts, std::vector<uint>& sub_labels, std::vector<uint>& sub_counts) {
