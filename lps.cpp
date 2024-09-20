@@ -76,15 +76,20 @@ namespace lcp {
                 
                 std::string kmer = std::string(it1, it2);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                std::lock_guard<std::mutex> lock(str_map_mutex);
-                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+                                
+                if ( str_map.find(kmer) == str_map.end() ) {
+                    std::lock_guard<std::mutex> lock(str_map_mutex); 
+                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
                 
-                if (result.second) {
-                    new_core->label = next_id++;
-                }  else {
-                    new_core->label = result.first->second;
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
+                } else {
+                    new_core->label = str_map[kmer];
                 }
-                
+
                 continue;
             }
 
@@ -97,13 +102,18 @@ namespace lcp {
                 
                 std::string kmer = std::string(it1, it1+3);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                std::lock_guard<std::mutex> lock(str_map_mutex);
-                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+
+                if ( str_map.find(kmer) == str_map.end() ) {
+                    std::lock_guard<std::mutex> lock(str_map_mutex); 
+                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
                 
-                if (result.second) {
-                    new_core->label = next_id++;
-                }  else {
-                    new_core->label = result.first->second;
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
+                } else {
+                    new_core->label = str_map[kmer];
                 }
 
                 continue;
@@ -125,13 +135,18 @@ namespace lcp {
                 
                 std::string kmer = std::string(it1, it1+3);
                 std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                std::lock_guard<std::mutex> lock(str_map_mutex);
-                std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
+                                
+                if ( str_map.find(kmer) == str_map.end() ) {
+                    std::lock_guard<std::mutex> lock(str_map_mutex); 
+                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
                 
-                if (result.second) {
-                    new_core->label = next_id++;
-                }  else {
-                    new_core->label = result.first->second;
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
+                } else {
+                    new_core->label = str_map[kmer];
                 }
 
                 continue;
@@ -203,14 +218,18 @@ namespace lcp {
                     #else
                     struct cores key = { ( *(it1) )->label, ( *(it1 + 1) )->label, ( *(it2 - 1) )->label, static_cast<uint>(it2 - it1) - 2 };
                     #endif
-
-                    std::lock_guard<std::mutex> lock(core_map_mutex);
-                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
-
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
+              
+                    if ( core_map.find(key) == core_map.end() ) {
+                        std::lock_guard<std::mutex> lock(core_map_mutex); 
+                        std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+                    
+                        if (result.second) {
+                            new_core->label = next_id++;
+                        }  else {
+                            new_core->label = result.first->second;
+                        }
+                    } else {
+                        new_core->label = core_map[key];
                     }
                 } 
 
@@ -228,13 +247,17 @@ namespace lcp {
                 core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
                 #endif
 
-                std::lock_guard<std::mutex> lock(core_map_mutex);
-                std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
-
-                if (result.second) {
-                    new_core->label = next_id++;
-                }  else {
-                    new_core->label = result.first->second;
+                if ( core_map.find(key) == core_map.end() ) {
+                    std::lock_guard<std::mutex> lock(core_map_mutex); 
+                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+                
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
+                } else {
+                    new_core->label = core_map[key];
                 }
 
                 continue;
@@ -257,13 +280,17 @@ namespace lcp {
                 core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
                 #endif
 
-                std::lock_guard<std::mutex> lock(core_map_mutex);
-                std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
-
-                if (result.second) {
-                    new_core->label = next_id++;
-                }  else {
-                    new_core->label = result.first->second;
+                if ( core_map.find(key) == core_map.end() ) {
+                    std::lock_guard<std::mutex> lock(core_map_mutex); 
+                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+                
+                    if (result.second) {
+                        new_core->label = next_id++;
+                    }  else {
+                        new_core->label = result.first->second;
+                    }
+                } else {
+                    new_core->label = core_map[key];
                 }
 
                 continue;
