@@ -4,6 +4,7 @@ LCP_LEVEL ?= 4
 
 # Programs
 CPP_LCP_FASTA := cpp-lcp-fasta
+CPP_LCP_FASTA_MEM := cpp-lcp-fasta-mem
 CPP_LCP_FASTQ_ERROR := cpp-lcp-fastq-error
 CPP_MINIMIZER_FASTA := cpp-minimizer-fasta
 CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
@@ -120,6 +121,17 @@ lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
 	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt"
 	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt
+
+lcpFastaMem: mkdir_bin mkdir_results check_fasta check_lcptools
+	@echo "Compiling $(CPP_LCP_FASTA_MEM)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA_MEM)$(CXX) -o $(CPP_LCP_FASTA_MEM).o
+	@echo "Linking lcptools library and binary files"
+	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA_MEM) $(CPP_LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(CPP_LCP_FASTA_MEM).o
+	@echo "Moving $(CPP_LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
+	mv $(CPP_LCP_FASTA_MEM) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA_MEM)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA_MEM)-output.txt
 	
 lcpFastq: mkdir_bin mkdir_results check_fastq
 	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)"
