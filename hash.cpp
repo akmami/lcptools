@@ -27,44 +27,82 @@ namespace lcp {
         lcp::core_map.reserve(core_map_size);
     };
 
-    size_t hash_bytes(std::string::iterator begin, std::string::iterator end, size_t seed) {
-        const size_t m = 0x5bd1e995;
-        size_t len = std::distance(begin, end);
-        size_t hash = seed ^ len;
-        const char* buf = &(*begin);
+    void save_maps( std::ofstream& file ) {
 
-        // mix 4 bytes at a time into the hash.
-        while (len >= 4) {
-            size_t chars;
-            std::memcpy(&chars, buf, sizeof(chars));
-            chars |= 0x20202020; // convert all characters to uppercase. my impl idea :)
-            chars *= m;
-            chars ^= chars >> 24;
-            chars *= m;
-            hash *= m;
-            hash ^= chars;
-            buf += 4;
-            len -= 4;
+        if (!file) {
+            throw std::runtime_error("Saving maps failed. Ofstream empty.");
+        }
+        
+        size_t capacity = str_map.max_load_factor() * str_map.bucket_count(), size = str_map.size();
+        file.write(reinterpret_cast<const char*>(&capacity), sizeof(capacity));
+        file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        
+        for ( std::unordered_map<std::string, uint>::iterator it = str_map.begin(); it != str_map.end(); it++ ) {
+            size_t key_size = it->first.size();
+            file.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
+            file.write(it->first.c_str(), key_size);
+            file.write(reinterpret_cast<const char*>(&(it->second)), sizeof(it->second));
         }
 
-        // handle the last few bytes of the input array.
-        switch (len) {
-            case 3:
-                hash ^= ( static_cast<unsigned char>(buf[2]) | 0x20 ) << 16;
-                [[gnu::fallthrough]];
-            case 2:
-                hash ^= ( static_cast<unsigned char>(buf[1]) | 0x20 ) << 8;
-                [[gnu::fallthrough]];
-            case 1:
-                hash ^= ( static_cast<unsigned char>(buf[0]) | 0x20 );
-                hash *= m;
-        };
+        capacity = core_map.max_load_factor() * core_map.bucket_count();
+        size = core_map.size();
 
-        // do a few final mixes of the hash.
-        hash ^= hash >> 13;
-        hash *= m;
-        hash ^= hash >> 15;
-        return hash;
+        file.write(reinterpret_cast<const char*>(&capacity), sizeof(capacity));
+        file.write(reinterpret_cast<const char*>(&size), sizeof(size));
+
+        for ( core_map_type::iterator it = core_map.begin(); it != core_map.end(); it++ ) {
+            file.write(reinterpret_cast<const char*>(&(it->first)), sizeof(it->first));
+            file.write(reinterpret_cast<const char*>(&(it->second)), sizeof(it->second));
+        }
+
+        file.close();
+    };
+
+    void load_maps( std::ifstream& file ) {
+
+        if (!file) {
+            throw std::runtime_error("Loading maps failed. Ifstream empty.");
+        }
+
+        size_t capacity;
+        size_t map_size;
+        
+        // load str_map
+        file.read(reinterpret_cast<char*>(&capacity), sizeof(capacity));
+        file.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
+        
+        lcp::str_map.reserve(capacity);
+
+        for ( size_t i = 0; i < map_size; i++ ) {
+            size_t key_size;
+            file.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
+            
+            std::string key(key_size, '\0');
+            file.read(&key[0], key_size);
+
+            uint value;
+            file.read(reinterpret_cast<char*>(&value), sizeof(value));
+
+            str_map[key] = value;
+        }
+        
+        // load core_map
+        file.read(reinterpret_cast<char*>(&capacity), sizeof(capacity));
+        file.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
+
+        lcp::core_map.reserve(capacity);
+
+        for ( size_t i = 0; i < map_size; i++ ) {
+            core_map_key_type key;
+            file.read(reinterpret_cast<char*>(&key), sizeof(key));
+
+            uint value;
+            file.read(reinterpret_cast<char*>(&value), sizeof(value));
+            
+            core_map[key] = value;
+        }
+
+        file.close();
     };
 
     bool init_reverse() {
@@ -77,17 +115,6 @@ namespace lcp {
         
         for ( core_map_type::iterator it = core_map.begin(); it != core_map.end(); it++ ) {
             reverse_map[it->second] = &(it->first);
-        }
-
-        return true;
-    };
-
-    bool init_core_counts( std::vector<uint>& core_counts, size_t size ) {
-        
-        core_counts.resize(size);
-
-        for( size_t i = 0; i < size; i++ ) {
-            core_counts[i] = 0;
         }
 
         return true;

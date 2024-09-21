@@ -93,8 +93,12 @@ int main(int argc, char **argv) {
     int core_counts[LCP_LEVEL] = {0};
     int distinct_core_counts[LCP_LEVEL] = {0};
     std::vector<uint> core_count;
-    lcp::init_core_counts( core_count, MAX_CORE_COUNT ); // no overfow handled yet
     std::vector<uint> subcores;
+ 
+    core_count.resize(MAX_CORE_COUNT);
+    for( size_t i = 0; i < MAX_CORE_COUNT; i++ ) {
+        core_count[i] = 0;
+    }
     
     // read file
     if ( genome.is_open() ) {  

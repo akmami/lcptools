@@ -42,12 +42,13 @@
 #include <iterator>
 #include <cstddef>
 #include <cstring>
+#include <fstream>
 #include "lps.h"
 #include "constant.h"
 
 
 #define M       0x5bd1e995;
-#define SEED    0x153ac45c;
+#define SEED    0x153ac45f;
 // #define MAP_KEY_VECTOR
 
 
@@ -56,41 +57,42 @@ struct cores {
     uint core2;
     uint core3;
     uint middle_count;
+    
+    bool operator==(const cores& other) const {
+        return core1 == other.core1 && core2 == other.core2 && core3 == other.core3 && middle_count == other.middle_count;
+    }
 };
 
 
 struct hashing_cores {
-    std::size_t operator() ( const struct cores& vec ) const {
-        const size_t m = 0x5bd1e995;
-        std::size_t hash = 0x153ac45c ^ 3;
-        size_t chars;
+    std::size_t operator() ( const struct cores& elements ) const {
+        std::size_t hash = SEED;
+        uint element;
 
-        chars = vec.core1;
-        chars *= m;
-        chars ^= chars >> 24;
-        chars *= m;
-        hash *= m;
-        hash ^= chars;
+        element = elements.core1;
+        element *= M;
+        element ^= element >> 24;
+        element *= M;
+        hash *= M;
+        hash ^= element;
 
-        // for( uint i = 0; i < vec.middle_count; i++ ) {
-            chars = vec.core2;
-            chars *= m;
-            chars ^= chars >> 24;
-            chars *= m;
-            hash *= m;
-            hash ^= chars;
-        // }
+        element = elements.core2;
+        element *= M;
+        element ^= element >> 24;
+        element *= M;
+        hash *= M;
+        hash ^= element;
 
-        chars = vec.core3;
-        chars *= m;
-        chars ^= chars >> 24;
-        chars *= m;
-        hash *= m;
-        hash ^= chars;
+        element = elements.core3;
+        element *= M;
+        element ^= element >> 24;
+        element *= M;
+        element *= M;
+        hash ^= element;
 
         // do a few final mixes of the hash.
         hash ^= hash >> 13;
-        hash *= m;
+        hash *= M;
         hash ^= hash >> 15;
         return hash;
     };
@@ -99,32 +101,29 @@ struct hashing_cores {
 
 struct equality_cores {
     bool operator() ( const struct cores& lhs, const struct cores& rhs ) const {
-        return lhs.core1 == rhs.core1 && lhs.core2 == rhs.core2 && lhs.core3 == rhs.core3 && lhs.middle_count == rhs.middle_count;
+        return lhs == rhs;
     };
 };
 
 
 struct hashing_vector {
-    // std::size_t operator() ( const std::array<uint, 3>& arr ) const {
-    std::size_t operator() ( const std::vector<uint>& arr ) const {
-        const size_t m = 0x5bd1e995;
-        size_t seed = 0x153ac45c;
-        std::size_t hash = seed ^ 3;
-        size_t chars;
+    std::size_t operator() ( const std::vector<uint>& vec ) const {
+        std::size_t hash = SEED;
+        uint element;
 
-        for(size_t i = 0; i < arr.size(); i++ ) {
+        for(size_t i = 0; i < vec.size(); i++ ) {
             // hash element
-            chars = arr[i];
-            chars *= m;
-            chars ^= chars >> 24;
-            chars *= m;
-            hash *= m;
-            hash ^= chars;
+            element = vec[i];
+            element *= M;
+            element ^= element >> 24;
+            element *= M;
+            hash *= M;
+            hash ^= element;
         }
 
         // do a few final mixes of the hash.
         hash ^= hash >> 13;
-        hash *= m;
+        hash *= M;
         hash ^= hash >> 15;
         return hash;
     };
@@ -173,22 +172,36 @@ namespace lcp {
      * @param str_map_size The initial size of the string hash table (`str_map`). Default is `1000`.
      * @param core_map_size The initial size of the core hash table (`core_map`). Default is `10000`.
      */
-    void init_hashing(size_t str_map_size = STR_HASH_TABLE_SIZE, size_t core_map_size = CORE_HASH_TABLE_SIZE);
+    void init_hashing( size_t str_map_size = STR_HASH_TABLE_SIZE, size_t core_map_size = CORE_HASH_TABLE_SIZE );
 
     /**
-     * @brief Computes a hash value for a sequence of bytes.
+     * @brief Saves the contents of `str_map` and `core_map` to a binary file.
+     * 
+     * This function serializes two maps (`str_map` and `core_map`) and writes them to the provided 
+     * output file stream. The first map is an `unordered_map` with `std::string` keys and `uint` values, 
+     * and the second map has `cores` (a custom struct) as keys and `uint` values. For each map, the 
+     * function writes the capacity, size, and then the key-value pairs.
      *
-     * This function hashes a sequence of bytes from the specified range, using a mixing algorithm to 
-     * ensure uniform distribution of hash values. It converts all characters to uppercase during the 
-     * process to make the hashing case-insensitive.
-     *
-     * @param begin An iterator to the start of the byte sequence.
-     * @param end An iterator to the end of the byte sequence.
-     * @param seed An optional seed value for initializing the hash. Default is `0x153ac45c`.
-     * @return The computed hash value.
-     *
+     * @param file The output file stream (`std::ofstream`) where the map data will be written. 
+     *        The file must already be open.
+     * 
+     * @throws std::runtime_error If the provided file stream is not open.
      */
-    size_t hash_bytes(std::string::iterator begin, std::string::iterator end, size_t seed=0x153ac45c);
+    void save_maps( std::ofstream& file );
+
+    /**
+     * @brief Loads the contents of `str_map` and `core_map` from a binary file.
+     * 
+     * This function deserializes two maps (`str_map` and `core_map`) from the provided input file 
+     * stream. It reads the capacity and size of each map, reserves the necessary space, and then 
+     * reconstructs the map by reading key-value pairs from the file.
+     *
+     * @param file The input file stream (`std::ifstream`) from which the map data will be read. 
+     *        The file must already be open and contain the serialized data from a previous `save()` call.
+     * 
+     * @throws std::runtime_error If the provided file stream is not open.
+     */
+    void load_maps( std::ifstream& file );
 
     /**
      * @brief Initializes the reverse mapping from core IDs to core vectors.
@@ -202,20 +215,7 @@ namespace lcp {
      * @return true if the reverse map was successfully initialized, false if `next_id` is zero.
      */
     bool init_reverse();
-
-    /**
-     * @brief Initializes the core_counts vector to a specified size with all elements set to zero.
-     *
-     * This function resizes the provided `core_counts` vector to the given `size` and 
-     * initializes each element in the vector to zero. It ensures that the vector is 
-     * properly sized and all counts are reset.
-     *
-     * @param core_counts A reference to a vector of unsigned integers representing the core counts.
-     * @param size The number of elements the vector should contain.
-     * @return true Always returns true after initializing the vector.
-     */
-    bool init_core_counts( std::vector<uint>& core_counts, size_t size = next_id);
-
+    
     /**
      * @brief Recursively increments core counts for a given core and its dependencies.
      *
@@ -252,7 +252,7 @@ namespace lcp {
      * @return true if the sublevel labels and counts were successfully retrieved, false if `reverse_map` 
      *         is empty or if `labels` and `core_count` sizes do not match.
      */
-    bool get_sublevel_labels(std::vector<uint>& labels, std::vector<uint>& core_count, std::vector<uint>& sub_labels, std::vector<uint>& sub_count);
+    bool get_sublevel_labels( std::vector<uint>& labels, std::vector<uint>& core_count, std::vector<uint>& sub_labels, std::vector<uint>& sub_count );
 };
 
 #endif
