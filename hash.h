@@ -229,6 +229,16 @@ namespace lcp {
      */
     void count_core( std::vector<uint>& core_counts, uint core );
 
+    /**
+     * @brief Sets the LCP levels for each core in the dataset.
+     * 
+     * This function assigns LCP levels to each core based on the structure of the core
+     * and its subcores. The cores can either be constructed from strings or from a combination
+     * of subcores.
+     * 
+     * @param lcp_levels A reference to a vector of unsigned integers representing the LCP levels.
+     *                   The function modifies this vector by setting LCP levels for each core.
+     */
     void set_lcp_levels( std::vector<unsigned short>& lcp_levels );
 
     /**

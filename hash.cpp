@@ -54,8 +54,6 @@ namespace lcp {
             file.write(reinterpret_cast<const char*>(&(it->first)), sizeof(it->first));
             file.write(reinterpret_cast<const char*>(&(it->second)), sizeof(it->second));
         }
-
-        file.close();
     };
 
     void load_maps( std::ifstream& file ) {
@@ -101,8 +99,6 @@ namespace lcp {
             
             core_map[key] = value;
         }
-
-        file.close();
     };
 
     bool init_reverse() {
@@ -145,11 +141,7 @@ namespace lcp {
         
         size_t size = str_map.size() + core_map.size();
 
-        lcp_levels.reserve( size );
-        
-        for ( uint i = 0; i < size; i++) {
-            lcp_levels.push_back(0);
-        }
+        lcp_levels.resize(size, 0);
 
         for ( std::unordered_map<std::string, uint>::iterator it = str_map.begin(); it != str_map.end(); it++ ) {
             lcp_levels[it->second] = 1;
