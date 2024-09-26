@@ -128,7 +128,7 @@ namespace lcp {
 		}
 	};
 
-	core::core(ublock* p, size_t size, uint label, size_t start, size_t end) {
+	core::core(ublock* p, size_t size, uint32_t label, size_t start, size_t end) {
 		this->p = p;
 		this->size = size;
 		this->label = label;
@@ -203,18 +203,25 @@ namespace lcp {
 		new_bit_size = new_bit_size > 2 ? new_bit_size : 2;
 
 		// compressed value is: new_label
-		this->size = new_bit_size;
-		delete[] this->p;
-		this->p = nullptr;
+		if ( block_number(this->size) == block_number(new_bit_size) ) {
+			this->size = new_bit_size;
+			for(size_t i=0; i<block_number(this->size); i++) {
+				this->p[i] = 0;
+			}
+		} else {
+			this->size = new_bit_size;
+			delete[] this->p;
+			this->p = nullptr;
 
-		// make allocation for the bit representation
-		this->p = new ublock[block_number(this->size)];
+			// make allocation for the bit representation
+			this->p = new ublock[block_number(this->size)];
 
-		// clear old dumps
-		for(size_t i=0; i<block_number(this->size); i++) {
-			this->p[i] = 0;
+			// clear old dumps
+			for(size_t i=0; i<block_number(this->size); i++) {
+				this->p[i] = 0;
+			}
 		}
-
+		
 		// Set bits block by block and avoid unnecesary assignments
 		int current_block = block_number(this->size) - 1;
 
@@ -236,7 +243,7 @@ namespace lcp {
     };
 
 	size_t core::memsize() const {
-        size_t size = sizeof(core);
+        size_t size = sizeof(*this);
         if (this->p != nullptr) {
             size += block_number(this->size) * sizeof(ublock);
         }
