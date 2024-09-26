@@ -74,21 +74,9 @@ namespace lcp {
                 core *new_core = new core(it1, it2, index, index+(it2-it1), rev_comp);
                 this->cores->push_back(new_core);
                 
-                std::string kmer = std::string(it1, it2);
-                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                                
-                if ( str_map.find(kmer) == str_map.end() ) {
-                    std::lock_guard<std::mutex> lock(str_map_mutex); 
-                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
-                
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
-                    }
-                } else {
-                    new_core->label = str_map[kmer];
-                }
+                // set label
+                // new_core->label = hash::emplace( it1, it2 );
+                new_core->label = hash::simple( it1, it2 );
 
                 continue;
             }
@@ -100,21 +88,9 @@ namespace lcp {
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
                 this->cores->push_back(new_core);
                 
-                std::string kmer = std::string(it1, it1+3);
-                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-
-                if ( str_map.find(kmer) == str_map.end() ) {
-                    std::lock_guard<std::mutex> lock(str_map_mutex); 
-                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
-                
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
-                    }
-                } else {
-                    new_core->label = str_map[kmer];
-                }
+                // set label
+                // new_core->label = hash::emplace( it1, it1+3 );
+                new_core->label = hash::simple( it1, it1+3 );
 
                 continue;
             } 
@@ -133,21 +109,9 @@ namespace lcp {
                 core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
                 this->cores->push_back(new_core);
                 
-                std::string kmer = std::string(it1, it1+3);
-                std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                                
-                if ( str_map.find(kmer) == str_map.end() ) {
-                    std::lock_guard<std::mutex> lock(str_map_mutex); 
-                    std::pair<std::unordered_map<std::string, uint>::iterator, bool> result = str_map.emplace(kmer, next_id);
-                
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
-                    }
-                } else {
-                    new_core->label = str_map[kmer];
-                }
+                // set label
+                // new_core->label = hash::emplace( it1, it1+3 );
+                new_core->label = hash::simple( it1, it1+3 );
 
                 continue;
             }
@@ -210,27 +174,9 @@ namespace lcp {
                     core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                     temp_cores->push_back(new_core);
 
-                    #ifdef MAP_KEY_VECTOR
-                    std::vector<uint> key(it2 - it1);
-                    for( int i = 0; i < it2 - it1; i++ ) {
-                        key[i] = ( *(it1 + i) )->label;
-                    }
-                    #else
-                    struct cores key = { ( *(it1) )->label, ( *(it1 + 1) )->label, ( *(it2 - 1) )->label, static_cast<uint>(it2 - it1) - 2 };
-                    #endif
-              
-                    if ( core_map.find(key) == core_map.end() ) {
-                        std::lock_guard<std::mutex> lock(core_map_mutex); 
-                        std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
-                    
-                        if (result.second) {
-                            new_core->label = next_id++;
-                        }  else {
-                            new_core->label = result.first->second;
-                        }
-                    } else {
-                        new_core->label = core_map[key];
-                    }
+                    // set label
+                    // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it2-it1)-2 );
+                    new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it2-it1)-2 );
                 } 
 
                 continue;
@@ -240,26 +186,11 @@ namespace lcp {
             if ( *(*(it1)) > *(*(it1+1)) && *(*(it1+1)) < *(*(it1+2)) ) {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
-                
-                #ifdef MAP_KEY_VECTOR
-                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label };
-                #else
-                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
-                #endif
 
-                if ( core_map.find(key) == core_map.end() ) {
-                    std::lock_guard<std::mutex> lock(core_map_mutex); 
-                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+                // set label
+                // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
                 
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
-                    }
-                } else {
-                    new_core->label = core_map[key];
-                }
-
                 continue;
             }
 
@@ -274,25 +205,10 @@ namespace lcp {
                 core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
                 temp_cores->push_back(new_core);
 
-                #ifdef MAP_KEY_VECTOR
-                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label };
-                #else
-                core_map_key_type key = { (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 };
-                #endif
-
-                if ( core_map.find(key) == core_map.end() ) {
-                    std::lock_guard<std::mutex> lock(core_map_mutex); 
-                    std::pair<core_map_type::iterator, bool> result = core_map.emplace(key, next_id);
+                // set label
+                // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
                 
-                    if (result.second) {
-                        new_core->label = next_id++;
-                    }  else {
-                        new_core->label = result.first->second;
-                    }
-                } else {
-                    new_core->label = core_map[key];
-                }
-
                 continue;
             }
         }
@@ -348,7 +264,7 @@ namespace lcp {
     };
 
     double lps::memsize() {
-        double total = sizeof(lps);
+        double total = sizeof(*this);
         total += this->cores->capacity() * sizeof(core*);
 
         for ( std::vector<core*>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
@@ -358,20 +274,20 @@ namespace lcp {
         return total;
     };
 
-    bool lps::set_core_count( std::vector<uint>& core_count ) {
+    bool lps::set_core_count( std::vector<uint32_t>& core_count ) {
 
-        if ( reverse_map.size() == 0 ) {
+        if ( lcp::hash::reverse_map.size() == 0 ) {
             return false;
         }
         
         for ( std::vector<lcp::core*>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
-            count_core( core_count, (*it)->label );
+            lcp::hash::count_core( core_count, (*it)->label );
         }
         
         return true;
     };
 
-    bool lps::update_core_count( std::vector<uint>& core_count ) {
+    bool lps::update_core_count( std::vector<uint32_t>& core_count ) {
         for ( std::vector<lcp::core*>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
             core_count[(*it)->label]++;
         }
@@ -379,7 +295,7 @@ namespace lcp {
         return true;
     };
     
-    bool lps::get_labels(std::vector<uint>& labels) {
+    bool lps::get_labels(std::vector<uint32_t>& labels) {
 
         labels.reserve( labels.size() + this->cores->size() );
 

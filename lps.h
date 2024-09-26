@@ -48,6 +48,7 @@
 #ifndef LPS_H
 #define LPS_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -146,7 +147,7 @@ namespace lcp {
          * @param core_count A reference to a vector of unsigned integers representing the count of cores.
          * @return true if the core count was successfully set, false if the reverse_map is empty.
          */
-        bool set_core_count( std::vector<uint>& core_counts );
+        bool set_core_count( std::vector<uint32_t>& core_counts );
 
         /**
          * @brief Updates the core count in the provided core_count vector.
@@ -160,7 +161,7 @@ namespace lcp {
          *                   represents the count of cores for the corresponding label.
          * @return true Always returns true after updating the core counts.
          */
-        bool update_core_count( std::vector<uint>& core_counts );
+        bool update_core_count( std::vector<uint32_t>& core_counts );
 
         /**
          * @brief Retrieves the labels of all cores and stores them in the provided labels vector.
@@ -172,7 +173,7 @@ namespace lcp {
          * @param labels A reference to a vector of unsigned integers where the labels of the cores will be stored.
          * @return true if the labels were successfully retrieved.
          */
-        bool get_labels(std::vector<uint>& labels);
+        bool get_labels(std::vector<uint32_t>& labels);
     };
 
     /**
