@@ -1,6 +1,6 @@
 # g++
 CXX = g++
-CXXFLAGS = -std=c++11 -O2 -Wall -Wextra
+CXXFLAGS = -std=c++11 -O3 -Wall -Wextra
 CXXEXTRA = -fPIC
 
 ifdef STATS
