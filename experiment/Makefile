@@ -9,7 +9,6 @@ LCP_FASTA_MEM := lcp-fasta-mem
 CURRENT_DIR := $(shell pwd)
 DATA_DIR := $(CURRENT_DIR)/../data
 EXECUTABLE_DIR := $(CURRENT_DIR)/../bin
-RESULTS_DIR := $(CURRENT_DIR)/../results
 OUT_DIR := $(CURRENT_DIR)/../out
 INCLUDE_DIR ?= $(CURRENT_DIR)/../include
 LIB_DIR ?= $(CURRENT_DIR)/../lib
@@ -24,7 +23,7 @@ TIME := /usr/bin/time -v
 
 .PHONY: all
 
-all: mkdir_bin mkdir_results mkdir_out
+all: mkdir_bin mkdir_out
 
 mkdir_bin:
 	@echo "Checking if $(EXECUTABLE_DIR) exists..."
@@ -33,15 +32,6 @@ mkdir_bin:
 		mkdir $(EXECUTABLE_DIR); \
 	else \
 		echo "$(EXECUTABLE_DIR) already exists."; \
-	fi
-
-mkdir_results:
-	@echo "Checking if $(RESULTS_DIR) exists..."
-	@if [ ! -d "$(RESULTS_DIR)" ]; then \
-		echo "$(RESULTS_DIR) does not exist. Creating..."; \
-		mkdir $(RESULTS_DIR); \
-	else \
-		echo "$(RESULTS_DIR) already exists."; \
 	fi
 
 mkdir_out:
@@ -88,16 +78,12 @@ clean:
 		echo "Removing $(EXECUTABLE_DIR)"; \
 		rm -r $(EXECUTABLE_DIR); \
 	fi
-	@if [ -d "$(RESULTS_DIR)" ]; then \
-		echo "Removing $(RESULTS_DIR)"; \
-		rm -r $(RESULTS_DIR); \
-	fi
 	@echo "Cleaned."
 
 ######################################################################
 # LCP
 ######################################################################
-lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
+lcpFasta: mkdir_bin check_fasta check_lcptools
 	@echo "Compiling $(LCP_FASTA)$(CXX)"
 	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(LCP_FASTA)$(CXX) -o $(LCP_FASTA).o
 	@echo "Linking lcptools library and binary files"
@@ -108,7 +94,7 @@ lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA)-output.txt"
 	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA)-output.txt
 
-lcpFastaMem: mkdir_bin mkdir_results check_fasta check_lcptools
+lcpFastaMem: mkdir_bin check_fasta check_lcptools
 	@echo "Compiling $(LCP_FASTA_MEM)$(CXX)"
 	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA_MEM)$(CXX) -o $(LCP_FASTA_MEM).o
 	@echo "Linking lcptools library and binary files"
