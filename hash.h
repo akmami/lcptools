@@ -362,7 +362,7 @@ namespace lcp {
          * @param end An iterator pointing to the end of the k-mer substring within the input string.
          * @return The unique identifier (uint32_t) associated with the k-mer. If the k-mer is newly inserted, next_id is incremented.
         */
-        uint32_t emplace( std::string::iterator& begin, std::string::iterator end );
+        uint32_t emplace( std::string::iterator begin, std::string::iterator end );
 
         /**
          * @brief Inserts a set of core values into cores_map and returns its associated unique identifier.
@@ -397,7 +397,7 @@ namespace lcp {
          * consistent for the same input string across different executions, provided the 
          * same MurmurHash3 implementation is used.
          */
-        uint32_t simple( std::string::iterator& begin, std::string::iterator end );
+        uint32_t simple( std::string::iterator begin, std::string::iterator end );
 
         /**
          * @brief Computes a hash value for four unsigned integer inputs.

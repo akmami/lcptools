@@ -209,22 +209,16 @@ namespace lcp {
     };
 
     inline uint32_t hash_map::entry( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) const {
-        uint32_t result = MurmurHash3_32(&(core1), sizeof(core1)); 
-        result ^= MurmurHash3_32(&(core2), sizeof(core2)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        result ^= MurmurHash3_32(&(core3), sizeof(core3)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        result ^= MurmurHash3_32(&(middle_count), sizeof(middle_count)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        return result % this->_capacity;
+        uint32_t data[] = { core1, core2, core3, middle_count };
+        return MurmurHash3_32(data, sizeof(data)) % this->_capacity;
     };
 
     // -----------------------------------------------------------------
     // implementation of `hashing_cores::operator()`
     // -----------------------------------------------------------------
     std::size_t hashing_cores::operator() ( const struct cores& elements ) const {
-        uint32_t result = MurmurHash3_32(&(elements.core1), sizeof(elements.core1)); 
-        result ^= MurmurHash3_32(&(elements.core2), sizeof(elements.core2)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        result ^= MurmurHash3_32(&(elements.core3), sizeof(elements.core3)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        result ^= MurmurHash3_32(&(elements.middle_count), sizeof(elements.middle_count)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-        return result;
+        uint32_t data[] = { elements.core1, elements.core2, elements.core3, elements.middle_count };
+        return MurmurHash3_32(data, sizeof(data));
     };
 
     // -----------------------------------------------------------------
@@ -257,7 +251,7 @@ namespace lcp {
             cores_map.reserve(cores_map_size);
         };
 
-        uint32_t emplace( std::string::iterator& begin, std::string::iterator end ) {
+        uint32_t emplace( std::string::iterator begin, std::string::iterator end ) {
             std::string kmer = std::string(begin, end);
             std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
                             
@@ -290,18 +284,15 @@ namespace lcp {
             return results.second;
         };
         
-        uint32_t simple( std::string::iterator& begin, std::string::iterator end ) {
+        uint32_t simple( std::string::iterator begin, std::string::iterator end ) {
             std::string kmer = std::string(begin, end);
             std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
             return MurmurHash3_32(kmer.c_str(), kmer.size());
         }; 
         
         uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) {
-            uint32_t result = MurmurHash3_32(&core1, sizeof(core1)); 
-            result ^= MurmurHash3_32(&core2, sizeof(core2)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-            result ^= MurmurHash3_32(&core3, sizeof(core3)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-            result ^= MurmurHash3_32(&middle_count, sizeof(middle_count)) + PRIME_MULTIPLIER + (result << 6) + (result >> 2);
-            return result;
+            uint32_t data[] = { core1, core2, core3, middle_count };
+            return MurmurHash3_32(data, sizeof(data));
         };
 
         void save_maps( std::ofstream& file ) {
