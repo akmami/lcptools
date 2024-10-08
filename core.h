@@ -96,10 +96,9 @@ namespace lcp {
 		 * @param begin Iterator to the beginning of the string.
 		 * @param end Iterator to the end of the string.
 		 * @param begin_index The starting index of the sequence.
-		 * @param end_index The ending index of the sequence.
 		 * @param rev_comp Boolean indicating if the reverse complement encoding should be used.
 		 */
-		core(std::string::iterator begin, std::string::iterator end, size_t begin_index, size_t end_index, bool rev_comp = false);
+		core(std::string::iterator begin, std::string::iterator end, size_t begin_index, bool rev_comp = false);
 		
 		/**
 		 * @brief Constructs a `core` object by combining multiple `core` objects.

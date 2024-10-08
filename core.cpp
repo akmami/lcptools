@@ -38,16 +38,18 @@ inline size_t start_index(size_t size) {
 
 namespace lcp {
 	
-	core::core( std::string::iterator begin, std::string::iterator end, size_t begin_index, size_t end_index, bool rev_comp ) {
+	core::core( std::string::iterator begin, std::string::iterator end, size_t begin_index, bool rev_comp ) {
 
 		int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
 		#ifdef STATS
 		this->start = begin_index;
-		this->end = end_index;
+		this->end = begin_index + ( end - begin );
+		#else
+		(void)begin_index;
 		#endif
 
-		this->size = ( end_index - begin_index ) * dict_bit_size;
+		this->size = ( end - begin ) * dict_bit_size;
 
 		// make allocation for the bit representation
 		this->p = new ublock[ block_number(this->size) ];
