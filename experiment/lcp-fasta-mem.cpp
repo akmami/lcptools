@@ -27,6 +27,23 @@
 #define USE_MAP             false
 
 
+/**
+ * @brief Processes genomic sequence data, tracks execution time, and analyzes 
+ * various statistics.
+ *
+ * This function processes a given genomic sequence by performing multiple levels 
+ * of LCP (Locally Consistent Parsing) analysis. It tracks the execution time for 
+ * each level of processing, updates various statistical arrays, and manages LCP core
+ * extraction and deepening across specified levels.
+ *
+ * @param sequence The genomic sequence (string) to be analyzed.
+ * @param durations A vector storing the durations (in milliseconds) of each level's 
+ *                  processing time.
+ * @param total_core_counts An array storing the number of LCP cores found at each level.
+ * @param sizes An array storing sizes (bytes) of LCP cores found at each level.
+ * @param distinct_cores An array string the number of distinct cores found at each level.
+ * @param strs An vector of lps objects obtained after processing given sequences.
+ */
 void process(std::string& sequence, std::vector<std::chrono::milliseconds>& durations, int (&total_core_counts)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::vector<std::set<uint32_t>>& distinct_cores, std::vector<lcp::lps*>& strs ) {
     
     auto start = std::chrono::high_resolution_clock::now();
