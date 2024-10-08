@@ -1,14 +1,14 @@
 /**
- * @file    cpp-lcp-fasta.cpp
+ * @file    lcp-fasta.cpp
  * @brief   Analysis and Processing of Genomic Data
  *
  * This program is designed for in-depth analysis of genomic sequences. It reads
  * genomic data, processes it through multiple levels of analysis (defined by
- * LCP_LEVEL), and computes various statistics such as overlapping counts, distances,
+ * LCP_LEVEL), and computes various statistics such as contiguous counts, distances,
  * and lengths of genomic sequences.
  *
  * The analysis is detailed and involves different stages, including the computation
- * of overlapping regions, distances between certain genomic features, and lengths of
+ * of contiguous regions, distances between certain genomic features, and lengths of
  * various genomic segments. The results are then summarized to provide insights into
  * the genomic data structure.
  *
@@ -28,26 +28,38 @@
 /**
  * @brief Performs analysis of genomic data at a specified level.
  *
- * This function analyzes genomic data, specifically focusing on overlapping
+ * This function analyzes genomic data, specifically focusing on contiguous
  * counts, distances, and lengths at a given level of analysis. It iterates
  * through LCP cores, calculates relevant statistics, and stores them in
  * provided arrays and vectors. It supports analysis at different levels,
  * allowing for multi-layered (LCP level) examination of genomic sequences.
  *
  * @param level The level of analysis (used in multi-level processing).
- * @param overlapping_counts Array to store counts of overlapping genomic segments.
+ * @param contiguous_counts Array to store counts of contiguous genomic segments.
  * @param distances Multidimensional array to store position-based distances.
  * @param distancesXL Vector to store larger position-based distances.
  * @param lengths Multidimensional array to store lengths of genomic segments.
  * @param lengthsXL Vector to store larger lengths.
  * @param str Pointer to the genomic string being analyzed.
  */
-void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
+void analyze( int level, int (&contiguous_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
     
+    bool isOverlapped = false;
+
+    if ( (*(str->cores->begin()))->end < DISTANCE_LENGTH + (*(str->cores->begin()))->start ) {
+        lengths[level][(*(str->cores->begin()))->end - (*(str->cores->begin()))->start] += 1;
+    } else {
+        lengthsXL[level].push_back( (*(str->cores->begin()))->end - (*(str->cores->begin()))->start );
+    }
+
     for ( std::vector<lcp::core*>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
 
-        if ( (*it)->start < (*(it-1))->end ) {
-            overlapping_counts[level] += 1;
+        if ( (*it)->start <= (*(it-1))->end ) {
+            contiguous_counts[level] += 1;
+
+            if ( !isOverlapped ) {
+                isOverlapped = true;
+            }
         }
 
         if ( (*it)->start < DISTANCE_LENGTH + (*(it-1))->start ) {
@@ -62,6 +74,10 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[
             lengthsXL[level].push_back( (*it)->end - (*it)->start );
         }
     }
+
+    if ( isOverlapped ) {
+        contiguous_counts[level] += 1;
+    }
 };
 
 
@@ -73,14 +89,14 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[
  * of LCP (Locally Consistent Parsing) analysis. It tracks the execution time for 
  * each level of processing, updates various statistical arrays, and manages LCP core
  * extraction and deepening across specified levels. The function also calculates 
- * overlapping counts, distances, and lengths for genomic segments, storing the 
+ * contiguous counts, distances, and lengths for genomic segments, storing the 
  * results in the provided arrays and vectors.
  *
  * @param sequence The genomic sequence (string) to be analyzed.
  * @param sizes An array storing sizes (bytes) of LCP cores found at each level.
  * @param durations A vector storing the durations (in milliseconds) of each level's 
  *                  processing time.
- * @param overlapping_counts An array storing the count of overlapping genomic segments 
+ * @param contiguous_counts An array storing the count of contiguous genomic segments 
  *                           for each level.
  * @param core_counts An array storing the number of LCP cores found at each level.
  * @param distinct_core_counts An array string the number of distinct cores found at each level.
@@ -90,33 +106,33 @@ void analyze( int level, int (&overlapping_counts)[LCP_LEVEL], int (&distances)[
  * @param lengths A multidimensional array storing the lengths of genomic segments at each level.
  * @param lengthsXL A vector storing larger lengths of genomic segments at each level.
  */
-void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std::chrono::milliseconds>& durations, int (&overlapping_counts)[LCP_LEVEL], int (&core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& lengthsXL ) {
+void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std::chrono::milliseconds>& durations, int (&contiguous_counts)[LCP_LEVEL], int (&core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& lengthsXL ) {
     auto start = std::chrono::high_resolution_clock::now();
-    size_t initial_size = lcp::str_map.size();
-    lcp::lps *str = new lcp::lps(sequence);
+    size_t initial_size = lcp::hash::str_map.size();
+    lcp::lps *str = new lcp::lps(sequence, true);
     
     auto extraction_end = std::chrono::high_resolution_clock::now();
     sizes[0] += str->memsize();
-    distinct_core_counts[0] += lcp::str_map.size() - initial_size;
+    distinct_core_counts[0] += lcp::hash::str_map.size() - initial_size;
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
     core_counts[0] += str->cores->size();
     
-    analyze(0, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
+    analyze(0, contiguous_counts, distances, distancesXL, lengths, lengthsXL, str);
     
     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
         auto start_level = std::chrono::high_resolution_clock::now();
-        size_t current_size =  lcp::core_map.size();
+        size_t current_size =  lcp::hash::cores_map.size();
 
-        str->deepen();
+        str->deepen(true);
         
         auto stop_level = std::chrono::high_resolution_clock::now();
         sizes[i] += str->memsize();
-        distinct_core_counts[i] += lcp::core_map.size() - current_size;
+        distinct_core_counts[i] += lcp::hash::cores_map.size() - current_size;
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
         core_counts[i] += str->cores->size();
 
-        analyze(i, overlapping_counts, distances, distancesXL, lengths, lengthsXL, str);
+        analyze(i, contiguous_counts, distances, distancesXL, lengths, lengthsXL, str);
     }
 
     std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
@@ -160,7 +176,7 @@ int main(int argc, char **argv) {
     genome.open(argv[1], std::ios::in);
 
     double sizes[LCP_LEVEL] = {0};
-    int overlapping_counts[LCP_LEVEL] = {0};
+    int contiguous_counts[LCP_LEVEL] = {0};
     int core_counts[LCP_LEVEL] = {0};
     int distinct_core_counts[LCP_LEVEL] = {0};
     int distances[LCP_LEVEL][DISTANCE_LENGTH] = {0};
@@ -168,7 +184,7 @@ int main(int argc, char **argv) {
     int lengths[LCP_LEVEL][DISTANCE_LENGTH] = {0};
     std::vector<std::vector<int>> lengthsXL(LCP_LEVEL);
     std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
-
+    size_t genome_size = 0;
     
     // read file
     if ( genome.is_open() ) {  
@@ -178,12 +194,11 @@ int main(int argc, char **argv) {
 
         // initializing coefficients of the alphabet and hash tables
         lcp::init_coefficients();
-        lcp::init_hashing(4000, 750000000);
+        lcp::hash::init(4000, 536870911);
                 
         std::cout << "Program begins" << std::endl;
 
-        std::cout << "str_map.capacity at the begining: " << format_int( lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
-        std::cout << "core_map.capacity at the begining: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
+        std::cout << "str_map.capacity at the begining: " << format_int( lcp::hash::str_map.max_load_factor() * lcp::hash::str_map.bucket_count() ) << std::endl;
         
         while (getline(genome, line)) {
 
@@ -191,7 +206,8 @@ int main(int argc, char **argv) {
 
                 // process previous chromosome before moving into new one
                 if (sequence.size() != 0) {
-                    process( sequence, sizes, durations, overlapping_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
+                    genome_size += sequence.size();
+                    process( sequence, sizes, durations, contiguous_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
                 }
                 
                 id = line.substr(1);
@@ -205,27 +221,20 @@ int main(int argc, char **argv) {
         }
 
         if (sequence.size() != 0) {
-            process( sequence, sizes, durations, overlapping_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
+            genome_size += sequence.size();
+            process( sequence, sizes, durations, contiguous_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
         }
 
-        summaryLCP( sizes, overlapping_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts, distinct_core_counts);
+        summaryLCP( sizes, contiguous_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts, distinct_core_counts, genome_size);
 
         genome.close();
     }
     
     std::cout << std::endl;
 
-    std::cout << "str_map.capacity at the end: " << format_int(lcp::str_map.max_load_factor() * lcp::str_map.bucket_count() ) << std::endl;
-    std::cout << "str_map.size at the end: " << format_int( lcp::str_map.size() ) << std::endl;
-    
-    std::cout << std::endl;
+    lcp::hash::summary();
 
-    std::cout << "core_map.capacity at the end: " << format_int( lcp::core_map.max_load_factor() * lcp::core_map.bucket_count() ) << std::endl;
-    std::cout << "core_map.size at the end: " << format_int( lcp::core_map.size() ) << std::endl;
-
-    std::cout << std::endl;
-
-    std::cout << "ID: " << lcp::next_id << std::endl;
+    std::cout << "ID: " << lcp::hash::next_id << std::endl;
 
     return 0;
 };
