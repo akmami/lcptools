@@ -74,7 +74,7 @@ namespace lcp {
          * @param str The input string to be parsed.
          * @param rev_comp Whether to apply reverse complement (default is false).
          */
-        lps(std::string &str, bool rev_comp = false);
+        lps(std::string &str, bool use_map = false, bool rev_comp = false);
 
         /**
          * @brief Constructs an lps object by reading from a binary input file.
@@ -97,7 +97,7 @@ namespace lcp {
          * @param end Iterator pointing to the end of the string range to parse.
          * @param rev_comp Whether to apply reverse complement parsing.
          */
-        void parse(std::string::iterator begin, std::string::iterator end, bool rev_comp = false);
+        void parse(std::string::iterator begin, std::string::iterator end, bool use_map = false, bool rev_comp = false);
 
         /**
          * @brief Deepens the compression level of the LCP structure. This method compresses the 
@@ -105,7 +105,7 @@ namespace lcp {
          * 
          * @return True if successful in deepening the structure, false otherwise.
          */
-        bool deepen();
+        bool deepen(bool use_map = false);
 
         /**
          * @brief Deepens the compression level of the LCP structure to a specific level.
@@ -113,7 +113,7 @@ namespace lcp {
          * @param lcp_level The target compression level to deepen to.
          * @return True if deepening was successful, false otherwise.
          */
-        bool deepen(int lcp_level);
+        bool deepen(int lcp_level, bool use_map = false);
 
         /**
          * @brief Writes the current LCP structure to a binary file with the specified filename.
