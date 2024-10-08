@@ -2,7 +2,7 @@
 
 namespace lcp {
 
-    lps::lps(std::string &str, bool rev_comp) {
+    lps::lps(std::string &str, bool use_map, bool rev_comp) {
 
         this->level = 1;
 
@@ -17,7 +17,7 @@ namespace lcp {
             std::reverse(str.begin(), str.end());
         }
         
-        parse(str.begin(), str.end(), rev_comp);
+        parse(str.begin(), str.end(), use_map, rev_comp);
     };
 
     lps::lps(std::ifstream& in) {
@@ -38,13 +38,14 @@ namespace lcp {
         }
     };
 
-    void lps::parse(std::string::iterator begin, std::string::iterator end, bool rev_comp) {
+    void lps::parse(std::string::iterator begin, std::string::iterator end, bool use_map, bool rev_comp ) {
 
         int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
 
         int index = 0;
+        size_t last_index = end - begin;
         std::string::iterator it1 = begin;
-        std::string::iterator it2;
+        std::string::iterator it2 = end;
 
         // Find lcp cores
         for ( ; it1 + 2 < end; it1++, index++ ) {
@@ -60,7 +61,18 @@ namespace lcp {
             
             // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
             if ( coefficientsArray[static_cast<unsigned char>(*(it1+1))] == coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
-                
+                            
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1, it1+1, last_index, rev_comp);
+                    this->cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( it2-1, it1+1 );
+                    } else {
+                        new_core->label = hash::simple( it2-1, it1+1 );
+                    }
+                }
+
                 for ( it2 = it1 + 3; it2 < end && *(it2-1) == *(it2); it2++ );
 
                 // If z is invalid character or end, then do not processed
@@ -71,13 +83,18 @@ namespace lcp {
                 // core constructor takes end exclusively
                 it2++;
                             
-                core *new_core = new core(it1, it2, index, index+(it2-it1), rev_comp);
+                core *new_core = new core(it1, it2, index, rev_comp);
                 this->cores->push_back(new_core);
                 
                 // set label
-                // new_core->label = hash::emplace( it1, it2 );
-                new_core->label = hash::simple( it1, it2 );
+                if ( use_map ) {
+                    new_core->label = hash::emplace( it1, it2 );
+                } else {
+                    new_core->label = hash::simple( it1, it2 );
+                }
 
+                last_index = index+(it2-it1)-1;
+                
                 continue;
             }
 
@@ -85,12 +102,30 @@ namespace lcp {
             if ( coefficientsArray[static_cast<unsigned char>(*(it1))] > coefficientsArray[static_cast<unsigned char>(*(it1+1))] && 
                  coefficientsArray[static_cast<unsigned char>(*(it1+1))] < coefficientsArray[static_cast<unsigned char>(*(it1+2))] ) {
                 
-                core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1, it1+1, last_index, rev_comp);
+                    this->cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( it2-1, it1+1 );
+                    } else {
+                        new_core->label = hash::simple( it2-1, it1+1 );
+                    }
+                }
+
+                it2 = it1 + 3;
+                
+                core *new_core = new core(it1, it2, index, rev_comp);
                 this->cores->push_back(new_core);
                 
                 // set label
-                // new_core->label = hash::emplace( it1, it1+3 );
-                new_core->label = hash::simple( it1, it1+3 );
+                if ( use_map ) {
+                    new_core->label = hash::emplace( it1, it2 );
+                } else {
+                    new_core->label = hash::simple( it1, it2 );
+                }
+
+                last_index = index + 2;
 
                 continue;
             } 
@@ -106,12 +141,30 @@ namespace lcp {
                  coefficientsArray[static_cast<unsigned char>(*(it1-1))] <= coefficientsArray[static_cast<unsigned char>(*(it1))] && 
                  coefficientsArray[static_cast<unsigned char>(*(it1+2))] >= coefficientsArray[static_cast<unsigned char>(*(it1+3))] ) {
                 
-                core *new_core = new core(it1, it1+3, index, index+3, rev_comp);
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1, it1+1, last_index, rev_comp);
+                    this->cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( it2-1, it1+1 );
+                    } else {
+                        new_core->label = hash::simple( it2-1, it1+1 );
+                    }
+                }
+
+                it2 = it1 + 3;
+
+                core *new_core = new core(it1, it2, index, rev_comp);
                 this->cores->push_back(new_core);
                 
                 // set label
-                // new_core->label = hash::emplace( it1, it1+3 );
-                new_core->label = hash::simple( it1, it1+3 );
+                if ( use_map ) {
+                    new_core->label = hash::emplace( it1, it2 );
+                } else {
+                    new_core->label = hash::simple( it1, it2 );
+                }
+
+                last_index = index + 2;
 
                 continue;
             }
@@ -125,7 +178,7 @@ namespace lcp {
         delete this->cores;
     };
 
-    bool lps::deepen() {
+    bool lps::deepen( bool use_map ) {
 
         size_t start_index = 0;
 
@@ -152,7 +205,7 @@ namespace lcp {
         }
 
         // find cores from compressed cores.
-        std::vector<core*>::iterator it1 = this->cores->begin() + start_index, it2;
+        std::vector<core*>::iterator it1 = this->cores->begin() + start_index, it2 = this->cores->end();
         std::vector<core*> *temp_cores = new std::vector<core*>;
 
         temp_cores->reserve( this->cores->size() / CONSTANT_FACTOR );
@@ -165,6 +218,18 @@ namespace lcp {
 
             // if there are same characters in subsequenct order such as xyyz, xyyyz, .... where x!=y and y!=z
             if ( *(*(it1 + 1)) == *(*(it1+2)) ) {
+                
+                // check if there is a gap in between previous core
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1-COMPRESSION_ITERATION_COUNT, it1+1);
+                    temp_cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    } else {
+                        new_core->label = hash::simple( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    }
+                }
 
                 for ( it2 = it1 + 3; it2 < this->cores->end() && *(*(it2-1)) == *(*(it2)); it2++ );
                 
@@ -175,8 +240,11 @@ namespace lcp {
                     temp_cores->push_back(new_core);
 
                     // set label
-                    // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it2-it1)-2 );
-                    new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it2-it1)-2 );
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it1-it2) );
+                    } else {
+                        new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it2-1))->label, static_cast<uint32_t>(it1-it2) );
+                    }
                 } 
 
                 continue;
@@ -184,13 +252,31 @@ namespace lcp {
 
             // if there is a local minima
             if ( *(*(it1)) > *(*(it1+1)) && *(*(it1+1)) < *(*(it1+2)) ) {
-                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
+                
+                // check if there is a gap in between previous core
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1-COMPRESSION_ITERATION_COUNT, it1+1);
+                    temp_cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    } else {
+                        new_core->label = hash::simple( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    }
+                }
+
+                it2 = it1 + 3;
+
+                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                 temp_cores->push_back(new_core);
 
                 // set label
-                // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
-                new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
-                
+                if ( use_map ) {
+                    new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                } else {
+                    new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                }
+
                 continue;
             }
 
@@ -202,13 +288,31 @@ namespace lcp {
             // if there is local maxima without immediate local minima neighbours
             if ( *(*(it1)) < *(*(it1 + 1)) && *(*(it1+1)) > *(*(it1+2)) && 
                  *(*(it1-1)) <= *(*(it1)) && *(*(it1+2)) >= *(*(it1+3)) ) { 
-                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it1+3);
+                
+                // check if there is a gap in between previous core
+                if ( it2 < it1 ) {
+                    core *new_core = new core(it2-1-COMPRESSION_ITERATION_COUNT, it1+1);
+                    temp_cores->push_back(new_core);
+
+                    if ( use_map ) {
+                        new_core->label = hash::emplace( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    } else {
+                        new_core->label = hash::simple( (*(it2-1))->label, (*(it2))->label, (*(it1))->label, static_cast<uint32_t>(it1-it2) );
+                    }
+                }
+
+                it2 = it1 + 3;
+
+                core *new_core = new core(it1 - COMPRESSION_ITERATION_COUNT, it2);
                 temp_cores->push_back(new_core);
 
                 // set label
-                // new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
-                new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
-                
+                if ( use_map ) {
+                    new_core->label = hash::emplace( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                } else {
+                    new_core->label = hash::simple( (*(it1))->label, (*(it1+1))->label, (*(it1+2))->label, 1 );
+                }
+
                 continue;
             }
         }
@@ -227,14 +331,14 @@ namespace lcp {
         return true;
     };
 
-    bool lps::deepen(int lcp_level ) {
+    bool lps::deepen( int lcp_level, bool use_map ) {
 
         if ( lcp_level <= this->level ) {
             return false;
         }
 
         while ( this->level < lcp_level ) {
-            this->deepen();
+            this->deepen(use_map);
         }
 
         return true;
