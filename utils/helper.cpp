@@ -128,48 +128,6 @@ double stdev(int (&numbers)[DISTANCE_LENGTH], std::vector<int> numbersXL = {}) {
 
 
 /**
- * @brief Prints a summary of statistics for distances between minimizers.
- *
- * This function outputs a summary of the statistical analysis of distances between
- * minimizers. It includes the execution time, total count of minimizers, and the
- * statistical measures (mean and standard deviation) of distances. The statistics
- * are computed both with and without considering additional larger distances that
- * fall outside a predefined range.
- *
- * The summary is printed to the standard output (console) and is formatted to
- * provide a clear and concise overview of the data.
- *
- * @param distances A reference to an array of integers, size DISTANCE_LENGTH,
- *        representing the primary set of distances between minimizers.
- * @param distancesXL A vector of integers representing distances
- *        between minimizers that are outside the predefined range.
- * @param total_duration The total execution time of the minimizer analysis,
- *        represented as a duration in milliseconds.
- * @param total_count The total number of minimizers analyzed.
- */
-void summaryMimimizer( int (&distances)[DISTANCE_LENGTH], std::vector<int> &distancesXL, std::chrono::milliseconds total_duration, size_t total_count ) {
-    
-    std::cout << "Level execution time:                         " << ( (double) total_duration.count() ) / 1000 << " sec" << std::endl;
-    std::cout << "Total number of minimizers:                   " << total_count << std::endl;
-
-    std::cout << "----------------------------------------------" << std::endl;
-
-    std::cout << "Mean of distances btw minimizers (w'out):     " << mean(distances) << std::endl; 
-    std::cout << "Std of distances btw minimizers (w'out):      " << stdev(distances) << std::endl;
-
-    std::cout << "----------------------------------------------" << std::endl;
-        
-    std::cout << "Mean of distances btw minimizers (with):      " << mean(distances, distancesXL) << std::endl;
-    std::cout << "Std of distances btw minimizers (with):       " << stdev(distances, distancesXL) << std::endl;
-
-    std::cout << "----------------------------------------------" << std::endl;
-
-    std::cout << "dist # not in [-10k,10k):                     " << distancesXL.size() << std::endl;
-        
-};
-
-
-/**
  * @brief Prints a summary of the analysis to the console.
  *
  * Outputs a concise summary of the statistical analysis, including mean and standard
