@@ -1,13 +1,9 @@
 FASTA ?=
-FASTQ ?=
 LCP_LEVEL ?= 4
 
 # Programs
-CPP_LCP_FASTA := cpp-lcp-fasta
-CPP_LCP_FASTA_MEM := cpp-lcp-fasta-mem
-CPP_LCP_FASTQ_ERROR := cpp-lcp-fastq-error
-CPP_MINIMIZER_FASTA := cpp-minimizer-fasta
-CPP_MINIMIZER_FASTQ_ERROR := cpp-minimizer-fastq-error
+LCP_FASTA := lcp-fasta
+LCP_FASTA_MEM := lcp-fasta-mem
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -77,16 +73,6 @@ check_fasta:
 		exit 1; \
 	fi
 
-check_fastq:
-	@if [ -z "$(FASTQ)" ]; then \
-        echo "FASTA is not set or is empty. Exiting"; \
-		exit 1; \
-    fi
-	@if [ ! -f $(FASTQ) ]; then \
-		echo "$(FASTQ) does not exist. Exiting."; \
-		exit 1; \
-	fi
-
 install:
 	@if [ ! -f $(DATA_DIR)/$(FASTA) ]; then \
 		wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz -P $(DATA_DIR)/; \
@@ -112,47 +98,23 @@ clean:
 # LCP
 ######################################################################
 lcpFasta: mkdir_bin mkdir_results check_fasta check_lcptools
-	@echo "Compiling $(CPP_LCP_FASTA)$(CXX)"
-	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA)$(CXX) -o $(CPP_LCP_FASTA).o
+	@echo "Compiling $(LCP_FASTA)$(CXX)"
+	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(LCP_FASTA)$(CXX) -o $(LCP_FASTA).o
 	@echo "Linking lcptools library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA) $(CPP_LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
-	rm $(CPP_LCP_FASTA).o
-	@echo "Moving $(CPP_LCP_FASTA) to $(EXECUTABLE_DIR)"
-	mv $(CPP_LCP_FASTA) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA)-output.txt
+	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA) $(LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(LCP_FASTA).o
+	@echo "Moving $(LCP_FASTA) to $(EXECUTABLE_DIR)"
+	mv $(LCP_FASTA) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA)-output.txt
 
 lcpFastaMem: mkdir_bin mkdir_results check_fasta check_lcptools
-	@echo "Compiling $(CPP_LCP_FASTA_MEM)$(CXX)"
-	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(CPP_LCP_FASTA_MEM)$(CXX) -o $(CPP_LCP_FASTA_MEM).o
+	@echo "Compiling $(LCP_FASTA_MEM)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA_MEM)$(CXX) -o $(LCP_FASTA_MEM).o
 	@echo "Linking lcptools library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(CPP_LCP_FASTA_MEM) $(CPP_LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
-	rm $(CPP_LCP_FASTA_MEM).o
-	@echo "Moving $(CPP_LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
-	mv $(CPP_LCP_FASTA_MEM) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(CPP_LCP_FASTA_MEM)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(CPP_LCP_FASTA_MEM)-output.txt
-	
-lcpFastq: mkdir_bin mkdir_results check_fastq
-	@echo "Compiling $(CPP_LCP_FASTQ_ERROR)$(CXX)"
-	$(GXX) -Wall -o $(CPP_LCP_FASTQ_ERROR) $(CPP_LCP_FASTQ_ERROR)$(CXX) -lz
-	@echo "Moving $(CPP_LCP_FASTQ_ERROR) to $(EXECUTABLE_DIR)"
-	mv $(CPP_LCP_FASTQ_ERROR) $(EXECUTABLE_DIR)
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_LCP_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}"_chr1.maf.gz $(RESULTS_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}".txt "{2} " > $(OUT_DIR)/$(CPP_LCP_FASTQ_ERROR)-chr1-"{1}"-"{2}"-output.txt 2>&1;" ::: 85 90 95 99 ::: 2 3 4 5 6 7
-
-######################################################################
-# MINIMIZER
-######################################################################
-minimizerFasta: mkdir_bin mkdir_results check_fasta
-	@echo "Compiling $(CPP_MINIMIZER_FASTA)$(CXX)";
-	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTA) $(CPP_MINIMIZER_FASTA)$(CXX);
-	@echo "Moving $(CPP_MINIMIZER_FASTA) to $(EXECUTABLE_DIR)";
-	mv $(CPP_MINIMIZER_FASTA) $(EXECUTABLE_DIR);
-	parallel --link "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTA)" "$(DATA_DIR)/$(FASTA)" {1} {2} ">" "$(OUT_DIR)/$(CPP_MINIMIZER_FASTA)-k{1}-w{2}.txt 2>&1;"  ::: 4 10 16 ::: 8 20 32
-
-minimizerFastq: mkdir_bin mkdir_results check_fastq
-	@echo "Compiling $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX)";
-	$(GXX) -Wall -o $(CPP_MINIMIZER_FASTQ_ERROR) $(CPP_MINIMIZER_FASTQ_ERROR)$(CXX);
-	@echo "Moving $(CPP_MINIMIZER_FASTQ_ERROR) to $(EXECUTABLE_DIR)";
-	mv $(CPP_MINIMIZER_FASTQ_ERROR) $(EXECUTABLE_DIR);
-	parallel "$(TIME) $(EXECUTABLE_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR) $(DATA_DIR)/sd_merged_"{1}".maf.gz > $(OUT_DIR)/$(CPP_MINIMIZER_FASTQ_ERROR)-"{1}".txt 2>&1" ::: 85 90 95 99
+	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(LCP_FASTA_MEM).o
+	@echo "Moving $(LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
+	mv $(LCP_FASTA_MEM) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt
