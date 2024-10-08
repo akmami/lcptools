@@ -1,5 +1,5 @@
 /**
- * @file    cpp-lcp-fasta.cpp
+ * @file    lcp-fasta.cpp
  * @brief   Analysis and Processing of Genomic Data
  *
  * This program is designed for in-depth analysis of genomic sequences. It reads
@@ -21,60 +21,58 @@
 
 
 #define STRING_SIZE         250000000
-#define MAX_CORE_COUNT      300000007
-#define COMPUTE_SIZES
+#define MAX_CORE_COUNT      536870911
+#define COMPUTE_SIZES       false
+#define COMPUTE_DISTINCT    true
+#define USE_MAP             false
 
 
-void process(std::string& sequence, std::vector<std::chrono::milliseconds>& durations, int (&total_core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::set<uint32_t>& distinct_cores, std::vector<lcp::lps*>& strs ) {
+void process(std::string& sequence, std::vector<std::chrono::milliseconds>& durations, int (&total_core_counts)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::vector<std::set<uint32_t>>& distinct_cores, std::vector<lcp::lps*>& strs ) {
     
     auto start = std::chrono::high_resolution_clock::now();
-    // size_t initial_table_size = lcp::hash::str_map.size();
-    // size_t initial_hash_size = distinct_cores.size();
-    lcp::lps *str = new lcp::lps(sequence);
+    lcp::lps *str = new lcp::lps(sequence, USE_MAP);
     
     auto extraction_end = std::chrono::high_resolution_clock::now();
     total_core_counts[0] += str->cores->size();
     
     // using simple hash
-    // std::vector<uint32_t> cores;
-    // str->get_labels(cores);
-    // for (const auto& core : cores) {
-    //     distinct_cores.insert(core);
-    // }
-    // distinct_core_counts[0] += distinct_cores.size() - initial_hash_size;
-    // using hash tables
-    // distinct_core_counts[0] += lcp::hash::str_map.size() - initial_size;
+    if ( COMPUTE_DISTINCT ) {
+        std::vector<uint32_t> cores;
+        str->get_labels(cores);
+        for (const auto& core : cores) {
+            distinct_cores[0].insert(core);
+        }
+    }
    
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-    #ifdef COMPUTE_SIZES
-    sizes[0] += str->memsize();
-    #endif
+    
+    if( COMPUTE_SIZES ) {
+        sizes[0] += str->memsize();
+    }
 
     for ( int i = 1; i < LCP_LEVEL; i++ ) {
 
         auto start_level = std::chrono::high_resolution_clock::now();
-        // initial_table_size = lcp::hash::cores_map.size();
-        // initial_hash_size = distinct_cores.size();
         
-        str->deepen();
+        str->deepen(USE_MAP);
         
         auto stop_level = std::chrono::high_resolution_clock::now();
         total_core_counts[i] += str->cores->size();
         
         // using simple hash
-        // cores.clear();
-        // str->get_labels(cores);
-        // for (const auto& core : cores) {
-        //     distinct_cores.insert(core);
-        // }
-        // distinct_core_counts[i] += distinct_cores.size() - initial_hash_size;
-        // using hash tables
-        // distinct_core_counts[i] += lcp::hash::cores_map.size() - initial_table_size;
+        if ( COMPUTE_DISTINCT ) {
+            std::vector<uint32_t> cores;
+            str->get_labels(cores);
+            for (const auto& core : cores) {
+                distinct_cores[i].insert(core);
+            }
+        }
         
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
-        #ifdef COMPUTE_SIZES
-        sizes[i] += str->memsize();
-        #endif
+        
+        if( COMPUTE_SIZES ) {
+            sizes[i] += str->memsize();
+        }
     }
 
     std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
@@ -117,8 +115,7 @@ int main(int argc, char **argv) {
     std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
     double sizes[LCP_LEVEL] = {0};
     int total_core_counts[LCP_LEVEL] = {0};
-    int distinct_core_counts[LCP_LEVEL] = {0};
-    std::set<uint32_t> distinct_cores;
+    std::vector<std::set<uint32_t>> distinct_cores(LCP_LEVEL);
     
     // read file
     if ( genome.is_open() ) {  
@@ -128,19 +125,19 @@ int main(int argc, char **argv) {
 
         // initializing coefficients of the alphabet and hash tables
         lcp::init_coefficients();
-        // lcp::hash::init(4000, MAX_CORE_COUNT);
-                
+        if ( COMPUTE_DISTINCT ) {
+            lcp::hash::init(4000, MAX_CORE_COUNT);
+        }
+
         std::cout << "Program begins" << std::endl;
 
-        std::cout << "str_map.capacity at the begining: " << format_int( lcp::hash::str_map.max_load_factor() * lcp::hash::str_map.bucket_count() ) << std::endl;
-        
         while ( getline(genome, line) ) {
 
             if (line[0] == '>') {
 
                 // process previous chromosome before moving into new one
                 if (sequence.size() != 0) {
-                    process( sequence, durations, total_core_counts, distinct_core_counts, sizes, distinct_cores, strs );
+                    process( sequence, durations, total_core_counts, sizes, distinct_cores, strs );
                 }
 
                 id = line.substr(1);
@@ -154,21 +151,11 @@ int main(int argc, char **argv) {
         }
 
         if (sequence.size() != 0) {
-            process( sequence, durations, total_core_counts, distinct_core_counts, sizes, distinct_cores, strs );
+            process( sequence, durations, total_core_counts, sizes, distinct_cores, strs );
         }
 
         genome.close();
     }
-
-    std::cout << std::endl;
-
-    std::cout << "str_map.capacity at the end: " << format_int(lcp::hash::str_map.max_load_factor() * lcp::hash::str_map.bucket_count() ) << std::endl;
-    std::cout << "str_map.size at the end: " << format_int( lcp::hash::str_map.size() ) << std::endl;
-    
-    std::cout << std::endl;
-
-    std::cout << "cores_map.size at the end: " << format_int( lcp::hash::cores_map.size() ) << std::endl;
-    std::cout << "cores_map.load_factor at the end: " << format_double( lcp::hash::cores_map.load_factor(), 6 ) << std::endl;
 
     std::cout << std::endl;
 
@@ -187,35 +174,40 @@ int main(int argc, char **argv) {
     }
     std::cout << std::endl;
 
-    // Distinct Cores
-    std::cout << "Distinct Cores w Table";
-    for (int i = 0; i < LCP_LEVEL; i++) {
-        std::cout << sep << format_int(distinct_core_counts[i]);
+    // Unique Cores
+    if ( COMPUTE_DISTINCT ) {
+        std::cout << "Unique Cores (Hash)";
+        for (int i = 0; i < LCP_LEVEL; i++) {
+            std::cout << sep << format_int(distinct_cores[i].size());
+        }
+        std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     // Execution Time
-    std::cout << "Execution Time (sec)";
+    std::cout << "Exec. Time (sec) (Hash)";
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_double(((double) durations[i].count()) / 1000);
     }
     std::cout << std::endl;
+    
 
     // Total Sizes
-    std::cout << "Total Sizes(GB)";
-    for (int i = 0; i < LCP_LEVEL; i++) {
-        std::cout << sep << format_double(sizes[i] / (1024.0 * 1024.0 * 1024.0));
+    if ( COMPUTE_SIZES ) {
+        std::cout << "Total Size (GB)**";
+        for (int i = 0; i < LCP_LEVEL; i++) {
+            std::cout << sep << format_double(sizes[i] / (1024.0 * 1024.0 * 1024.0));
+        }
+        std::cout << std::endl << std::endl;
     }
-    std::cout << std::endl;
-
-    std::cout << std::endl;
     
-    std::cout << "ID: " << format_int(lcp::hash::next_id) << std::endl;
-    std::cout << "Total number of cores: " << lcp::hash::str_map.size() + lcp::hash::cores_map.size() << std::endl;
-    
-    std::cout << std::endl;
 
-    lcp::hash::summary();
+    if ( USE_MAP ) {
+        std::cout << "ID: " << format_int(lcp::hash::next_id) << std::endl;
+
+        std::cout << std::endl;
+
+        lcp::hash::summary();
+    }
 
     // cleanup
     for( std::vector<lcp::lps*>::iterator it = strs.begin(); it != strs.end(); it++ ) {
