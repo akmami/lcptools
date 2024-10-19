@@ -4,6 +4,8 @@ LCP_LEVEL ?= 4
 # Programs
 LCP_FASTA := lcp-fasta
 LCP_FASTA_MEM := lcp-fasta-mem
+MINIMIZER_FASTA := minimizer-fasta
+SYNCMER_FASTA := syncmer-fasta
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -18,7 +20,7 @@ CXX := .cpp
 
 # Compiler
 GXX := g++
-CXXFLAGS = -std=c++11 -O2 -Wall -Wextra
+CXXFLAGS = -std=c++11 -O3 -Wall -Wextra
 TIME := /usr/bin/time -v
 
 .PHONY: all
@@ -104,3 +106,29 @@ lcpFastaMem: mkdir_bin check_fasta check_lcptools
 	mv $(LCP_FASTA_MEM) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt"
 	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt
+
+######################################################################
+# MINIMIZER
+######################################################################
+minimizerFasta: mkdir_bin check_fasta
+	@echo "Compiling $(MINIMIZER_FASTA)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(MINIMIZER_FASTA)$(CXX) -o $(MINIMIZER_FASTA).o
+	$(GXX) $(CXXFLAGS) -o $(MINIMIZER_FASTA) $(MINIMIZER_FASTA).o
+	rm $(MINIMIZER_FASTA).o
+	@echo "Moving $(MINIMIZER_FASTA) to $(EXECUTABLE_DIR)"
+	mv $(MINIMIZER_FASTA) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(MINIMIZER_FASTA) $(FASTA) > $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt
+
+######################################################################
+# SYNCMER
+######################################################################
+syncmerFasta: mkdir_bin check_fasta
+	@echo "Compiling $(SYNCMER_FASTA)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(SYNCMER_FASTA)$(CXX) -o $(SYNCMER_FASTA).o
+	$(GXX) $(CXXFLAGS) -o $(SYNCMER_FASTA) $(SYNCMER_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(SYNCMER_FASTA).o
+	@echo "Moving $(SYNCMER_FASTA) to $(EXECUTABLE_DIR)"
+	mv $(SYNCMER_FASTA) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(SYNCMER_FASTA) $(FASTA) > $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt
