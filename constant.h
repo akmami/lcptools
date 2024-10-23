@@ -9,5 +9,7 @@ typedef unsigned int ublock;
 #define CONSTANT_FACTOR                 2
 #define STR_HASH_TABLE_SIZE             1000
 #define CORE_HASH_TABLE_SIZE            10000
+#define MAX_STR_LENGTH                  1000000
+#define OVERLAP_MARGIN                  10000
 
 #endif

@@ -1,13 +1,91 @@
 #include "lps.h"
 
+
 namespace lcp {
+    
+    lps::lps(std::string &str, const int lcp_level, const size_t sequence_split_length, const size_t overlap_margin_length) {
+        
+        this->level = 1;
+        
+        // create initial cores based on first sequence split
+        this->cores = new std::vector<lcp::core*>;
+        this->cores->reserve( sequence_split_length / CONSTANT_FACTOR );
+
+        std::string::iterator it = str.begin();
+        parse(it, std::min(it + sequence_split_length, str.end()));
+        this->deepen(lcp_level);
+        
+        // reserve the size based on the estimated core size for whole string
+        this->cores->reserve( this->cores->size() * ( str.size() / sequence_split_length + 1 ));
+
+        // move to next split
+        it += sequence_split_length;
+
+        while( it < str.end() ) {
+
+            std::string::iterator begin = it - overlap_margin_length;
+            std::string::iterator end = std::min(it + sequence_split_length, str.end()); 
+            std::string str(begin, end);   
+            lcp::lps* temp = new lcp::lps(str);
+            temp->deepen(lcp_level);
+            
+            // merge new processed segment with main cores
+            size_t max_overlap_size = 4;
+            size_t overlap_index = max_overlap_size;
+            size_t max_overlap_index = 50 < temp->cores->size() ? 50 : temp->cores->size();
+            bool found = false; // index for overlap
+
+            while ( overlap_index <= max_overlap_index ) {
+
+                size_t match_count = 0;
+                std::vector<lcp::core*>::iterator it1, it2;
+                
+                it1 = this->cores->end() - 1;
+                it2 = temp->cores->begin() + overlap_index - 1;
+
+                while ( match_count < max_overlap_size && *(*(it1 - match_count)) == *(*(it2 - match_count)) ) {
+                    match_count++;
+                }
+                
+                // found overlap with size overlap_size
+                if ( match_count == max_overlap_size ) {
+                    found = true;
+                    break;
+                }
+
+                // try larger overlap
+                overlap_index++;
+            }
+
+            if ( !found ) {
+                overlap_index = 0;
+            }
+
+            // append new cores to the original core vector
+            this->cores->insert(this->cores->end(), temp->cores->begin()+overlap_index, temp->cores->end());
+
+            // remove non-overlapping cores so it wont be deleted
+            temp->cores->erase(temp->cores->begin()+overlap_index, temp->cores->end());
+            delete temp;
+
+            // move next segment
+            it += sequence_split_length;
+        }
+    };
+
+    lps::lps(std::string::iterator begin, std::string::iterator end) {
+        this->level = 1;
+        
+        this->cores = new std::vector<lcp::core*>;
+        this->cores->reserve( (end - begin) / CONSTANT_FACTOR );
+
+        parse(begin, end);
+    };
 
     lps::lps(std::string &str, bool use_map, bool rev_comp) {
 
         this->level = 1;
 
-        std::string::iterator it2;
-        
         this->cores = new std::vector<lcp::core*>;
         this->cores->reserve( str.size() / CONSTANT_FACTOR );       // As each core appears with average distance of 2.27,
                                                                     // and the increase is always above the 2, it makes sense to reserve
@@ -424,5 +502,34 @@ namespace lcp {
             os << (*it) << " ";
         }
         return os;
+    };
+
+    bool operator==(const lcp::lps& lhs, const lcp::lps& rhs) {
+        if ( lhs.cores->size() != rhs.cores->size() ) {
+            return false;
+        }
+
+        for ( std::vector<lcp::core*>::const_iterator lit = lhs.cores->begin(), rit = rhs.cores->begin(); lit <  lhs.cores->end(); lit++, rit++ ) {
+            if ( *(*lit) != *(*rit) ) {
+                
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    bool operator!=(const lcp::lps& lhs, const lcp::lps& rhs) {
+        if ( lhs.cores->size() != rhs.cores->size() ) {
+            return true;
+        }
+
+        for ( std::vector<lcp::core*>::const_iterator lit = lhs.cores->begin(), rit = rhs.cores->begin(); lit <  lhs.cores->end(); lit++, rit++ ) {
+            if ( *(*lit) != *(*rit) ) {
+                return true;
+            }
+        }
+
+        return false;
     };
 };

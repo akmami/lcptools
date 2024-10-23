@@ -255,7 +255,7 @@ namespace lcp {
 	// core operator overloads
 	bool operator == (const core& lhs, const core& rhs) {
 
-		if ( lhs.size != rhs.size ) {
+		if ( lhs.label != rhs.label || lhs.size != rhs.size ) {
 			return false;
 		}
 

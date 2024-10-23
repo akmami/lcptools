@@ -68,6 +68,32 @@ namespace lcp {
         std::vector<core*> *cores;
 
         /**
+         * @brief Constructor for the lps class that processes a string by splitting it into segments and merging cores.
+         * 
+         * This constructor divides the input string into segments of a specified size (defaulting to 1,000,000) 
+         * and processes each segment individually. It also handles overlapping regions (defaulting to 10,000) 
+         * between segments to ensure continuity. The processed segments are merged by matching cores and 
+         * eliminating redundancy in the overlapping regions.
+         *
+         * @param str Reference to the input string to be processed.
+         * @param lcp_level The depth of processing for each core in the LCP structure.
+         * @param sequence_split_length (Optional) Length of each segment to split the string. Defaults to 1,000,000.
+         * @param overlap_margin_length (Optional) Length of the overlapping region between consecutive segments. Defaults to 10,000.
+         */
+        lps(std::string &str, const int lcp_level, const size_t sequence_split_length = MAX_STR_LENGTH, const size_t overlap_margin_length = OVERLAP_MARGIN);
+        
+        /**
+         * @brief Constructor for the lps class that processes a segment of a string.
+         * 
+         * This constructor processes the part of the string defined by the range [begin, end).
+         * It reserves memory for the cores based on the size of the segment and performs parsing.
+         *
+         * @param begin Iterator pointing to the beginning of the segment.
+         * @param end Iterator pointing to the end of the segment.
+         */
+        lps(std::string::iterator begin, std::string::iterator end);
+
+        /**
          * @brief Constructs an lps object from a string, with an option to apply reverse complement 
          * transformation.
          * 
@@ -199,6 +225,32 @@ namespace lcp {
 	 * @return A reference to the output stream `os` after the `lps` object has been written.
 	 */
     std::ostream& operator<<(std::ostream& os, const lps* element);
+
+    /**
+     * @brief Equality operator for comparing two lcp::lps objects.
+     * 
+     * This function compares the sizes of the core vectors of both objects, and then
+     * compares each core element by dereferencing the core pointers. If all elements match,
+     * the function returns true; otherwise, it returns false.
+     *
+     * @param lhs The left-hand side lps object to compare.
+     * @param rhs The right-hand side lps object to compare.
+     * @return true if both lps objects are equal, false otherwise.
+     */
+    bool operator==(const lcp::lps& lhs, const lcp::lps& rhs);
+
+    /**
+     * @brief Inequality operator for comparing two lcp::lps objects.
+     * 
+     * This function first checks if the sizes of the core vectors are different.
+     * If they are, the objects are not equal. It then checks each core element.
+     * If any element is different, the function returns true; otherwise, it returns false.
+     *
+     * @param lhs The left-hand side lps object to compare.
+     * @param rhs The right-hand side lps object to compare.
+     * @return true if the lps objects are not equal, false otherwise.
+     */
+    bool operator!=(const lcp::lps& lhs, const lcp::lps& rhs);
 };
 
 #endif

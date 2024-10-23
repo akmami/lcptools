@@ -12,7 +12,7 @@ AR = ar
 ARFLAGS = rcs
 
 # variables
-SRC = $(wildcard *.cpp)
+SRC = encoding.cpp hash.cpp core.cpp lps.cpp
 HDR = $(SRC:.cpp=.h)
 OTHER_HDR = constant.h
 OBJ_STATIC = $(SRC:.cpp=_s.o)
@@ -102,18 +102,12 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 		}
 
 # rule to compile .cpp files to .o files for static library
-%_s.o: %.cpp %.h
+%_s.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # rule to compile .cpp files to .o files for dynamic library
-%_d.o: %.cpp %.h
+%_d.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(CXXEXTRA) $< -o $@
-
-# dependencies
-encoding.o: encoding.cpp encoding.h
-hash.o: hash.cpp hash.h lps.h
-core.o: core.cpp core.h encoding.h constant.h
-lps.o: lps.cpp lps.h core.h encoding.h constant.h hash.h
 
 # compile and link test executables
 $(TEST_DIR)/%.o: $(TEST_DIR)/%.cpp
