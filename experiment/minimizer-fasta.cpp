@@ -17,8 +17,8 @@
 #include <chrono>
 #include "../utils/helper.cpp"
 
-#define KMER_SIZE       15
-#define WINDOW_SIZE     10
+#define KMER_SIZE       19
+#define WINDOW_SIZE     19
 #define CAPACITY        250000000
 #define COUNT_DISTINCT  true
 
@@ -106,7 +106,7 @@ void emplaceMinimizer(string::iterator begin, string::iterator end, int current_
  * @param distances      An array to store the frequencies of distances between consecutive minimizers.
  * @param processing_time A reference to the cumulative processing time.
  */
-void findMinimizers(string& sequence, vector <struct minimizer>& minimizers, int kmerSize, int windowSize, int* map, int* distances, std::chrono::milliseconds& processing_time)
+void findMinimizers(int& size, string& sequence, vector <struct minimizer>& minimizers, int kmerSize, int windowSize, int* map, int* distances, std::chrono::milliseconds& processing_time)
 {
     int current_index = 0;
 
@@ -121,11 +121,14 @@ void findMinimizers(string& sequence, vector <struct minimizer>& minimizers, int
     auto end_time = std::chrono::high_resolution_clock::now();
 
     processing_time += std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time );
-
+    size += minimizers.begin()->position;
+    size += sequence.size() - 1 - ((minimizers.end() - 1)->position + kmerSize);
     for ( vector <struct minimizer>::iterator it = minimizers.begin()+1; it < minimizers.end(); it++ ) {
         distances[ it->position - (it - 1)->position ]++;
+        if ( (it-1)->position + kmerSize < it->position) {
+            size += it->position - ((it-1)->position + kmerSize);
+        }
     }
-
     std::cout << "Length of the processed sequence: " << sequence.size() << std::endl;
 };
 
@@ -150,6 +153,7 @@ int main(int argc, char** argv) {
     std::chrono::milliseconds processing_time(0);
     int distances[WINDOW_SIZE + 1] = { 0 };
     int map[128];
+    int gapSize = 0;
 
     gen.reserve(CAPACITY);
     init_map(map);
@@ -173,7 +177,7 @@ int main(int argc, char** argv) {
                 if (gen.size() != 0) {
                     vector <struct minimizer> sequence_minimizers;
                     sequence_minimizers.reserve( 3 * gen.size() / WINDOW_SIZE );
-                    findMinimizers(gen, sequence_minimizers, KMER_SIZE, WINDOW_SIZE, map, distances, processing_time);
+                    findMinimizers(gapSize, gen, sequence_minimizers, KMER_SIZE, WINDOW_SIZE, map, distances, processing_time);
                     minimizers.push_back(sequence_minimizers);
                 }
 
@@ -194,7 +198,7 @@ int main(int argc, char** argv) {
         if (gen.size() != 0) {
             vector <struct minimizer> sequence_minimizers;
             sequence_minimizers.reserve( 3 * gen.size() / WINDOW_SIZE );
-            findMinimizers(gen, sequence_minimizers, KMER_SIZE, WINDOW_SIZE, map, distances, processing_time);
+            findMinimizers(gapSize, gen, sequence_minimizers, KMER_SIZE, WINDOW_SIZE, map, distances, processing_time);
             minimizers.push_back(sequence_minimizers);
             std::cout << "Found minimizers: " << sequence_minimizers.size() << std::endl; 
         }
@@ -247,5 +251,6 @@ int main(int argc, char** argv) {
     cout << "Exec. Time (sec): " << format_double( (((double) processing_time.count()) / 1000) ) << endl;
     cout << "Mean Minimizer Distances: " << format_double(average) << endl;
     cout << "Std Dev of Distances: " << format_double(std_dev) << endl;
+    cout << "Gap size: " << gapSize << endl;
     cout << "Total Size (GB): " << format_double( (numOfMinimizers * sizeof(kmer_type)) / (1024.0 * 1024.0 * 1024.0)) << endl;
 };

@@ -19,9 +19,8 @@
 #include "../utils/helper.cpp"
 
 #define KMER_SIZE           15
-#define SMER_SIZE           9
-#define SMER_BEGIN_INDEX    3
-#define SMER_END_INDEX      3
+#define SMER_SIZE           4
+#define SMER_BEGIN_INDEX    0
 #define CAPACITY            250000000
 #define DISTANCE_ARRAY_SIZE 9999
 #define COUNT_DISTINCT      true
@@ -51,11 +50,10 @@ struct syncmer {
  * @brief   Identifies and inserts a syncmer into the syncmer vector if it meets certain conditions.
  *
  * This function scans through a k-mer to identify the lexicographically smallest s-mer (substring of size `smerSize`)
- * and compares its index with two predefined indices (`beginIndex1`, `beginIndex2`). If the smallest s-mer is found
+ * and compares its index with predefined indicex (`beginIndex`). If the smallest s-mer is found
  * at either of these positions, the corresponding syncmer is encoded and appended to the `syncmers` vector.
  *
- * @param beginIndex1    The first index to compare with the smallest s-mer's position.
- * @param beginIndex2    The second index to compare with the smallest s-mer's position.
+ * @param beginIndex     The index to compare with the smallest s-mer's position.
  * @param begin          Iterator pointing to the beginning of the current k-mer.
  * @param end            Iterator pointing to the end of the current k-mer.
  * @param current_index  The index of the current k-mer in the sequence.
@@ -64,21 +62,21 @@ struct syncmer {
  * @param syncmers       A vector to store the resulting syncmers.
  * @param map            A pointer to an array used to encode s-mers.
  */
-void emplaceSyncmer(int beginIndex1, int beginIndex2, string::iterator begin, string::iterator end, int current_index, int smerSize, int kmerSize, vector <struct syncmer>& syncmers, int* map)
+void emplaceSyncmer(int beginIndex, string::iterator begin, string::iterator end, int current_index, int smerSize, int kmerSize, vector <struct syncmer>& syncmers, int* map)
 {
     string::iterator minimal_smer_it = begin, current_smer_it = begin + 1;
-    int minimal_smer_index = current_index, temp_index;
+    int minimal_smer_index = 0, temp_index;
     
-    while ( current_smer_it + smerSize < end )
+    while ( current_smer_it + smerSize <= end )
     {   
         temp_index = 0;
 
-        while ( temp_index < smerSize && *(current_smer_it + temp_index) == *(minimal_smer_it + temp_index) )
+        while ( temp_index < smerSize && ( *(minimal_smer_it + temp_index) | 0b100000 ) == ( *(current_smer_it + temp_index) | 0b100000 ) ) 
         {
             temp_index++;
         }
 
-        if ( temp_index != smerSize && *(current_smer_it + temp_index) < *(minimal_smer_it + temp_index) )
+        if ( temp_index != smerSize && ( *(minimal_smer_it + temp_index) | 0b100000 ) > ( *(current_smer_it + temp_index) | 0b100000 ) )
         {   
             minimal_smer_it = current_smer_it;
             minimal_smer_index = current_smer_it - begin;
@@ -87,7 +85,7 @@ void emplaceSyncmer(int beginIndex1, int beginIndex2, string::iterator begin, st
         current_smer_it++;
     }
     
-    if (minimal_smer_index == beginIndex1 || minimal_smer_index == beginIndex2)
+    if (minimal_smer_index == beginIndex)
     {
         struct syncmer syncmer( encode( map, begin, begin + kmerSize ), current_index );
         syncmers.push_back( syncmer );
@@ -98,12 +96,11 @@ void emplaceSyncmer(int beginIndex1, int beginIndex2, string::iterator begin, st
  * @brief   Finds syncmers in a genomic sequence and calculates processing time.
  *
  * This function processes a genomic sequence by sliding a window of size `kmerSize` across it, calling
- * `emplaceSyncmer` to identify syncmers based on predefined indices (`beginIndex1` and `beginIndex2`). The
+ * `emplaceSyncmer` to identify syncmers based on predefined index (`beginIndex`). The
  * function also calculates distances between consecutive syncmers and measures the time taken to process
  * the entire sequence.
  *
- * @param beginIndex1    The first index to compare with the smallest s-mer's position.
- * @param beginIndex2    The second index to compare with the smallest s-mer's position.
+ * @param beginIndex     The  index to compare with the smallest s-mer's position.
  * @param sequence       The input sequence of nucleotides/characters to be processed.
  * @param syncmers       A vector to store the resulting syncmers.
  * @param kmerSize       The size of the k-mer (number of characters).
@@ -112,8 +109,7 @@ void emplaceSyncmer(int beginIndex1, int beginIndex2, string::iterator begin, st
  * @param distances      An array to store the frequencies of distances between consecutive syncmers.
  * @param processing_time A reference to the cumulative processing time.
  */
-
-void findSyncmers(int beginIndex1, int beginIndex2, string& sequence, vector <struct syncmer>& syncmers, int kmerSize, int smerSize, int* map, int* distances, std::chrono::milliseconds& processing_time)
+void findSyncmers(int& size, int beginIndex, string& sequence, vector <struct syncmer>& syncmers, int kmerSize, int smerSize, int* map, int* distances, std::chrono::milliseconds& processing_time)
 {
     int current_index = 0;
 
@@ -121,7 +117,7 @@ void findSyncmers(int beginIndex1, int beginIndex2, string& sequence, vector <st
 
     for ( string::iterator it = sequence.begin(); it <= sequence.end() - kmerSize; ++it )
     {
-        emplaceSyncmer(beginIndex1, beginIndex2, it, it + kmerSize, current_index, smerSize, kmerSize, syncmers, map);
+        emplaceSyncmer(beginIndex, it, it + kmerSize, current_index, smerSize, kmerSize, syncmers, map);
         current_index++;
     }
 
@@ -129,8 +125,13 @@ void findSyncmers(int beginIndex1, int beginIndex2, string& sequence, vector <st
 
     processing_time += std::chrono::duration_cast<std::chrono::milliseconds>( end_time - start_time );
 
+    size += syncmers.begin()->position;
+    size += sequence.size() - 1 - ((syncmers.end() - 1)->position + kmerSize);
     for ( vector <struct syncmer>::iterator it = syncmers.begin()+1; it < syncmers.end(); it++ ) {
         distances[ it->position - (it - 1)->position ]++;
+        if ( (it-1)->position + kmerSize < it->position) {
+            size += it->position - ((it-1)->position + kmerSize);
+        }
     }
 
     std::cout << "Length of the processed sequence: " << sequence.size() << std::endl;
@@ -157,6 +158,7 @@ int main(int argc, char** argv) {
     std::chrono::milliseconds processing_time(0);
     int distances[DISTANCE_ARRAY_SIZE] = { 0 };
     int map[128];
+    int gapSize = 0;
 
     gen.reserve(CAPACITY);
     init_map(map);
@@ -166,9 +168,7 @@ int main(int argc, char** argv) {
     // Open genome file
     std::fstream genome;
     genome.open(argv[1], std::ios::in);
-    
-    int windowSize = KMER_SIZE * (2/3); // REALLY? what is 2/3? Hint: int over int division resulting to what?
-    
+
     // Read the file line by line
     if ( genome.is_open() ) {  
         
@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
                 if (gen.size() != 0) {
                     vector<struct syncmer> sequence_syncmers;
                     sequence_syncmers.reserve( gen.size() );
-                    findSyncmers(SMER_BEGIN_INDEX, SMER_END_INDEX, gen, sequence_syncmers, KMER_SIZE, SMER_SIZE, map, distances, processing_time);
+                    findSyncmers(gapSize, SMER_BEGIN_INDEX, gen, sequence_syncmers, KMER_SIZE, SMER_SIZE, map, distances, processing_time);
                     syncmers.push_back(sequence_syncmers);
                     std::cout << "Found syncmers: " << sequence_syncmers.size() << std::endl; 
                 }
@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
         if (gen.size() != 0) {
             vector <struct syncmer> sequence_syncmers;
             sequence_syncmers.reserve( gen.size() );
-            findSyncmers(SMER_BEGIN_INDEX, SMER_END_INDEX, gen, sequence_syncmers, KMER_SIZE, SMER_SIZE, map, distances, processing_time);
+            findSyncmers(gapSize, SMER_BEGIN_INDEX, gen, sequence_syncmers, KMER_SIZE, SMER_SIZE, map, distances, processing_time);
             syncmers.push_back(sequence_syncmers);
             std::cout << "Found syncmers: " << sequence_syncmers.size() << std::endl;
         }
@@ -257,5 +257,6 @@ int main(int argc, char** argv) {
     cout << "Exec. Time (sec): " << format_double( (((double) processing_time.count()) / 1000) ) << endl;
     cout << "Mean Syncmer Distances: " << format_double(average) << endl;
     cout << "Std Dev of Distances: " << format_double(std_dev) << endl;
+    cout << "Gap size: " << format_double(gapSize) << endl;
     cout << "Total Size (GB): " << format_double( (numOfSyncmers * sizeof(kmer_type)) / (1024.0 * 1024.0 * 1024.0)) << endl;
 };
