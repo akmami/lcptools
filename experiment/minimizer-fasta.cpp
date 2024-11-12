@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <cmath>
 #include <chrono>
-#include "../utils/helper.cpp"
+#include "helper.cpp"
 
 #define KMER_SIZE       19
 #define WINDOW_SIZE     19

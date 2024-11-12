@@ -1,9 +1,9 @@
 /**
  * @file core.cpp
- * @brief Implementation of the `core` class and its associated functions.
+ * @brief Implementation of the `core` struct and its associated functions.
  *
- * This file contains the implementation of the `core` class, which is used to represent 
- * a sequence of encoded bits for string data. The class supports operations such as
+ * This file contains the implementation of the `core` struct, which is used to represent 
+ * a sequence of encoded bits for string data. The stuct supports operations such as
  * compression, comparison, and writing/reading to files.
  *
  * Key operations include:
@@ -26,21 +26,21 @@
 #include "core.h"
 
 
-inline size_t block_number(size_t size) {
+inline size_t block_number( size_t size ) {
 	return ( size - 1 ) / SIZE_PER_BLOCK + 1;
 };
 
 
-inline size_t start_index(size_t size) {
+inline size_t start_index( size_t size ) {
 	return block_number(size) * SIZE_PER_BLOCK - size;
 };
 
 
 namespace lcp {
 	
-	core::core( std::string::iterator begin, std::string::iterator end, size_t begin_index, bool rev_comp ) {
+	core::core( std::string::iterator begin, std::string::iterator end, size_t begin_index, bool use_map, bool rev_comp ) {
 
-		int* coefficientsArray = ( rev_comp ? reverse_complement_coefficients : coefficients);
+		int* coefficientsArray = ( rev_comp ? rc_alphabet : alphabet);
 
 		#ifdef STATS
 		this->start = begin_index;
@@ -49,7 +49,7 @@ namespace lcp {
 		(void)begin_index;
 		#endif
 
-		this->size = ( end - begin ) * dict_bit_size;
+		this->size = ( end - begin ) * alphabet_bit_size;
 
 		// make allocation for the bit representation
 		this->p = new ublock[ block_number(this->size) ];
@@ -66,7 +66,7 @@ namespace lcp {
 		for (std::string::iterator it = begin; it != end; it++) {
 			coefficient = coefficientsArray[static_cast<unsigned char>(*it)];
 			block_index = index / SIZE_PER_BLOCK;
-			shift = SIZE_PER_BLOCK - ( index % SIZE_PER_BLOCK ) - dict_bit_size;
+			shift = SIZE_PER_BLOCK - ( index % SIZE_PER_BLOCK ) - alphabet_bit_size;
 
 			if (shift >= 0) {
 				this->p[block_index] |= (coefficient << shift);
@@ -76,22 +76,31 @@ namespace lcp {
 					this->p[block_index + 1] |= (coefficient << (SIZE_PER_BLOCK + shift));
 				}
 			}
-			index += dict_bit_size;
+			index += alphabet_bit_size;
 		}
 
 		coefficientsArray = nullptr;
+
+		if ( !use_map ) {
+			this->label = hash::simple( begin, end );
+		} else {
+			this->label = hash::emplace( begin, end );
+		}
 	};
 
-	core::core(std::vector<core*>::iterator begin, std::vector<core*>::iterator end) {
+	core::core( std::vector<struct core>::iterator begin, std::vector<struct core>::iterator end, size_t begin_index, bool use_map, bool rev_comp ) {
 		#ifdef STATS
-		this->start = (*begin)->start;
-		this->end = (*(end-1))->end;
+		this->start = (begin)->start;
+		this->end = (end-1)->end;
 		#endif
+
+		(void)begin_index;
+		(void)rev_comp;
 
 		// calculate required number of bits to represent core
 		this->size = 0;
-		for ( std::vector<core*>::iterator it = begin; it != end; it++ ) {
-			this->size += (*it)->size;
+		for ( std::vector<struct core>::iterator it = begin; it != end; it++ ) {
+			this->size += (it)->size;
 		}
 
 		// make allocation for the bit representation
@@ -105,12 +114,12 @@ namespace lcp {
 		size_t index = start_index( this->size ), block_index, block_size;
 		int block, shift;
 
-		for( std::vector<core*>::iterator it = begin; it != end; it++ ) {
+		for( std::vector<struct core>::iterator it = begin; it != end; it++ ) {
 
-			for ( size_t i = 0; i < block_number((*it)->size); i++ ) {
+			for ( size_t i = 0; i < block_number((it)->size); i++ ) {
 				block_index = index / SIZE_PER_BLOCK;
-				block = (*it)->p[i];
-				block_size = ( i == 0 ? SIZE_PER_BLOCK - start_index((*it)->size): SIZE_PER_BLOCK );
+				block = (it)->p[i];
+				block_size = ( i == 0 ? SIZE_PER_BLOCK - start_index((it)->size): SIZE_PER_BLOCK );
 				shift = SIZE_PER_BLOCK - ( index % SIZE_PER_BLOCK ) - block_size;
 
 				// shift and paste
@@ -128,9 +137,15 @@ namespace lcp {
 				index += block_size;
 			}
 		}
+
+		if ( !use_map ) {
+			this->label = hash::simple( (begin)->label, ((begin+1))->label, ((end-1))->label, end-begin-2 );
+		} else {
+			this->label = hash::emplace( (begin)->label, ((begin+1))->label, ((end-1))->label, end-begin-2 );
+		}
 	};
 
-	core::core(ublock* p, size_t size, uint32_t label, size_t start, size_t end) {
+	core::core( ublock* p, size_t size, uint32_t label, size_t start, size_t end ) {
 		this->p = p;
 		this->size = size;
 		this->label = label;
@@ -143,7 +158,7 @@ namespace lcp {
 		#endif
 	};
 
-	core::core(std::ifstream& in) {
+	core::core( std::ifstream& in ) {
 		#ifdef STATS
 		in.read(reinterpret_cast<char*>(&start), sizeof(start));
 		in.read(reinterpret_cast<char*>(&end), sizeof(end));
@@ -160,18 +175,19 @@ namespace lcp {
     };
 
 	core::~core() {
-		delete[] p;
+		if ( this->p != nullptr)
+			delete[] p;
 		this->p = nullptr;
 	};
 
-	void core::compress(const core* other) {
+	void core::compress( const struct core& other ) {
 		
-		size_t o_block_index = block_number(other->size) - 1, t_block_index = block_number(this->size) - 1;
-		ublock o = other->p[o_block_index], t = this->p[t_block_index];
+		size_t o_block_index = block_number(other.size) - 1, t_block_index = block_number(this->size) - 1;
+		ublock o = other.p[o_block_index], t = this->p[t_block_index];
 		size_t current_index = 0, new_bit_size = 0, temp = 0;
 		
 		while (o_block_index > 0 && t_block_index > 0 && o == t) {
-			o = other->p[--o_block_index];
+			o = other.p[--o_block_index];
 			t = this->p[--t_block_index];
 		}
 
@@ -180,8 +196,8 @@ namespace lcp {
 				0 : 
 				start_index(this->size) ) : 
 			(t_block_index ? 
-				start_index(other->size) :
-				std::max(start_index(other->size), start_index(this->size) ) );
+				start_index(other.size) :
+				std::max(start_index(other.size), start_index(this->size) ) );
 		
 
 		while (current_index < SIZE_PER_BLOCK && o % 2 == t % 2) {
@@ -234,7 +250,7 @@ namespace lcp {
 		}
 	};
 
-    void core::write(std::ofstream& out) const {
+    void core::write( std::ofstream& out ) const {
 		#ifdef STATS
 		out.write(reinterpret_cast<const char*>(&start), sizeof(start));
 		out.write(reinterpret_cast<const char*>(&end), sizeof(end));
@@ -252,13 +268,38 @@ namespace lcp {
         return size;
     };
 
-	// core operator overloads
-	bool operator == (const core& lhs, const core& rhs) {
+	struct core& core::operator = ( const struct core& other ) {
+		if (this == &other) {
+			return *this;
+		}
+		
+		delete[] this->p;
 
-		if ( lhs.label != rhs.label || lhs.size != rhs.size ) {
-			return false;
+		if ( other.p ) {
+			this->p = new ublock[block_number(other.size)];
+			std::copy(other.p, other.p + block_number(other.size) * sizeof(ublock), this->p);
+		} else {
+			this->p = nullptr;
 		}
 
+		size = other.size;
+		label = other.label;
+
+		#ifdef STATS
+		start = other.start;
+		end = other.end;
+		#endif
+
+		return *this;
+	};
+
+	// core operator overloads
+	bool operator == ( const struct core& lhs, const struct core& rhs ) {
+
+		if ( lhs.size != rhs.size ) {
+			return false;
+		}
+		
 		size_t index = 0;
 
 		while ( index < lhs.size ) {
@@ -271,7 +312,7 @@ namespace lcp {
 		return true;
 	};
 
-	bool operator > (const core& lhs, const core& rhs) {
+	bool operator > ( const struct core& lhs, const struct core& rhs ) {
 
 		if ( lhs.size > rhs.size ) {
 			return true;
@@ -294,8 +335,9 @@ namespace lcp {
 		return false;
 	};
 
-	bool operator < (const core& lhs, const core& rhs) {
-	    if ( lhs.size < rhs.size ) {
+	bool operator < ( const struct core& lhs, const struct core& rhs ) {
+	    
+		if ( lhs.size < rhs.size ) {
 			return true;
 		} else if ( lhs.size > rhs.size ) {
 			return false;
@@ -316,30 +358,78 @@ namespace lcp {
 		return false;
 	};
 
-	bool operator != (const core& lhs, const core& rhs) {
-	    return !(lhs == rhs);
+	bool operator != ( const struct core& lhs, const struct core& rhs ) {
+		
+		if ( lhs.size != rhs.size ) {
+			return true;
+		}
+
+		size_t index = 0;
+
+		while ( index < lhs.size ) {
+			if ( lhs.p[index / SIZE_PER_BLOCK ] != rhs.p[index / SIZE_PER_BLOCK ] )
+				return true;
+			
+			index += SIZE_PER_BLOCK;
+		}
+
+		return false;
 	};
 
-	bool operator >= (const core& lhs, const core& rhs) {
-		if (lhs < rhs)
+	bool operator >= ( const struct core& lhs, const struct core& rhs ) {
+
+		if ( lhs.size > rhs.size ) {
+			return true;
+		} else if ( lhs.size < rhs.size ) {
 			return false;
-	    return true;
+		}
+
+		size_t index = 0;
+
+		while ( index < lhs.size ) {
+			if ( lhs.p[index / SIZE_PER_BLOCK ] > rhs.p[index / SIZE_PER_BLOCK ] ) {
+				return true;
+			} else if ( lhs.p[index / SIZE_PER_BLOCK ] < rhs.p[index / SIZE_PER_BLOCK ] ) {
+				return false;
+			}
+			
+			index += SIZE_PER_BLOCK;
+		}
+
+		return true;
 	};
 
-	bool operator <= (const core& lhs, const core& rhs) {
-	    if (lhs > rhs)
-	    	return false;
-	    return true;
+	bool operator <= ( const struct core& lhs, const struct core& rhs ) {
+		
+		if ( lhs.size < rhs.size ) {
+			return true;
+		} else if ( lhs.size > rhs.size ) {
+			return false;
+		}
+
+		size_t index = 0;
+
+		while ( index < lhs.size ) {
+			if ( lhs.p[index / SIZE_PER_BLOCK ] < rhs.p[index / SIZE_PER_BLOCK ] ) {
+				return true;
+			} else if ( lhs.p[index / SIZE_PER_BLOCK ] > rhs.p[index / SIZE_PER_BLOCK ] ) {
+				return false;
+			}
+			
+			index += SIZE_PER_BLOCK;
+		}
+
+		return true;
 	};
 
-	std::ostream& operator<<(std::ostream& os, const core& element) {
+	std::ostream& operator << ( std::ostream& os, const struct core& element ) {
 		for (int index = element.size - 1; 0 <= index; index-- ) {
 			os << ((element.p[block_number(element.size) - index / SIZE_PER_BLOCK - 1] >> (index % SIZE_PER_BLOCK)) & 1);
 		}
 	    return os;
 	};
 
-	std::ostream& operator<<(std::ostream& os, const core* element) {
+	std::ostream& operator << ( std::ostream& os, const struct core* element ) {
 		for (int index = element->size - 1; 0 <= index; index-- ) {
 			os << ((element->p[block_number(element->size) - index / SIZE_PER_BLOCK - 1] >> (index % SIZE_PER_BLOCK)) & 1);
 		}

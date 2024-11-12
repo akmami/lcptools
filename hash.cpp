@@ -14,12 +14,13 @@
 
 namespace lcp {
 
+
     // -----------------------------------------------------------------
     // implementation of `MurmurHash3_32`
     // -----------------------------------------------------------------
     inline uint32_t rotl32(uint32_t x, int8_t r) {
         return (x << r) | (x >> (32 - r));
-    }
+    };
 
     inline uint32_t fmix32(uint32_t h) {
         h ^= h >> 16;
@@ -28,8 +29,8 @@ namespace lcp {
         h *= 0xc2b2ae35;
         h ^= h >> 16;
         return h;
-    }
-
+    };
+    
     inline uint32_t MurmurHash3_32(const void* key, int len, uint32_t seed) {
         const uint8_t* data = (const uint8_t*)key;
         const int nblocks = len / 4;
@@ -78,7 +79,7 @@ namespace lcp {
         h1 = fmix32(h1);
 
         return h1;
-    }
+    };
 
     // -----------------------------------------------------------------
     // implementation of `cores struct`
@@ -178,7 +179,7 @@ namespace lcp {
         ++(*this);
         return temp;
     };
-    
+
     bool hash_map::iterator::operator!=(const hash_map::iterator& other) {
         return this->rowIt != other.rowIt || this->bucketIt != other.bucketIt;
     };
@@ -199,7 +200,7 @@ namespace lcp {
             }
         }
     };
-    
+
     hash_map::iterator hash_map::begin() {
         return iterator(this->table.begin(), this->table.end(), this->table.begin()->begin());
     };
@@ -213,24 +214,6 @@ namespace lcp {
         return MurmurHash3_32(data, sizeof(data)) % this->_capacity;
     };
 
-    // -----------------------------------------------------------------
-    // implementation of `hashing_cores::operator()`
-    // -----------------------------------------------------------------
-    std::size_t hashing_cores::operator() ( const struct cores& elements ) const {
-        uint32_t data[] = { elements.core1, elements.core2, elements.core3, elements.middle_count };
-        return MurmurHash3_32(data, sizeof(data));
-    };
-
-    // -----------------------------------------------------------------
-    // implementation of `equality_cores::operator()`
-    // -----------------------------------------------------------------
-    bool equality_cores::operator() ( const struct cores& lhs, const struct cores& rhs ) const {
-        return lhs == rhs;
-    };
-
-    // -----------------------------------------------------------------
-    // implementation of `hash` functions
-    // -----------------------------------------------------------------
     namespace hash {
 
         // mutex
@@ -239,8 +222,7 @@ namespace lcp {
 
         // maps
         std::unordered_map<std::string, uint32_t> str_map;
-        cores_map_type cores_map;
-        std::vector<const cores_map_key_type*> reverse_map;
+        hash_map cores_map;
 
         // ID
         uint32_t next_id = 0;
@@ -252,216 +234,56 @@ namespace lcp {
         };
 
         uint32_t emplace( std::string::iterator begin, std::string::iterator end ) {
+            
             std::string kmer = std::string(begin, end);
             std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
-                            
-            if ( str_map.find(kmer) == str_map.end() ) {
-                std::lock_guard<std::mutex> lock(str_map_mutex); 
-                std::pair<std::unordered_map<std::string, uint32_t>::iterator, bool> result = str_map.emplace(kmer, next_id);
-            
-                if (result.second) {
-                    return next_id++;
-                }  else {
-                    return result.first->second;
-                }
-            } else {
-                return str_map[kmer];
+            std::unordered_map<std::string, uint32_t>::iterator index = str_map.find(kmer);
+
+            if ( index != str_map.end() ) {
+                return index->second;
             }
+
+            std::lock_guard<std::mutex> lock(str_map_mutex); 
+            std::pair<std::unordered_map<std::string, uint32_t>::iterator, bool> result = str_map.emplace(kmer, next_id);
+            
+            if (result.second) {
+                return next_id++;
+            }
+
+            return result.first->second;
         };
 
         uint32_t emplace( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) {
+            
             std::pair<bool, uint32_t> results = cores_map.exists( core1, core2, core3, middle_count );
 
-            if ( !(results.first) ) {
-                std::lock_guard<std::mutex> lock(cores_map_mutex); 
-                uint32_t value = cores_map.emplace( results.second,  core1, core2, core3, middle_count, next_id);
-                if ( value == next_id ) {
-                    return next_id++;
-                }
-                return next_id;
+            if ( results.first ) {
+                return results.second;
             }
+
+            std::lock_guard<std::mutex> lock(cores_map_mutex); 
+            uint32_t value = cores_map.emplace( results.second, core1, core2, core3, middle_count, next_id );
             
-            return results.second;
+            if ( value == next_id ) {
+                return next_id++;
+            }
+
+            return next_id;
         };
         
         uint32_t simple( std::string::iterator begin, std::string::iterator end ) {
+            
             std::string kmer = std::string(begin, end);
             std::transform(kmer.begin(), kmer.end(), kmer.begin(), ::toupper);
+            
             return MurmurHash3_32(kmer.c_str(), kmer.size());
         }; 
         
-        uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) {
+        uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t middle_count ) {
+            
             uint32_t data[] = { core1, core2, core3, middle_count };
+            
             return MurmurHash3_32(data, sizeof(data));
-        };
-
-        void save_maps( std::ofstream& file ) {
-
-            if (!file) {
-                throw std::runtime_error("Saving maps failed. Ofstream empty.");
-            }
-            
-            // save string map
-            size_t capacity = str_map.max_load_factor() * str_map.bucket_count(), size = str_map.size();
-            file.write(reinterpret_cast<const char*>(&capacity), sizeof(capacity));
-            file.write(reinterpret_cast<const char*>(&size), sizeof(size));
-            
-            for ( std::unordered_map<std::string, uint32_t>::iterator it = str_map.begin(); it != str_map.end(); it++ ) {
-                size_t key_size = it->first.size();
-                file.write(reinterpret_cast<const char*>(&key_size), sizeof(key_size));
-                file.write(it->first.c_str(), key_size);
-                file.write(reinterpret_cast<const char*>(&(it->second)), sizeof(it->second));
-            }
-
-            // save cores map
-            capacity = cores_map.capacity();
-            size = cores_map.size();
-
-            file.write(reinterpret_cast<const char*>(&capacity), sizeof(capacity));
-            file.write(reinterpret_cast<const char*>(&size), sizeof(size));
-
-            for ( cores_map_type::iterator it = cores_map.begin(); it != cores_map.end(); it++ ) {
-                file.write(reinterpret_cast<const char*>(&(*it)), sizeof(*it));
-            }
-        };
-
-        void load_maps( std::ifstream& file ) {
-
-            if (!file) {
-                throw std::runtime_error("Loading maps failed. Ifstream empty.");
-            }
-
-            size_t capacity;
-            size_t map_size;
-            
-            // load str_map
-            file.read(reinterpret_cast<char*>(&capacity), sizeof(capacity));
-            file.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
-            
-            str_map.reserve(capacity);
-
-            for ( size_t i = 0; i < map_size; i++ ) {
-                size_t key_size;
-                file.read(reinterpret_cast<char*>(&key_size), sizeof(key_size));
-                
-                std::string key(key_size, '\0');
-                file.read(&key[0], key_size);
-
-                uint32_t value;
-                file.read(reinterpret_cast<char*>(&value), sizeof(value));
-
-                str_map[key] = value;
-            }
-            
-            // load cores_map
-            file.read(reinterpret_cast<char*>(&capacity), sizeof(capacity));
-            file.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
-
-            cores_map.reserve(capacity);
-
-            for ( size_t i = 0; i < map_size; i++ ) {
-                cores_map_key_type key(0, 0, 0, 0, 0);
-                file.read(reinterpret_cast<char*>(&key), sizeof(key));
-
-                // TODO - fix core_map initialization
-                // uint32_t value;
-                // file.read(reinterpret_cast<char*>(&value), sizeof(value));
-                
-                // cores_map[key] = value;
-            }
-        };
-
-        bool init_reverse() {
-            
-            if ( next_id == 0 ) {
-                return false;
-            }
-
-            reverse_map.resize(next_id, nullptr);
-            
-            for ( cores_map_type::iterator it = cores_map.begin(); it != cores_map.end(); it++ ) {
-                reverse_map[it->label] = &(*it);
-            }
-
-            return true;
-        };
-
-        void count_core( std::vector<uint32_t>& core_counts, uint32_t core ) {
-
-            core_counts[core]++;
-            
-            if ( reverse_map[core] == nullptr ) {
-                return;
-            }
-            
-            count_core( core_counts, (reverse_map[core])->core1 );
-            for ( uint32_t i = 0; i < (reverse_map[core])->middle_count; i++) {
-                count_core( core_counts, (reverse_map[core])->core2 );
-            }
-            count_core( core_counts, (reverse_map[core])->core3 );
-        };
-
-        void set_lcp_levels( std::vector<unsigned short>& lcp_levels ) {
-            
-            size_t size = str_map.size() + cores_map.size();
-
-            lcp_levels.resize(size, 0);
-
-            for ( std::unordered_map<std::string, uint32_t>::iterator it = str_map.begin(); it != str_map.end(); it++ ) {
-                lcp_levels[it->second] = 1;
-            }
-
-            bool done = false;
-
-            while( !done ) {    
-                done = true;        
-                for ( cores_map_type::iterator it = cores_map.begin(); it != cores_map.end(); it++ ) {
-                    size_t first_subcore_label = 0;
-                    first_subcore_label = it->core1;
-                    if ( lcp_levels[it->label] != 0 || lcp_levels[first_subcore_label] == 0 ) {
-                        continue;
-                    }
-                    done = false;
-                    lcp_levels[it->label] = lcp_levels[first_subcore_label] + 1;
-                }
-            }
-        };
-
-        bool get_sublevel_labels(std::vector<uint32_t>& labels, std::vector<uint32_t>& core_counts, std::vector<uint32_t>& sub_labels, std::vector<uint32_t>& sub_counts) {
-            
-            if ( reverse_map.size() == 0 ) {
-                return false;
-            }
-            
-            sub_labels.reserve( (int)( 3.8 * labels.size() ) );
-            sub_counts.reserve( (int)( 3.8 * labels.size() ) );
-            
-            for ( std::vector<uint32_t>::iterator it_label = labels.begin(); it_label < labels.end(); it_label++ ) {
-
-                const cores_map_key_type* subcores = reverse_map[(*it_label)];
-
-                if ( core_counts[subcores->core1] > 0 ) {
-                    sub_labels.push_back( subcores->core1 );
-                    sub_counts.push_back( core_counts[subcores->core1] );
-                    core_counts[subcores->core1] = 0;
-                }
-                if ( core_counts[subcores->core2] > 0 ) {
-                    sub_labels.push_back( subcores->core2 );
-                    sub_counts.push_back( core_counts[subcores->core2] );
-                    core_counts[subcores->core2] = 0;
-                }
-                if ( core_counts[subcores->core3] > 0 ) {
-                    sub_labels.push_back( subcores->core3 );
-                    sub_counts.push_back( core_counts[subcores->core3] );
-                    core_counts[subcores->core3] = 0;
-                }
-            }
-
-            for ( size_t index = 0; index < sub_labels.size(); index++ ) {
-                core_counts[sub_labels[index]] = sub_counts[index];
-            }
-
-            return true;
         };
 
         void summary() {

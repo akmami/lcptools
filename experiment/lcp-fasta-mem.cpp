@@ -17,13 +17,12 @@
 #include <set>
 #include <chrono>
 #include "lps.h"
-#include "../utils/helper.cpp"
+#include "helper.cpp"
 
 
 #define STRING_SIZE         250000000
 #define MAX_CORE_COUNT      536870911
 #define COMPUTE_SIZES       false
-#define COMPUTE_DISTINCT    true
 #define USE_MAP             false
 
 
@@ -41,25 +40,15 @@
  *                  processing time.
  * @param total_core_counts An array storing the number of LCP cores found at each level.
  * @param sizes An array storing sizes (bytes) of LCP cores found at each level.
- * @param distinct_cores An array string the number of distinct cores found at each level.
  * @param strs An vector of lps objects obtained after processing given sequences.
  */
-void process(std::string& sequence, std::vector<std::chrono::milliseconds>& durations, int (&total_core_counts)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::vector<std::set<uint32_t>>& distinct_cores, std::vector<lcp::lps*>& strs ) {
+void process(std::string& sequence, std::vector<std::chrono::milliseconds>& durations, size_t (&total_core_counts)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::vector<lcp::lps*>& strs ) {
     
     auto start = std::chrono::high_resolution_clock::now();
     lcp::lps *str = new lcp::lps(sequence, USE_MAP);
     
     auto extraction_end = std::chrono::high_resolution_clock::now();
-    total_core_counts[0] += str->cores->size();
-    
-    // using simple hash
-    if ( COMPUTE_DISTINCT ) {
-        std::vector<uint32_t> cores;
-        str->get_labels(cores);
-        for (const auto& core : cores) {
-            distinct_cores[0].insert(core);
-        }
-    }
+    total_core_counts[0] += str->size();
    
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
     
@@ -74,16 +63,7 @@ void process(std::string& sequence, std::vector<std::chrono::milliseconds>& dura
         str->deepen(USE_MAP);
         
         auto stop_level = std::chrono::high_resolution_clock::now();
-        total_core_counts[i] += str->cores->size();
-        
-        // using simple hash
-        if ( COMPUTE_DISTINCT ) {
-            std::vector<uint32_t> cores;
-            str->get_labels(cores);
-            for (const auto& core : cores) {
-                distinct_cores[i].insert(core);
-            }
-        }
+        total_core_counts[i] += str->size();
         
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
         
@@ -130,9 +110,8 @@ int main(int argc, char **argv) {
 
     std::vector<lcp::lps*> strs;
     std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
-    double sizes[LCP_LEVEL] = {0};
-    int total_core_counts[LCP_LEVEL] = {0};
-    std::vector<std::set<uint32_t>> distinct_cores(LCP_LEVEL);
+    double sizes[LCP_LEVEL] = {0, 0, 0, 0, 0, 0, 0, 0};
+    size_t total_core_counts[LCP_LEVEL] = {0, 0, 0, 0, 0, 0, 0, 0};
     
     // read file
     if ( genome.is_open() ) {  
@@ -141,8 +120,8 @@ int main(int argc, char **argv) {
         sequence.reserve(STRING_SIZE);
 
         // initializing coefficients of the alphabet and hash tables
-        lcp::init_coefficients();
-        if ( COMPUTE_DISTINCT ) {
+        lcp::encoding::init();
+        if ( USE_MAP ) {
             lcp::hash::init(4000, MAX_CORE_COUNT);
         }
 
@@ -154,7 +133,7 @@ int main(int argc, char **argv) {
 
                 // process previous chromosome before moving into new one
                 if (sequence.size() != 0) {
-                    process( sequence, durations, total_core_counts, sizes, distinct_cores, strs );
+                    process( sequence, durations, total_core_counts, sizes, strs );
                 }
 
                 id = line.substr(1);
@@ -168,7 +147,7 @@ int main(int argc, char **argv) {
         }
 
         if (sequence.size() != 0) {
-            process( sequence, durations, total_core_counts, sizes, distinct_cores, strs );
+            process( sequence, durations, total_core_counts, sizes, strs );
         }
 
         genome.close();
@@ -185,20 +164,11 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     // Total Cores
-    std::cout << "Total Cores";
+    std::cout << "Total # of Cores";
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_int(total_core_counts[i]);
     }
     std::cout << std::endl;
-
-    // Unique Cores
-    if ( COMPUTE_DISTINCT ) {
-        std::cout << "Unique Cores (Hash)";
-        for (int i = 0; i < LCP_LEVEL; i++) {
-            std::cout << sep << format_int(distinct_cores[i].size());
-        }
-        std::cout << std::endl;
-    }
 
     // Execution Time
     std::cout << "Exec. Time (sec) (Hash)";

@@ -16,7 +16,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
-#include "../utils/helper.cpp"
+#include "helper.cpp"
 
 #define KMER_SIZE           15
 #define SMER_SIZE           4

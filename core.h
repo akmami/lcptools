@@ -1,9 +1,9 @@
 /**
  * @file core.h
- * @brief Header file for the `core` class, which represents bit-encoded sequences and provides various
+ * @brief Header file for the `core` struct, which represents bit-encoded sequences and provides various
  *        utilities for encoding, compression, and file I/O operations on bit sequences.
  *
- * This file contains the declaration of the `core` class along with its member functions, constructors, 
+ * This file contains the declaration of the `core` struct along with its member functions, constructors, 
  * destructors, and operator overloads. It supports operations for encoding strings into bit sequences, 
  * combining multiple sequences, compressing data, and reading/writing from/to files.
  * 
@@ -29,7 +29,7 @@
  * @see encoding.h
  * 
  * @namespace lcp
- * @class core
+ * @struct core
  * 
  * @note Define `STATS` before including this file to enable the tracking of start and end indices for sequences.
  * @note Destructor handles clean-up of allocated memory for bits.
@@ -47,8 +47,10 @@
 #include <vector>
 #include <fstream>
 #include <iterator>
+#include <cstring>
 #include "constant.h"
 #include "encoding.h"
+#include "hash.h"
 
 
 /**
@@ -57,7 +59,7 @@
  * @param size The size of the bit sequence.
  * @return The number of blocks required.
  */
-inline size_t block_number(size_t size);
+inline size_t block_number( size_t size );
 
 
 /**
@@ -66,12 +68,12 @@ inline size_t block_number(size_t size);
  * @param size The size of the bit sequence.
  * @return The starting index within the first block.
  */
-inline size_t start_index(size_t size);
+inline size_t start_index( size_t size );
 
 
 namespace lcp {
 	
-	class core {
+	struct core {
     public:
 		#ifdef STATS
 		// Core related variables
@@ -98,7 +100,7 @@ namespace lcp {
 		 * @param begin_index The starting index of the sequence.
 		 * @param rev_comp Boolean indicating if the reverse complement encoding should be used.
 		 */
-		core(std::string::iterator begin, std::string::iterator end, size_t begin_index, bool rev_comp = false);
+		core( std::string::iterator begin, std::string::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
 		
 		/**
 		 * @brief Constructs a `core` object by combining multiple `core` objects.
@@ -110,7 +112,7 @@ namespace lcp {
 		 * @param begin Iterator to the first `core*` object in the range.
 		 * @param end Iterator to the last `core*` object in the range.
 		 */
-		core(std::vector<core*>::iterator begin, std::vector<core*>::iterator end);
+		core( std::vector<struct core>::iterator begin, std::vector<struct core>::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
 
 		/**
 		 * @brief Constructs a `core` object from raw bit data.
@@ -123,7 +125,7 @@ namespace lcp {
 		 * @param start The starting index of the sequence.
 		 * @param end The ending index of the sequence.
 		 */
-		core(ublock* p, size_t size, uint32_t label, size_t start, size_t end);
+		core( ublock* p, size_t size, uint32_t label, size_t start, size_t end );
 
 		/**
 		 * @brief Constructs a `core` object by reading from an input file stream.
@@ -133,7 +135,7 @@ namespace lcp {
 		 * 
 		 * @param in The input file stream.
 		 */
-		core(std::ifstream& in);
+		core( std::ifstream& in );
 
 		/**
 		 * @brief Destructor for the `core` object.
@@ -151,7 +153,7 @@ namespace lcp {
 		 * 
 		 * @param other The `core` object to compare against for compression.
 		 */
-		void compress(const core* other);
+		void compress( const struct core& other );
 
 		/**
 		 * @brief Writes the `core` object to an output file stream.
@@ -160,7 +162,7 @@ namespace lcp {
 		 * 
 		 * @param out The output file stream.
 		 */
-		void write(std::ofstream& out) const;
+		void write( std::ofstream& out ) const;
 
 		/**
 		 * @brief Calculates the total memory size used by the `core` object.
@@ -171,10 +173,24 @@ namespace lcp {
 		 * @return The total memory size in bytes.
 		 */
 		size_t memsize() const;
+
+		/**
+		 * @brief Copy assignment operator for the `core` struct.
+		 * 
+		 * This operator performs a deep copy of the `other` core's data into the current instance.
+		 * It first checks for self-assignment, then deallocates any existing memory pointed to by `p`.
+		 * If `other.p` is not null, it allocates new memory and copies the data from `other`'s `p` array.
+		 * If `other.p` is null, it sets `p` to nullptr. Additionally, it copies the `size` and `label`
+		 * values from `other`. If `STATS` is defined, it also copies the `start` and `end` values.
+		 * 
+		 * @param other The `core` instance to copy from.
+		 * @return A reference to the current `core` instance.
+		 */
+		struct core& operator = ( const struct core& other );
+
 	};
 
     // core operator overloads
-
 	/**
 	 * @brief Operator overload for equality comparison between two `core` objects.
 	 * 
@@ -182,7 +198,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the two objects are equal, false otherwise.
 	 */
-	bool operator == (const core& lhs, const core& rhs);
+	bool operator == ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Operator overload for greater-than comparison between two `core` objects.
@@ -191,7 +207,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the left-hand object is greater, false otherwise.
 	 */
-	bool operator > (const core& lhs, const core& rhs);
+	bool operator > ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Operator overload for smaller-than comparison between two `core` objects.
@@ -200,7 +216,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the left-hand object is smaller, false otherwise.
 	 */
-	bool operator < (const core& lhs, const core& rhs);
+	bool operator < ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Operator overload for not-equal-to comparison between two `core` objects.
@@ -209,7 +225,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the two objects are not equal, false otherwise.
 	 */
-	bool operator != (const core& lhs, const core& rhs);
+	bool operator != ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Operator overload for greater-than-or-equal-to comparison between two `core` objects.
@@ -218,7 +234,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the left-hand object is greater than or equal, false otherwise.
 	 */
-	bool operator >= (const core& lhs, const core& rhs);
+	bool operator >= ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Operator overload for smaller-than-or-equal-to comparison between two `core` objects.
@@ -227,7 +243,7 @@ namespace lcp {
 	 * @param rhs The right-hand side `core` object.
 	 * @return True if the left-hand object is smaller than or equal, false otherwise.
 	 */
-	bool operator <= (const core& lhs, const core& rhs);
+	bool operator <= ( const struct core& lhs, const struct core& rhs );
 
 	/**
 	 * @brief Overloads the stream insertion operator (<<) to output the bit representation of a `core` object.
@@ -239,7 +255,7 @@ namespace lcp {
 	 * @param element The `core` object to be output.
 	 * @return A reference to the output stream `os` after the `core` object has been written.
 	 */
-	std::ostream& operator<<(std::ostream& os, const core& element);
+	std::ostream& operator << ( std::ostream& os, const struct core& element );
 
 	/**
 	 * @brief Overloads the stream insertion operator (<<) to output the bit representation of a `core` pointer.
@@ -252,7 +268,7 @@ namespace lcp {
 	 * @param element A pointer to the `core` object to be output.
 	 * @return A reference to the output stream `os` after the `core` object has been written.
 	 */
-	std::ostream& operator<<(std::ostream& os, const core* element);
+	std::ostream& operator << ( std::ostream& os, const struct core* element );
 }; 
 
 #endif

@@ -166,23 +166,22 @@ The LCP algorithm operates as follows:
 
 Processes the input string and identifies cores that adhere to specific rules:
 
-1. The subsequent characters should not be the same, and the middle character is local minima.
+1. (LMIN) The subsequent characters should not be the same, and the middle character is local minima.
 
-	Ex: *xyz* where *x!=y* and *y!=z*.
+	Ex: $w = xyz$ where $x \neq y$ and $y \neq z$, and $x \gt y$ and $y \lt z$
 
-	**y<x** and **y<z**
+3. (LMAX) The subsequent characters should not be the same, and the middle character local maxima, and its neighbors are not local minima. 
 
-2. The subsequent characters should not be the same, and the middle character local maxima, and its neighbors are not local minima. 
+	Ex: $w = sxyzt$ where $s \neq x$ and $x \neq y$ and $y \neq z$ and $z \neq t$, and $s \leq x$ and $x \lt y$ and $y \gt z$ and $z \geq t$.
 
-	Ex: *sxyzt* where *s!=x* and *x!=y* and *y!=z* and *z!=st*.
+4. (RINT) The characters, except the front and back, are the same.
 
-	**x<y** and **z<y** and **s<=x** and **z>=t**.
+	Ex: $w=xy^iz$ where $i > 1$ and $|w| \gt 3$, , and $x\neq y$, $y\neq z$.
 
-3. The characters, except the front and back, are the same.
+5. (SSEQ) The subsequent characters are either strictly increasing or decreasing with respect to the lexicographic order, and only the first and last characters are part of either a LMIN, LMAX, or a RINT. 
+    
+    Ex: $w = xyza_0 . . . a_nklm$, where $n \geq 1$ and $xyz$ and $klm$ are identified as cores, and $z \lt a_0 \lt \dots \lt a_n \lt k$ or $z \gt a_0 \gt \dots \gt a_n \gt k$.
 
-	Ex: *xyyz*, *xyyyz*, *xyyyyz*, ...
-
-	**x!=y** and **y!=z**
 
 ### Compress Function:
 
@@ -236,8 +235,10 @@ The deepen function in the LCP algorithm primarily focuses on the compression of
 
 ## Default Variables
 
-The default iteration count for compression in each deepening is set to 2.
+The default iteration count for compression in each deepening is set to 1.
 
 The default value for `verbose` is set to `false`.
+
+The default value for `use_map` is set to `false`.
 
 

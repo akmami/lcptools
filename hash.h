@@ -44,31 +44,60 @@
 #ifndef HASH_H
 #define HASH_H
 
+
 #include <cstdint>
-#include <cstddef>
-#include <cstring>
+#include <algorithm>
+#include <iostream>
 #include <unordered_map>
 #include <mutex>
 #include <string>
 #include <vector>
-#include <iterator>
-#include <fstream>
 #include <list>
-#include "lps.h"
+#include <iterator>
 #include "constant.h"
-
-
-#define PRIME_MULTIPLIER    0x9e3779b9
 
 
 namespace lcp {
 
+    // MurmurHash3 function
+    
+    /**
+     * @brief Performs a left rotation on a 32-bit integer.
+     * 
+     * This function rotates the bits of the input integer 'x' to the left by 'r' positions.
+     * 
+     * @param x The 32-bit integer to be rotated.
+     * @param r The number of positions to rotate.
+     * @return The result of the left rotation.
+     */
     inline uint32_t fmix32(uint32_t h);
 
+    /**
+     * @brief Finalizes the hash value using mix functions.
+     * 
+     * This function applies several mixing operations to the hash value 'h' to ensure
+     * a uniform distribution of the final hash.
+     * 
+     * @param h The hash value to be mixed.
+     * @return The final mixed hash value.
+     */
     inline uint32_t rotl32(uint32_t x, int8_t r);
 
+    /**
+     * @brief Computes the 32-bit MurmurHash3 hash for a given key.
+     * 
+     * This function computes a 32-bit hash of the input data 'key' with the specified
+     * length 'len' and an optional seed value. It processes the input in blocks and handles
+     * any remaining bytes.
+     * 
+     * @param key Pointer to the data to be hashed.
+     * @param len The length of the data in bytes.
+     * @param seed An initial seed value for the hash computation.
+     * @return The resulting 32-bit hash value.
+     */
     uint32_t MurmurHash3_32(const void* key, int len, uint32_t seed = 42);
 
+    // struct core
     struct cores {
         uint32_t core1;
         uint32_t core2;
@@ -107,8 +136,7 @@ namespace lcp {
 
 
     using bucket_type = typename std::list<struct cores>;
-    using hash_map_type = typename std::vector<bucket_type>;
-    using TableRowIt = typename hash_map_type::iterator;
+    using TableRowIt = typename std::vector<bucket_type>::iterator;
     using BucketIt = typename bucket_type::iterator;
 
 
@@ -270,7 +298,7 @@ namespace lcp {
         
         size_t _size;
         size_t _capacity;
-        hash_map_type table;
+        std::vector<bucket_type> table;
 
         /**
          * @brief Hash function for computing the index in the hash table based on the cores values.
@@ -284,59 +312,17 @@ namespace lcp {
         inline uint32_t entry( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) const;
     };
 
-    /**
-     * @brief Functor for computing the hash of a `cores` structure.
-     * 
-     * This structure defines a hash function for the `cores` type, allowing it 
-     * to be used in hash-based containers like `unordered_map` or `unordered_set`.
-     */
-    struct hashing_cores {
-        /**
-         * @brief Computes the hash of a given `cores` structure.
-         * 
-         * This operator overload allows for efficient hashing of `cores` objects 
-         * based on their core values and middle count.
-         * 
-         * @param elements The `cores` structure for which to compute the hash.
-         * 
-         * @return The computed hash value as a size_t.
-         */
-        std::size_t operator() ( const struct cores& elements ) const;
-    };
-
-    /**
-     * @brief Functor for checking equality between two `cores` structures.
-     * 
-     * This structure defines an equality comparison for the `cores` type, 
-     * enabling its use in containers that require key equality checks.
-     */
-    struct equality_cores {
-        /**
-         * @brief Checks if two `cores` structures are equal.
-         * 
-         * @param lhs The left-hand side `cores` structure.
-         * @param rhs The right-hand side `cores` structure.
-         * 
-         * @return true if the two `cores` structures are equal, false otherwise.
-         * 
-         * This operator overload allows for straightforward comparison of 
-         * `cores` objects based on their core values and middle count.
-         */
-        bool operator() ( const struct cores& lhs, const struct cores& rhs ) const;
-    };
-
-
-    using cores_map_key_type = struct cores;
-    using cores_map_type = hash_map;
-
-
     namespace hash {
-
+        
+        // mutex
         extern std::mutex str_map_mutex;
         extern std::mutex cores_map_mutex;
+
+        // maps
         extern std::unordered_map<std::string, uint32_t> str_map;
-        extern cores_map_type cores_map;
-        extern std::vector<const cores_map_key_type*> reverse_map;
+        extern hash_map cores_map;
+
+        // id
         extern uint32_t next_id;
 
         /**
@@ -414,97 +400,7 @@ namespace lcp {
          * 
          * @return A combined `size_t` hash value computed from the input values.
          */
-        uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count );
-
-        /**
-         * @brief Saves the contents of `str_map` and `core_map` to a binary file.
-         * 
-         * This function serializes two maps (`str_map` and `core_map`) and writes them to the provided 
-         * output file stream. The first map is an `unordered_map` with `std::string` keys and `uint32_t` values, 
-         * and the second map has `cores` (a custom struct) as keys and `uint32_t` values. For each map, the 
-         * function writes the capacity, size, and then the key-value pairs.
-         *
-         * @param file The output file stream (`std::ofstream`) where the map data will be written. 
-         *        The file must already be open.
-         * 
-         * @throws std::runtime_error If the provided file stream is not open.
-         */
-        void save_maps( std::ofstream& file );
-
-        /**
-         * @brief Loads the contents of `str_map` and `core_map` from a binary file.
-         * 
-         * This function deserializes two maps (`str_map` and `core_map`) from the provided input file 
-         * stream. It reads the capacity and size of each map, reserves the necessary space, and then 
-         * reconstructs the map by reading key-value pairs from the file.
-         *
-         * @param file The input file stream (`std::ifstream`) from which the map data will be read. 
-         *        The file must already be open and contain the serialized data from a previous `save()` call.
-         * 
-         * @throws std::runtime_error If the provided file stream is not open.
-         */
-        void load_maps( std::ifstream& file );
-
-        /**
-         * @brief Initializes the reverse mapping from core IDs to core vectors.
-         *
-         * This function checks if the `next_id` is zero. If it is, the function returns false,
-         * indicating that there are no cores to initialize. Otherwise, it resizes the `reverse_map`
-         * to match the size of `next_id`, which is the size of the labels, initializing all elements to `nullptr`.
-         * Then, it iterates through the `core_map`, setting each entry in `reverse_map` 
-         * to point to the corresponding core vector from `core_map` using the core ID as the index.
-         *
-         * @return true if the reverse map was successfully initialized, false if `next_id` is zero.
-         */
-        bool init_reverse();
-        
-        /**
-         * @brief Recursively increments core counts for a given core and its dependencies.
-         *
-         * This function increments the count for the specified `core` in the `core_counts` vector.
-         * If the `reverse_map` for the given core is not null, it recursively increments the 
-         * counts for all cores in the associated core vector by calling `count_core` on each 
-         * core in the reverse map.
-         *
-         * @param core_counts A reference to a vector of unsigned integers representing core counts.
-         * @param core The index of the core whose count is to be incremented.
-         */
-        void count_core( std::vector<uint32_t>& core_counts, uint32_t core );
-
-        /**
-         * @brief Sets the LCP levels for each core in the dataset.
-         * 
-         * This function assigns LCP levels to each core based on the structure of the core
-         * and its subcores. The cores can either be constructed from strings or from a combination
-         * of subcores.
-         * 
-         * @param lcp_levels A reference to a vector of unsigned integers representing the LCP levels.
-         *                   The function modifies this vector by setting LCP levels for each core.
-         */
-        void set_lcp_levels( std::vector<unsigned short>& lcp_levels );
-
-        /**
-         * @brief Retrieves labels and counts for sublevel cores and stores them in the provided 
-         * sub_labels and sub_count vectors.
-         *
-         * This function processes cores that are composed of sub cores (sublevel cores). It checks 
-         * if the `reverse_map` is empty or if the sizes of `labels` and `core_count` don't match, 
-         * in which case it returns false. If the sizes are valid, it reserves space in the `sub_labels` 
-         * and `sub_count` vectors based on 3.6 times the size of `labels`. The function iterates 
-         * through the `labels` vector and retrieves the corresponding subcores from the `reverse_map`. 
-         * For each subcore, it adds its label to `sub_labels` and its count (from `core_count`) to `sub_count`, 
-         * provided its count is greater than 0. The subcore's count is then reset to zero.
-         *
-         * After collecting sublevel labels and counts, the function restores the core counts for the sub_labels.
-         *
-         * @param labels A reference to a vector of unsigned integers representing the core labels.
-         * @param core_count A reference to a vector of unsigned integers representing the count of each core.
-         * @param sub_labels A reference to a vector where sublevel core labels will be stored.
-         * @param sub_count A reference to a vector where sublevel core counts will be stored.
-         * @return true if the sublevel labels and counts were successfully retrieved, false if `reverse_map` 
-         *         is empty or if `labels` and `core_count` sizes do not match.
-         */
-        bool get_sublevel_labels( std::vector<uint32_t>& labels, std::vector<uint32_t>& core_count, std::vector<uint32_t>& sub_labels, std::vector<uint32_t>& sub_count );
+        uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t middle_count );
 
         /**
          * @brief Provides a summary of hash map statistics for two maps: `str_map` and `cores_map`.

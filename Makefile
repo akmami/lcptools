@@ -3,10 +3,6 @@ CXX = g++
 CXXFLAGS = -std=c++11 -O3 -Wall -Wextra
 CXXEXTRA = -fPIC
 
-ifdef STATS
-    CXXFLAGS += -DSTATS
-endif
-
 # archiver and flags
 AR = ar
 ARFLAGS = rcs
@@ -14,8 +10,10 @@ ARFLAGS = rcs
 # variables
 SRC = encoding.cpp hash.cpp core.cpp lps.cpp
 HDR = $(SRC:.cpp=.h)
-OTHER_HDR = constant.h
+OTHER_HDR = constant.h rules.h
+OBJ_STATIC_STATS = $(SRC:.cpp=_s_stats.o)
 OBJ_STATIC = $(SRC:.cpp=_s.o)
+OBJ_DYNAMIC_STATS = $(SRC:.cpp=_d_stats.o)
 OBJ_DYNAMIC = $(SRC:.cpp=_d.o)
 
 # test files
@@ -26,27 +24,30 @@ TEST_OBJS = $(TEST_SRC:.cpp=.o)
 
 # library names
 LIB_NAME = lcptools
+STATIC_STATS = lib$(LIB_NAME)S.a
 STATIC = lib$(LIB_NAME).a
+DYNAMIC_STATS = lib$(LIB_NAME)S.so
 DYNAMIC = lib$(LIB_NAME).so
 
 PREFIX ?= /usr/local
 INCLUDE_DIR = $(PREFIX)/include
 LIB_DIR = $(PREFIX)/lib
 
-.PHONY: all clean install uninstall
+.PHONY: all clean install uninstall 
 
-install: $(STATIC) $(DYNAMIC)
+install: clean $(STATIC_STATS) $(STATIC) $(DYNAMIC_STATS) $(DYNAMIC) lcptools
+
 	mkdir -p $(INCLUDE_DIR)
 	cp $(OTHER_HDR) $(HDR) $(INCLUDE_DIR)
 	@echo "";
 	@echo "WARNING! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH";
-	@echo "If not, you can export it as: ";
-	@echo "    export LD_LIBRARY_PATH=$(LIB_DIR):\$$LD_LIBRARY_PATH";
-	@echo "    sudo ldconfig";
 	@echo "";
 
 uninstall:
+	rm -f lcptools;
+	rm -f $(LIB_DIR)/$(STATIC_STATS)
 	rm -f $(LIB_DIR)/$(STATIC)
+	rm -f $(LIB_DIR)/$(DYNAMIC_STATS)
 	rm -f $(LIB_DIR)/$(DYNAMIC)
 	@for hdr in $(HDR); do \
 		echo "Removing $(INCLUDE_DIR)/$$hdr;"; \
@@ -59,11 +60,27 @@ uninstall:
 
 clean:
 	rm -f $(TEST_OBJS) 
+	@echo "rm $(LIB_DIR)/$(STATIC_STATS)";
+	@if [ -f "$(LIB_DIR)/$(STATIC_STATS)" ]; then \
+		rm $(LIB_DIR)/$(STATIC_STATS) 2>/tmp/lcptools.err || \
+			{ \
+				echo "Couldn't remove $(LIB_DIR)/$(STATIC_STATS)"; \
+				exit 1; \
+			}; \
+	fi
 	@echo "rm $(LIB_DIR)/$(STATIC)";
 	@if [ -f "$(LIB_DIR)/$(STATIC)" ]; then \
 		rm $(LIB_DIR)/$(STATIC) 2>/tmp/lcptools.err || \
 			{ \
 				echo "Couldn't remove $(LIB_DIR)/$(STATIC)"; \
+				exit 1; \
+			}; \
+	fi
+	@echo "rm $(LIB_DIR)/$(DYNAMIC_STATS)";
+	@if [ -f "$(LIB_DIR)/$(DYNAMIC_STATS)" ]; then \
+		rm $(LIB_DIR)/$(DYNAMIC_STATS) 2>/tmp/lcptools.err || \
+			{ \
+				echo "Couldn't remove $(LIB_DIR)/$(DYNAMIC_STATS)"; \
 				exit 1; \
 			}; \
 	fi
@@ -75,37 +92,73 @@ clean:
 				exit 1; \
 			}; \
 	fi
-	rm -f $(OBJ_STATIC) $(OBJ_DYNAMIC) 
+	rm -f $(OBJ_STATIC_STATS) $(OBJ_STATIC) 
+	rm -f $(OBJ_DYNAMIC_STATS) $(OBJ_DYNAMIC) 
+	rm -f lcptools
 
-# target for static library
+# target for static library with STATS
+$(STATIC_STATS): $(OBJ_STATIC_STATS)
+	$(AR) $(ARFLAGS) $@ $^
+	rm -f $(OBJ_STATIC_STATS)
+	mkdir -p $(LIB_DIR)
+	@mv $@ $(LIB_DIR) || \
+		{ \
+			echo "Couldn't move $@ to $(LIB_DIR)"; \
+			exit 1; \
+		}
+
+# target for static library without STATS
 $(STATIC): $(OBJ_STATIC)
 	$(AR) $(ARFLAGS) $@ $^
 	rm -f $(OBJ_STATIC)
 	mkdir -p $(LIB_DIR)
-	@echo "mv $@ $(LIB_DIR)  2>/tmp/lcptools.err"
-	@mv $@ $(LIB_DIR) 2>/tmp/lcptools.err || \
+	@mv $@ $(LIB_DIR) || \
 		{ \
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
 		}
 
-# target for dynamic library
+# target for dynamic library with STATS
+$(DYNAMIC_STATS): $(OBJ_DYNAMIC_STATS)
+	$(CXX) -shared -o $@ $^
+	rm -f $(OBJ_DYNAMIC_STATS)
+	mkdir -p $(LIB_DIR)
+	@mv $@ $(LIB_DIR) || \
+		{ \
+			echo "Couldn't move $@ to $(LIB_DIR)"; \
+			exit 1; \
+		}
+
+# target for dynamic library without STATS
 $(DYNAMIC): $(OBJ_DYNAMIC)
 	$(CXX) -shared -o $@ $^
 	rm -f $(OBJ_DYNAMIC)
 	mkdir -p $(LIB_DIR)
-	@echo "mv $@ $(LIB_DIR)  2>/tmp/lcptools.err"
-	@mv $@ $(LIB_DIR)  2>/tmp/lcptools.err || \
+	@mv $@ $(LIB_DIR) || \
 		{ \
 			echo "Couldn't move $@ to $(LIB_DIR)"; \
 			exit 1; \
 		}
 
-# rule to compile .cpp files to .o files for static library
+# target to compile lcptools executable
+lcptools: $(SRC) $(HDR) $(OTHER_HDR)
+	rm -f $@
+	$(CXX) $(CXXFLAGS) -o $@ $@.cpp $(SRC)
+	chmod +x $@
+
+# rule to compile .cpp files to .o files for static library with STATS
+%_s_stats.o: %.cpp
+	$(CXX) $(CXXFLAGS) -DSTATS -c $< -o $@
+
+# rule to compile .cpp files to .o files for static library without STATS
 %_s.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-# rule to compile .cpp files to .o files for dynamic library
+# rule to compile .cpp files to .o files for dynamic library with STATS
+%_d_stats.o: %.cpp
+	$(CXX) $(CXXFLAGS) -DSTATS -c $(CXXEXTRA) $< -o $@
+
+# rule to compile .cpp files to .o files for dynamic library without STATS
 %_d.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(CXXEXTRA) $< -o $@
 
@@ -123,4 +176,3 @@ test: $(TESTS)
 		rm tests/$${test}.o; \
 		rm tests/$$test; \
 	done
-

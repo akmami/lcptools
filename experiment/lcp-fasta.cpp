@@ -22,7 +22,10 @@
 #include <vector>
 #include <chrono>
 #include "lps.h"
-#include "../utils/helper.cpp"
+#include "helper.cpp"
+
+
+#define USE_MAP         false
 
 
 /**
@@ -46,15 +49,15 @@ void analyze( int level, int (&contiguous_counts)[LCP_LEVEL], int (&distances)[L
     
     bool isOverlapped = false;
 
-    if ( (*(str->cores->begin()))->end < DISTANCE_LENGTH + (*(str->cores->begin()))->start ) {
-        lengths[level][(*(str->cores->begin()))->end - (*(str->cores->begin()))->start] += 1;
+    if ( str->cores->begin()->end < DISTANCE_LENGTH + str->cores->begin()->start ) {
+        lengths[level][str->cores->begin()->end - str->cores->begin()->start] += 1;
     } else {
-        lengthsXL[level].push_back( (*(str->cores->begin()))->end - (*(str->cores->begin()))->start );
+        lengthsXL[level].push_back( str->cores->begin()->end - str->cores->begin()->start );
     }
 
-    for ( std::vector<lcp::core*>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
+    for ( std::vector<lcp::core>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
 
-        if ( (*it)->start <= (*(it-1))->end ) {
+        if ( (it)->start <= (it-1)->end ) {
             contiguous_counts[level] += 1;
 
             if ( !isOverlapped ) {
@@ -62,16 +65,16 @@ void analyze( int level, int (&contiguous_counts)[LCP_LEVEL], int (&distances)[L
             }
         }
 
-        if ( (*it)->start < DISTANCE_LENGTH + (*(it-1))->start ) {
-            distances[level][(*it)->start - (*(it-1))->start]++;
+        if ( (it)->start < DISTANCE_LENGTH + (it-1)->start ) {
+            distances[level][(it)->start - (it-1)->start]++;
         } else {
-            distancesXL[level].push_back( (*it)->start - (*(it-1))->start );
+            distancesXL[level].push_back( (it)->start - (it-1)->start );
         }
         
-        if ( (*it)->end < DISTANCE_LENGTH + (*it)->start ) {
-            lengths[level][(*it)->end - (*it)->start] += 1;
+        if ( (it)->end < DISTANCE_LENGTH + (it)->start ) {
+            lengths[level][(it)->end - (it)->start] += 1;
         } else {
-            lengthsXL[level].push_back( (*it)->end - (*it)->start );
+            lengthsXL[level].push_back( (it)->end - (it)->start );
         }
     }
 
@@ -109,7 +112,7 @@ void analyze( int level, int (&contiguous_counts)[LCP_LEVEL], int (&distances)[L
 void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std::chrono::milliseconds>& durations, int (&contiguous_counts)[LCP_LEVEL], int (&core_counts)[LCP_LEVEL], int (&distinct_core_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>>& lengthsXL ) {
     auto start = std::chrono::high_resolution_clock::now();
     size_t initial_size = lcp::hash::str_map.size();
-    lcp::lps *str = new lcp::lps(sequence, true);
+    lcp::lps *str = new lcp::lps(sequence, USE_MAP);
     
     auto extraction_end = std::chrono::high_resolution_clock::now();
     sizes[0] += str->memsize();
@@ -124,7 +127,7 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
         auto start_level = std::chrono::high_resolution_clock::now();
         size_t current_size =  lcp::hash::cores_map.size();
 
-        str->deepen(true);
+        str->deepen(USE_MAP);
         
         auto stop_level = std::chrono::high_resolution_clock::now();
         sizes[i] += str->memsize();
@@ -193,7 +196,7 @@ int main(int argc, char **argv) {
         sequence.reserve(250000000);
 
         // initializing coefficients of the alphabet and hash tables
-        lcp::init_coefficients();
+        lcp::encoding::init();
         lcp::hash::init(4000, 536870911);
                 
         std::cout << "Program begins" << std::endl;
@@ -225,10 +228,109 @@ int main(int argc, char **argv) {
             process( sequence, sizes, durations, contiguous_counts, core_counts, distinct_core_counts, distances, distancesXL, lengths, lengthsXL );
         }
 
-        summaryLCP( sizes, contiguous_counts, distances, distancesXL, lengths, lengthsXL, durations, core_counts, distinct_core_counts, genome_size);
-
         genome.close();
     }
+
+    std::string sep = " & ";
+    double previous, current;
+
+    std::cout << "LCP level";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << i + 1;
+    }
+    std::cout << std::endl;
+
+    // Total Cores
+    std::cout << "Total Cores";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Contiguous Cores
+    std::cout << "Contiguous Cores";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(contiguous_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Distinct Cores
+    std::cout << "Unique Cores (Table)";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_int(distinct_core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Execution Time
+    std::cout << "Exec. Time (sec) (Table)";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(((double) durations[i].count()) / 1000);
+    }
+    std::cout << std::endl;
+
+    // Mean Core Distances
+    std::cout << "Avg. Dist.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(mean(distances[i], distancesXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Std Dev of Distances
+    std::cout << "StdDev Dist.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(stdev(distances[i], distancesXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Mean Core Length
+    std::cout << "Avg. Len.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(mean(lengths[i], lengthsXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Std Dev of Lengths
+    std::cout << "StdDev Len.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(stdev(lengths[i], lengthsXL[i]));
+    }
+    std::cout << std::endl;
+
+    // Decrease in Total Counts
+    previous = genome_size;
+    std::cout << "Decr. Core Cnt.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double( static_cast<double>(core_counts[i]) / previous);
+        previous = static_cast<double>(core_counts[i]);
+    }
+    std::cout << std::endl;
+
+    // Increase in Mean Lengths
+    previous = 1;
+    std::cout << "Incr. Avg. Len.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        current = mean(lengths[i], lengthsXL[i]);
+        std::cout << sep << format_double( current / previous);
+        previous = current;
+    }
+    std::cout << std::endl;
+
+    // Increase in Mean Distances
+    previous = 1;
+    std::cout << "Incr. Avg. Dist.";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        current = mean(distances[i], distancesXL[i]);
+        std::cout << sep << format_double( current / previous);
+        previous = current;
+    }
+    std::cout << std::endl;
+
+    // Total Sizes
+    std::cout << "Total Size (GB)*";
+    for (int i = 0; i < LCP_LEVEL; i++) {
+        std::cout << sep << format_double(sizes[i] / (1024.0 * 1024.0 * 1024.0));
+    }
+    std::cout << std::endl;
     
     std::cout << std::endl;
 

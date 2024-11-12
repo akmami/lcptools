@@ -45,13 +45,13 @@ mkdir_out:
 		echo "$(OUT_DIR) already exists."; \
 	fi
 
-check_lcptools:
+check_lcptoolsS:
 	@if [ ! -d "$(INCLUDE_DIR)" ]; then \
-		echo "$(INCLUDE_DIR) does not exist. Please compile lcptools to headers to $(INCLUDE_DIR)"; \
+		echo "$(INCLUDE_DIR) does not exist. Please compile lcptoolsS to headers to $(INCLUDE_DIR)"; \
 		exit 1; \
 	fi
 	@if [ ! -d "$(LIB_DIR)" ]; then \
-		echo "$(LIB_DIR) does not exist. Please compile lcptools and put library to $(LIB_DIR)"; \
+		echo "$(LIB_DIR) does not exist. Please compile lcptoolsS and put library to $(LIB_DIR)"; \
 		exit 1; \
 	fi
 
@@ -85,27 +85,27 @@ clean:
 ######################################################################
 # LCP
 ######################################################################
-lcpFasta: mkdir_bin check_fasta check_lcptools
+lcpFasta: mkdir_bin check_fasta check_lcptoolsS
 	@echo "Compiling $(LCP_FASTA)$(CXX)"
 	$(GXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -c $(LCP_FASTA)$(CXX) -o $(LCP_FASTA).o
-	@echo "Linking lcptools library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA) $(LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	@echo "Linking lcptoolsS library and binary files"
+	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA) $(LCP_FASTA).o -L$(LIB_DIR) -llcptoolsS -Wl,-rpath,$(LIB_DIR)
 	rm $(LCP_FASTA).o
 	@echo "Moving $(LCP_FASTA) to $(EXECUTABLE_DIR)"
 	mv $(LCP_FASTA) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA)-output.txt
+	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA)-output.txt 2>&1
 
-lcpFastaMem: mkdir_bin check_fasta check_lcptools
+lcpFastaMem: mkdir_bin check_fasta check_lcptoolsS
 	@echo "Compiling $(LCP_FASTA_MEM)$(CXX)"
 	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA_MEM)$(CXX) -o $(LCP_FASTA_MEM).o
-	@echo "Linking lcptools library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	@echo "Linking lcptoolsS library and binary files"
+	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptoolsS -Wl,-rpath,$(LIB_DIR)
 	rm $(LCP_FASTA_MEM).o
 	@echo "Moving $(LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
 	mv $(LCP_FASTA_MEM) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt
+	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt 2>&1
 
 ######################################################################
 # MINIMIZER
@@ -118,7 +118,7 @@ minimizerFasta: mkdir_bin check_fasta
 	@echo "Moving $(MINIMIZER_FASTA) to $(EXECUTABLE_DIR)"
 	mv $(MINIMIZER_FASTA) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(MINIMIZER_FASTA) $(FASTA) > $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt
+	$(TIME) $(EXECUTABLE_DIR)/$(MINIMIZER_FASTA) $(FASTA) > $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt 2>&1
 
 ######################################################################
 # SYNCMER
@@ -126,9 +126,9 @@ minimizerFasta: mkdir_bin check_fasta
 syncmerFasta: mkdir_bin check_fasta
 	@echo "Compiling $(SYNCMER_FASTA)$(CXX)"
 	$(GXX) $(CXXFLAGS) -c $(SYNCMER_FASTA)$(CXX) -o $(SYNCMER_FASTA).o
-	$(GXX) $(CXXFLAGS) -o $(SYNCMER_FASTA) $(SYNCMER_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	$(GXX) $(CXXFLAGS) -o $(SYNCMER_FASTA) $(SYNCMER_FASTA).o -L$(LIB_DIR) -llcptoolsS -Wl,-rpath,$(LIB_DIR)
 	rm $(SYNCMER_FASTA).o
 	@echo "Moving $(SYNCMER_FASTA) to $(EXECUTABLE_DIR)"
 	mv $(SYNCMER_FASTA) $(EXECUTABLE_DIR)
 	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(SYNCMER_FASTA) $(FASTA) > $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt
+	$(TIME) $(EXECUTABLE_DIR)/$(SYNCMER_FASTA) $(FASTA) > $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt 2>&1

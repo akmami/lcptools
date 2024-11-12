@@ -7,7 +7,7 @@ data/*
 lib/*
 include/*
 
-main.cpp
+lcptools
 
 .nfs*
 *.o
