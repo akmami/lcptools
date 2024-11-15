@@ -24,9 +24,6 @@ To install lcptools system-wide, you need sudo privileges. This will install the
     git clone https://github.com/BilkentCompGen/lcptools.git
     cd lcptools
 
-    # Build the library
-    make
-
     # Install the library
     sudo make install
     ```
@@ -44,9 +41,6 @@ To install lcptools in your home directory (or another custom directory), you do
     ```sh
     git clone https://github.com/BilkentCompGen/lcptools.git
     cd lcptools
-
-    # Build the library
-    make
 
     # Install the library to a custom directory (e.g., `~/.local`):**
     make install PREFIX=$(HOME)/.local

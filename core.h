@@ -112,7 +112,7 @@ namespace lcp {
 		 * @param begin Iterator to the first `core*` object in the range.
 		 * @param end Iterator to the last `core*` object in the range.
 		 */
-		core( std::vector<struct core>::iterator begin, std::vector<struct core>::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
+		core( const std::vector<struct core>::iterator begin, const std::vector<struct core>::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
 
 		/**
 		 * @brief Constructs a `core` object from raw bit data.

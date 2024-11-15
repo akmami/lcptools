@@ -10,7 +10,7 @@ typedef unsigned int ublock;
 #define LCP_SHRINK_VECTOR               false
 #define SIZE_PER_BLOCK                  32
 #define COMPRESSION_ITERATION_COUNT     1
-#define CONSTANT_FACTOR                 2
+#define CONSTANT_FACTOR                 1.5
 #define DICT_BIT_SIZE                   2
 #define STR_HASH_TABLE_SIZE             1000
 #define CORE_HASH_TABLE_SIZE            10000

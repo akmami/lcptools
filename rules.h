@@ -17,7 +17,7 @@ namespace lcp {
      *         pointed to by b based on the modularity of the alphabet mapping;
      *         false otherwise.
      */
-    inline bool char_gt(std::string::iterator a, std::string::iterator b) {
+    inline bool char_gt( const std::string::iterator a, const std::string::iterator b ) {
         return ( alphabet[static_cast<unsigned char>(*a)] ) > ( alphabet[static_cast<unsigned char>(*b)] );
     };
     
@@ -30,7 +30,7 @@ namespace lcp {
      *         pointed to by b based on the modularity of the alphabet mapping;
      *         false otherwise.
      */
-    inline bool char_lt(std::string::iterator a, std::string::iterator b) {
+    inline bool char_lt( const std::string::iterator a, const std::string::iterator b ) {
         return ( alphabet[static_cast<unsigned char>(*a)] ) < ( alphabet[static_cast<unsigned char>(*b)] );
     };
 
@@ -43,7 +43,7 @@ namespace lcp {
      *         pointed to by b based on the modularity of the alphabet mapping;
      *         false otherwise.
      */
-    inline bool char_eq(std::string::iterator a, std::string::iterator b) {
+    inline bool char_eq( const std::string::iterator a, const std::string::iterator b ) {
         return ( alphabet[static_cast<unsigned char>(*a)] ) == ( alphabet[static_cast<unsigned char>(*b)] );
     };
 
@@ -55,7 +55,7 @@ namespace lcp {
      * @return true if the core object pointed to by a is greater than the core
      *         object pointed to by b; false otherwise.
      */
-    inline bool core_gt(std::vector<struct core>::iterator a, std::vector<struct core>::iterator b) {
+    inline bool core_gt( const std::vector<struct core>::iterator a, const std::vector<struct core>::iterator b ) {
         return (*a) > (*b);
     };
 
@@ -67,7 +67,7 @@ namespace lcp {
      * @return true if the core object pointed to by a is less than the core
      *         object pointed to by b; false otherwise.
      */
-    inline bool core_lt(std::vector<struct core>::iterator a, std::vector<struct core>::iterator b) {
+    inline bool core_lt( const std::vector<struct core>::iterator a, const std::vector<struct core>::iterator b ) {
         return (*a) < (*b);
     };
 
@@ -80,7 +80,7 @@ namespace lcp {
      *         pointed to by b based on the modularity of the alphabet mapping;
      *         false otherwise.
      */
-    inline bool core_eq(std::vector<struct core>::iterator a, std::vector<struct core>::iterator b) {
+    inline bool core_eq( const std::vector<struct core>::iterator a, const std::vector<struct core>::iterator b ) {
         return (*a) == (*b);
     };
     
@@ -96,7 +96,7 @@ namespace lcp {
      *         on the comparison functions; false otherwise.
      */
     template <typename Iterator, typename Compare>
-    bool isLMIN(Iterator it, Compare gt, Compare lt) {
+    bool isLMIN( const Iterator it, Compare gt, Compare lt ) {
         return  gt(it, it + 1) && 
                 lt(it + 1, it + 2);
     };
@@ -114,7 +114,7 @@ namespace lcp {
      *         on the comparison functions; false otherwise.
      */
     template <typename Iterator, typename Compare>
-    bool isLMAX(Iterator it, Iterator end, Compare gt, Compare lt) {
+    bool isLMAX( const Iterator it, const Iterator end, Compare gt, Compare lt ) {
         return  (it + 3) < end && 
                 lt(it, it + 1) && 
                 gt(it + 1, it + 2) && 
@@ -134,7 +134,7 @@ namespace lcp {
      *         the sequence runs to the end.
      */
     template <typename Iterator, typename Compare>
-    size_t countMiddle(Iterator it, Iterator end, Compare eq) {
+    size_t countMiddle( const Iterator it, const Iterator end, Compare eq ) {
 
         size_t middle_count = 1;
         Iterator temp = it + 2;
@@ -162,7 +162,7 @@ namespace lcp {
      *         `prev_end` ends); false otherwise.
      */
     template <typename Iterator>
-    bool isSSEQ(Iterator cur_begin, Iterator prev_end) {
+    bool isSSEQ( const Iterator cur_begin, const Iterator prev_end ) {
         return prev_end < cur_begin;
     };
 

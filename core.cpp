@@ -88,7 +88,7 @@ namespace lcp {
 		}
 	};
 
-	core::core( std::vector<struct core>::iterator begin, std::vector<struct core>::iterator end, size_t begin_index, bool use_map, bool rev_comp ) {
+	core::core( const std::vector<struct core>::iterator begin, const std::vector<struct core>::iterator end, size_t begin_index, bool use_map, bool rev_comp ) {
 		#ifdef STATS
 		this->start = (begin)->start;
 		this->end = (end-1)->end;
@@ -99,7 +99,7 @@ namespace lcp {
 
 		// calculate required number of bits to represent core
 		this->size = 0;
-		for ( std::vector<struct core>::iterator it = begin; it != end; it++ ) {
+		for ( std::vector<struct core>::const_iterator it = begin; it != end; it++ ) {
 			this->size += (it)->size;
 		}
 
@@ -114,7 +114,7 @@ namespace lcp {
 		size_t index = start_index( this->size ), block_index, block_size;
 		int block, shift;
 
-		for( std::vector<struct core>::iterator it = begin; it != end; it++ ) {
+		for( std::vector<struct core>::const_iterator it = begin; it != end; it++ ) {
 
 			for ( size_t i = 0; i < block_number((it)->size); i++ ) {
 				block_index = index / SIZE_PER_BLOCK;
@@ -269,13 +269,13 @@ namespace lcp {
     };
 
 	struct core& core::operator = ( const struct core& other ) {
-		if (this == &other) {
+		if ( *this == other ) {
 			return *this;
 		}
 		
 		delete[] this->p;
 
-		if ( other.p ) {
+		if ( other.p != nullptr ) {
 			this->p = new ublock[block_number(other.size)];
 			std::copy(other.p, other.p + block_number(other.size) * sizeof(ublock), this->p);
 		} else {

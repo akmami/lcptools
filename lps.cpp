@@ -124,20 +124,17 @@ namespace lcp {
 
     bool lps::dct() {
 
-        for( size_t compression_number = 0; compression_number < COMPRESSION_ITERATION_COUNT; compression_number++ ) {
-            
-            // at least 2 cores are needed for compression
-            if ( this->cores->size() < compression_number + 2 ) {
-                return false;
-            }
+        // at least 2 cores are needed for compression
+        if ( this->cores == nullptr || this->cores->size() < COMPRESSION_ITERATION_COUNT + 2 ) {
+            return false;
+        }
 
-            size_t index = this->cores->size();
+        for( size_t compression_number = 0; compression_number < COMPRESSION_ITERATION_COUNT; compression_number++ ) {
 
             std::vector<struct core>::iterator it_curr = this->cores->end() - 1, it_left = this->cores->end() - 2;
 
             for( ; this->cores->begin() + compression_number < it_left; it_curr--, it_left-- ) {
                 (it_curr)->compress(*it_left);
-                index--;
             }
         }
 
@@ -148,7 +145,8 @@ namespace lcp {
 
         // Compress cores
         if ( ! dct() ) {
-            delete this->cores;
+            if ( this->cores != nullptr )
+                delete this->cores;
             this->cores = nullptr;
             return false;
         }
@@ -179,21 +177,25 @@ namespace lcp {
 
     void lps::write( std::ofstream& out ) const {
         out.write(reinterpret_cast<const char*>(&level), sizeof(level));
-        size_t size = this->cores->size();
+        size_t size = this->cores == nullptr ? 0 : this->cores->size();
         out.write(reinterpret_cast<const char*>(&size), sizeof(size));
 
         // write each core object
-        for ( std::vector<struct core>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
-            (it)->write(out);
+        if ( this->cores != nullptr ) {
+            for ( std::vector<struct core>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
+                (it)->write(out);
+            }
         }
     };
 
     double lps::memsize() const {
         double total = sizeof(*this);
         total += ( this->cores->capacity() - this->cores->size() ) * sizeof(struct core);
-
-        for ( std::vector<struct core>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
-            total += (it)->memsize();
+        
+        if ( this->cores != nullptr ) {
+            for ( std::vector<struct core>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
+                total += (it)->memsize();
+            }
         }
 
         return total;
@@ -201,10 +203,12 @@ namespace lcp {
     
     bool lps::get_labels( std::vector<uint32_t>& labels ) const {
 
-        labels.reserve( labels.size() + this->cores->size() );
+        if ( this->cores != nullptr ) {
+            labels.reserve( labels.size() + this->cores->size() );
 
-        for ( std::vector<struct core>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
-            labels.push_back( (it)->label );
+            for ( std::vector<struct core>::iterator it = this->cores->begin(); it < this->cores->end(); it++ ) {
+                labels.push_back( (it)->label );
+            }
         }
         
         return true;
@@ -216,16 +220,20 @@ namespace lcp {
 
     std::ostream& operator << ( std::ostream& os, const lps& element ) {
         os << "Level: " << element.level << std::endl;
-        for ( std::vector<struct core>::iterator it = element.cores->begin(); it != element.cores->end(); it++ ) {
-            os << (*it) << " ";
+        if ( element.cores != nullptr ) {
+            for ( std::vector<struct core>::iterator it = element.cores->begin(); it != element.cores->end(); it++ ) {
+                os << (*it) << " ";
+            }
         }
         return os;
     };
 
     std::ostream& operator << ( std::ostream& os, const lps* element ) {
         os << "Level: " << element->level << std::endl;
-        for ( std::vector<struct core>::iterator it = element->cores->begin(); it != element->cores->end(); it++ ) {
-            os << (*it) << " ";
+        if ( element->cores != nullptr ) {
+            for ( std::vector<struct core>::iterator it = element->cores->begin(); it != element->cores->end(); it++ ) {
+                os << (*it) << " ";
+            }
         }
         return os;
     };

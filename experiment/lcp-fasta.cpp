@@ -255,14 +255,14 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     // Distinct Cores
-    std::cout << "Unique Cores (Table)";
+    std::cout << "Unique Cores " << ( USE_MAP ? "(Table)" : "(Hash)" );
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_int(distinct_core_counts[i]);
     }
     std::cout << std::endl;
 
     // Execution Time
-    std::cout << "Exec. Time (sec) (Table)";
+    std::cout << "Exec. Time (sec) " << ( USE_MAP ? "(Table)" : "(Hash)" );
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_double(((double) durations[i].count()) / 1000);
     }

@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
 
     // Execution Time
-    std::cout << "Exec. Time (sec) (Hash)";
+    std::cout << "Exec. Time (sec) " << ( USE_MAP ? "(Table)" : "(Hash)" );
     for (int i = 0; i < LCP_LEVEL; i++) {
         std::cout << sep << format_double(((double) durations[i].count()) / 1000);
     }
