@@ -103,16 +103,19 @@ namespace lcp {
         in.read(reinterpret_cast<char*>(&level), sizeof(level));
         size_t size;
         in.read(reinterpret_cast<char*>(&size), sizeof(size));
-
-        // read each core object
         
-        // resize the vector to the appropriate size
-        this->cores = new std::vector<struct core>;
-        this->cores->reserve(size);
-
+        this->cores = nullptr;
+        
         // read each core object
-        for (size_t i = 0; i < size; i++) {
-            this->cores->emplace_back(in);
+        if ( 0 < size ) {
+            // resize the vector to the appropriate size
+            this->cores = new std::vector<struct core>;
+            this->cores->reserve(size);
+
+            // read each core object
+            for (size_t i = 0; i < size; i++) {
+                this->cores->emplace_back(in);
+            }
         }
     };
 
