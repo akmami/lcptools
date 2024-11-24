@@ -97,6 +97,13 @@ namespace lcp {
         }
         
         parse(str.begin(), str.end(), this->cores, 0, char_gt, char_lt, char_eq, use_map);
+
+        if ( rev_comp ) {
+            std::reverse(str.begin(), str.end());
+            parse(str.begin(), str.end(), this->cores, 0, char_rc_gt, char_rc_lt, char_rc_eq, use_map);
+        } else {
+            parse(str.begin(), str.end(), this->cores, 0, char_gt, char_lt, char_eq, use_map);
+        }
     };
 
     lps::lps( std::ifstream& in ) {
@@ -193,9 +200,10 @@ namespace lcp {
 
     double lps::memsize() const {
         double total = sizeof(*this);
-        total += ( this->cores->capacity() - this->cores->size() ) * sizeof(struct core);
-        
+
         if ( this->cores != nullptr ) {
+            total += ( this->cores->capacity() - this->cores->size() ) * sizeof(struct core);
+            
             for ( std::vector<struct core>::iterator it = this->cores->begin(); it != this->cores->end(); it++ ) {
                 total += (it)->memsize();
             }
@@ -218,7 +226,7 @@ namespace lcp {
     };
 
     size_t lps::size() const {
-        return this->cores->size();
+        return ( this->cores == nullptr ? 0 : this->cores->size() );
     };
 
     std::ostream& operator << ( std::ostream& os, const lps& element ) {

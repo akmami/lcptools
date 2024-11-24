@@ -47,39 +47,42 @@
  */
 void analyze( int level, int (&contiguous_counts)[LCP_LEVEL], int (&distances)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &distancesXL, int (&lengths)[LCP_LEVEL][DISTANCE_LENGTH], std::vector<std::vector<int>> &lengthsXL, lcp::lps *str ) {
     
-    bool isOverlapped = false;
+    if ( str->cores != nullptr ) {
 
-    if ( str->cores->begin()->end < DISTANCE_LENGTH + str->cores->begin()->start ) {
-        lengths[level][str->cores->begin()->end - str->cores->begin()->start] += 1;
-    } else {
-        lengthsXL[level].push_back( str->cores->begin()->end - str->cores->begin()->start );
-    }
+        bool isOverlapped = false;
 
-    for ( std::vector<lcp::core>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
+        if ( str->cores->begin()->end < DISTANCE_LENGTH + str->cores->begin()->start ) {
+            lengths[level][str->cores->begin()->end - str->cores->begin()->start] += 1;
+        } else {
+            lengthsXL[level].push_back( str->cores->begin()->end - str->cores->begin()->start );
+        }
 
-        if ( (it)->start <= (it-1)->end ) {
-            contiguous_counts[level] += 1;
+        for ( std::vector<lcp::core>::iterator it = str->cores->begin() + 1; it < str->cores->end(); it++ ) {
 
-            if ( !isOverlapped ) {
-                isOverlapped = true;
+            if ( (it)->start <= (it-1)->end ) {
+                contiguous_counts[level] += 1;
+
+                if ( !isOverlapped ) {
+                    isOverlapped = true;
+                }
+            }
+
+            if ( (it)->start < DISTANCE_LENGTH + (it-1)->start ) {
+                distances[level][(it)->start - (it-1)->start]++;
+            } else {
+                distancesXL[level].push_back( (it)->start - (it-1)->start );
+            }
+            
+            if ( (it)->end < DISTANCE_LENGTH + (it)->start ) {
+                lengths[level][(it)->end - (it)->start] += 1;
+            } else {
+                lengthsXL[level].push_back( (it)->end - (it)->start );
             }
         }
 
-        if ( (it)->start < DISTANCE_LENGTH + (it-1)->start ) {
-            distances[level][(it)->start - (it-1)->start]++;
-        } else {
-            distancesXL[level].push_back( (it)->start - (it-1)->start );
+        if ( isOverlapped ) {
+            contiguous_counts[level] += 1;
         }
-        
-        if ( (it)->end < DISTANCE_LENGTH + (it)->start ) {
-            lengths[level][(it)->end - (it)->start] += 1;
-        } else {
-            lengthsXL[level].push_back( (it)->end - (it)->start );
-        }
-    }
-
-    if ( isOverlapped ) {
-        contiguous_counts[level] += 1;
     }
 };
 
@@ -118,7 +121,9 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
     sizes[0] += str->memsize();
     distinct_core_counts[0] += lcp::hash::str_map.size() - initial_size;
     durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
-    core_counts[0] += str->cores->size();
+    if ( str->cores != nullptr ) {
+        core_counts[0] += str->cores->size();
+    }
     
     analyze(0, contiguous_counts, distances, distancesXL, lengths, lengthsXL, str);
     
@@ -133,7 +138,9 @@ void process(std::string& sequence, double (&sizes)[LCP_LEVEL], std::vector<std:
         sizes[i] += str->memsize();
         distinct_core_counts[i] += lcp::hash::cores_map.size() - current_size;
         durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
-        core_counts[i] += str->cores->size();
+        if ( str->cores != nullptr ) {
+            core_counts[i] += str->cores->size();
+        }
 
         analyze(i, contiguous_counts, distances, distancesXL, lengths, lengthsXL, str);
     }
@@ -197,11 +204,15 @@ int main(int argc, char **argv) {
 
         // initializing coefficients of the alphabet and hash tables
         lcp::encoding::init();
-        lcp::hash::init(4000, 536870911);
+
+        if ( USE_MAP ) {
+            lcp::hash::init(4000, 536870911);
+            
+            std::cout << "str_map.capacity at the begining: " << format_int( lcp::hash::str_map.max_load_factor() * lcp::hash::str_map.bucket_count() ) << std::endl;
+        }
                 
         std::cout << "Program begins" << std::endl;
 
-        std::cout << "str_map.capacity at the begining: " << format_int( lcp::hash::str_map.max_load_factor() * lcp::hash::str_map.bucket_count() ) << std::endl;
         
         while (getline(genome, line)) {
 
@@ -333,10 +344,12 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
     
     std::cout << std::endl;
+    
+    if ( USE_MAP ) {
+        lcp::hash::summary();
 
-    lcp::hash::summary();
-
-    std::cout << "ID: " << lcp::hash::next_id << std::endl;
+        std::cout << "ID: " << lcp::hash::next_id << std::endl;
+    }
 
     return 0;
 };

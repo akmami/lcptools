@@ -83,6 +83,46 @@ namespace lcp {
     inline bool core_eq( const std::vector<struct core>::iterator a, const std::vector<struct core>::iterator b ) {
         return (*a) == (*b);
     };
+
+
+    /**
+     * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+     *
+     * @param a An iterator pointing to the first character.
+     * @param b An iterator pointing to the second character.
+     * @return true if the character pointed to by a is greater than the character
+     *         pointed to by b based on the modularity of the reverse complement alphabet mapping;
+     *         false otherwise.
+     */
+    inline bool char_rc_gt( const std::string::iterator a, const std::string::iterator b ) {
+        return ( rc_alphabet[static_cast<unsigned char>(*a)] ) > ( rc_alphabet[static_cast<unsigned char>(*b)] );
+    };
+    
+    /**
+     * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+     *
+     * @param a An iterator pointing to the first character.
+     * @param b An iterator pointing to the second character.
+     * @return true if the character pointed to by a is less than the character
+     *         pointed to by b based on the modularity of the reverse complement alphabet mapping;
+     *         false otherwise.
+     */
+    inline bool char_rc_lt( const std::string::iterator a, const std::string::iterator b ) {
+        return ( rc_alphabet[static_cast<unsigned char>(*a)] ) < ( rc_alphabet[static_cast<unsigned char>(*b)] );
+    };
+
+    /**
+     * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+     *
+     * @param a An iterator pointing to the first character.
+     * @param b An iterator pointing to the second character.
+     * @return true if the character pointed to by a is equal to the character
+     *         pointed to by b based on the modularity of the reverse complement alphabet mapping;
+     *         false otherwise.
+     */
+    inline bool char_rc_eq( const std::string::iterator a, const std::string::iterator b ) {
+        return ( rc_alphabet[static_cast<unsigned char>(*a)] ) == ( rc_alphabet[static_cast<unsigned char>(*b)] );
+    };
     
     /**
      * Determines if the element at the given iterator position is a local minimum.
