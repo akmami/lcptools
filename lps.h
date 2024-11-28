@@ -216,15 +216,14 @@ namespace lcp {
          * @note `use_map` influences how cores are constructed.
          * 
          */
-        template <typename Iterator, typename Compare>
-        inline void parse( Iterator begin, Iterator end, std::vector<struct core>* cores, const size_t extension_size, Compare gt, Compare lt, Compare eq, bool use_map ) {
+        template <typename Iterator, typename Compare, typename Index, typename Size, typename Representation, typename Data, typename Length>
+        inline void parse( Iterator begin, Iterator end, std::vector<struct core>* cores, const size_t extension_size, Compare gt, Compare lt, Compare eq, Index fn_index, Size fn_size, Representation fn_rep, Data fn_data, Length fn_length, bool use_map ) {
             
-            int index = 0, prev_index = 0;
             Iterator it1 = begin + extension_size;
-            Iterator it2 = end;
+            Iterator it2 = end;            
 
-            // Find lcp cores
-            for ( ; it1 + 2 < end; it1++, index++ ) {
+            // find lcp cores
+            for ( ; it1 + 2 < end; it1++ ) {
 
                 // skip invalid character
                 if ( eq( it1, it1 + 1 ) ) {
@@ -236,12 +235,11 @@ namespace lcp {
                 if ( middleCount > 1 ) {
                                 
                     if ( isSSEQ( it1, it2 ) ) {
-                        cores->emplace_back(it2 - 1 - extension_size, it1 + 1, prev_index, use_map);
+                        cores->emplace_back( it2 - 1 - extension_size, it1 + 1, fn_index(begin, it2 - 1 - extension_size, it1 + 1), fn_size, fn_rep, fn_data, fn_length, use_map );
                     }
 
                     it2 = it1 + 2 + middleCount;
-                    prev_index = index + middleCount + 1;
-                    cores->emplace_back(it1 - extension_size, it2, index, use_map);
+                    cores->emplace_back( it1 - extension_size, it2, fn_index(begin, it1 - extension_size, it2), fn_size, fn_rep, fn_data, fn_length, use_map );
                     
                     continue;
                 }
@@ -249,11 +247,10 @@ namespace lcp {
                 if ( isLMIN( it1, gt, lt ) ) {
                     
                     if ( isSSEQ( it1, it2 ) ) {
-                        cores->emplace_back(it2 - 1 - extension_size, it1 + 1, prev_index, use_map);
+                        cores->emplace_back( it2 - 1 - extension_size, it1 + 1, fn_index(begin, it2 - 1 - extension_size, it1 + 1), fn_size, fn_rep, fn_data, fn_length, use_map );
                     }
                     it2 = it1 + 3;
-                    prev_index = index + 2;
-                    cores->emplace_back(it1 - extension_size, it2, index, use_map);
+                    cores->emplace_back( it1 - extension_size, it2, fn_index(begin, it1 - extension_size, it2), fn_size, fn_rep, fn_data, fn_length, use_map );
 
                     continue;
                 } 
@@ -265,11 +262,10 @@ namespace lcp {
                 if ( isLMAX( it1, end, gt, lt ) ) {
                     
                     if ( isSSEQ( it1, it2 ) ) {
-                        cores->emplace_back(it2 - 1 - extension_size, it1 + 1, prev_index, use_map);
+                        cores->emplace_back( it2 - 1 - extension_size, it1 + 1, fn_index(begin, it2 - 1 - extension_size, it1 + 1), fn_size, fn_rep, fn_data, fn_length, use_map );
                     }
                     it2 = it1 + 3;
-                    prev_index = index + 2;
-                    cores->emplace_back(it1 - extension_size, it2, index, use_map);
+                    cores->emplace_back( it1 - extension_size, it2, fn_index(begin, it1 - extension_size, it2), fn_size, fn_rep, fn_data, fn_length, use_map );
 
                     continue;
                 }

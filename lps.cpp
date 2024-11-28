@@ -13,7 +13,7 @@ namespace lcp {
 
         std::string::iterator it = str.begin();
 
-        parse(it, std::min(it + sequence_split_length, str.end()), this->cores, 0, char_gt, char_lt, char_eq, false);
+        parse(it, std::min(it + sequence_split_length, str.end()), this->cores, 0, char_gt, char_lt, char_eq, char_index, char_size, char_rep, char_data, char_length, false);
 
         this->deepen(lcp_level);
         
@@ -82,7 +82,7 @@ namespace lcp {
         this->cores = new std::vector<struct core>;
         this->cores->reserve( (end - begin) / CONSTANT_FACTOR );
 
-        parse(begin, end, this->cores, 0, char_gt, char_lt, char_eq, false);
+        parse(begin, end, this->cores, 0, char_gt, char_lt, char_eq, char_index, char_size, char_rep, char_data, char_length, false);
     };
 
     lps::lps( std::string &str, bool use_map, bool rev_comp ) {
@@ -94,15 +94,9 @@ namespace lcp {
         
         if ( rev_comp ) {
             std::reverse(str.begin(), str.end());
-        }
-        
-        parse(str.begin(), str.end(), this->cores, 0, char_gt, char_lt, char_eq, use_map);
-
-        if ( rev_comp ) {
-            std::reverse(str.begin(), str.end());
-            parse(str.begin(), str.end(), this->cores, 0, char_rc_gt, char_rc_lt, char_rc_eq, use_map);
+            parse(str.begin(), str.end(), this->cores, 0, char_rc_gt, char_rc_lt, char_rc_eq, char_index, char_size, char_rev_rep, char_data, char_length, use_map);
         } else {
-            parse(str.begin(), str.end(), this->cores, 0, char_gt, char_lt, char_eq, use_map);
+            parse(str.begin(), str.end(), this->cores, 0, char_gt, char_lt, char_eq, char_index, char_size, char_rep, char_data, char_length, use_map);
         }
     };
 
@@ -135,15 +129,15 @@ namespace lcp {
     bool lps::dct() {
 
         // at least 2 cores are needed for compression
-        if ( this->cores == nullptr || this->cores->size() < COMPRESSION_ITERATION_COUNT + 2 ) {
+        if ( this->cores == nullptr || this->cores->size() < DCT_ITERATION_COUNT + 2 ) {
             return false;
         }
 
-        for( size_t compression_number = 0; compression_number < COMPRESSION_ITERATION_COUNT; compression_number++ ) {
+        for( size_t dct_index = 0; dct_index < DCT_ITERATION_COUNT; dct_index++ ) {
 
             std::vector<struct core>::iterator it_curr = this->cores->end() - 1, it_left = this->cores->end() - 2;
 
-            for( ; this->cores->begin() + compression_number < it_left; it_curr--, it_left-- ) {
+            for( ; this->cores->begin() + dct_index < it_left; it_curr--, it_left-- ) {
                 (it_curr)->compress(*it_left);
             }
         }
@@ -165,9 +159,9 @@ namespace lcp {
         std::vector<struct core> *temp_cores = new std::vector<struct core>;
         temp_cores->reserve( this->cores->size() / CONSTANT_FACTOR );
         
-        parse( this->cores->begin() + COMPRESSION_ITERATION_COUNT, this->cores->end(), temp_cores, COMPRESSION_ITERATION_COUNT, core_gt, core_lt, core_eq, use_map);
+        parse( this->cores->begin() + DCT_ITERATION_COUNT, this->cores->end(), temp_cores, DCT_ITERATION_COUNT, core_gt, core_lt, core_eq, core_index, core_size, core_rep, core_data, core_length, use_map);
 
-        // remove old cores
+        // Remove old cores
         delete this->cores;
 
         this->cores = temp_cores;

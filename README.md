@@ -206,7 +206,7 @@ PROGRAM deepen(core_length=5, verbose=false):
 	
 	iteration_index <- 0
 
-	FOR iteration_index < COMPRESSION_ITERATION_COUNT:
+	FOR iteration_index < DCT_ITERATION_COUNT:
 		iteration_index++
 	 	temp_prev <- cores[0]
 	 

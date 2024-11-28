@@ -11,7 +11,7 @@
  *   - A specialized hash function for arrays of three unsigned integers, using a mixing algorithm 
  *     for robust hash generation.
  *   - An equality operator to compare arrays of three unsigned integers.
- *   - Functions to initialize hash tables (`str_map` and `core_map`) with preallocated sizes.
+ *   - Functions to initialize hash tables (`str_map` and `cores_map`) with preallocated sizes.
  *   - A function to hash a sequence of bytes from a string iterator range, using a seed value for initialization.
  * 
  * ----------------------------------------------------------------------------
@@ -46,6 +46,7 @@
 
 
 #include <cstdint>
+#include <cstring>
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
@@ -57,259 +58,27 @@
 #include "constant.h"
 
 
+#define BIG_CONSTANT(x) (x)
+
 namespace lcp {
-
-    // MurmurHash3 function
-    
-    /**
-     * @brief Performs a left rotation on a 32-bit integer.
-     * 
-     * This function rotates the bits of the input integer 'x' to the left by 'r' positions.
-     * 
-     * @param x The 32-bit integer to be rotated.
-     * @param r The number of positions to rotate.
-     * @return The result of the left rotation.
-     */
-    inline uint32_t fmix32(uint32_t h);
-
-    /**
-     * @brief Finalizes the hash value using mix functions.
-     * 
-     * This function applies several mixing operations to the hash value 'h' to ensure
-     * a uniform distribution of the final hash.
-     * 
-     * @param h The hash value to be mixed.
-     * @return The final mixed hash value.
-     */
-    inline uint32_t rotl32(uint32_t x, int8_t r);
-
-    /**
-     * @brief Computes the 32-bit MurmurHash3 hash for a given key.
-     * 
-     * This function computes a 32-bit hash of the input data 'key' with the specified
-     * length 'len' and an optional seed value. It processes the input in blocks and handles
-     * any remaining bytes.
-     * 
-     * @param key Pointer to the data to be hashed.
-     * @param len The length of the data in bytes.
-     * @param seed An initial seed value for the hash computation.
-     * @return The resulting 32-bit hash value.
-     */
-    uint32_t MurmurHash3_32(const void* key, int len, uint32_t seed = 42);
 
     // struct core
     struct cores {
-        uint32_t core1;
-        uint32_t core2;
-        uint32_t core3;
-        uint32_t middle_count;
+        uint32_t data[DCT_ITERATION_COUNT + 4];
         uint32_t label;
 
         /**
-         * @brief Default constructor for the `cores` structure.
-         * Initializes the structure with default values.
-         */
-        cores();
-
-        /**
-         * @brief Parameterized constructor for the `cores` structure.
-         * 
-         * @param core1 First core value.
-         * @param core2 Second core value.
-         * @param core3 Third core value.
-         * @param middle_count Middle count value.
-         * @param label Label associated with the structure.
-         * 
-         * Initializes the structure with the provided core values, middle count, and label.
-         */
-        cores( const uint32_t core1, const uint32_t core2, const uint32_t core3, const uint32_t middle_count, const uint32_t label );
-
-        /**
-         * @brief Equality operator for comparing two `cores` structures.
-         * 
-         * @param other The other `cores` structure to compare against.
-         * 
-         * @return true if the two structures are equal based on core values and middle count, false otherwise.
-         */
-        bool operator==( const cores& other ) const;
-    };
-
-
-    using bucket_type = typename std::list<struct cores>;
-    using TableRowIt = typename std::vector<bucket_type>::iterator;
-    using BucketIt = typename bucket_type::iterator;
-
-
-    class hash_map {
-    public:
-        /**
-         * @brief Constructor for `hash_map` class.
-         * 
-         * @param size Initial size of the hash table (default is 1009).
-         * 
-         * Initializes the hash map with a specified size.
-         */
-        hash_map( size_t size = 1009 );
-
-        /**
-         * @brief Reserves space for the hash map by resizing the table.
-         * 
-         * @param size The new size for the hash table.
-         * 
-         * This function resizes the hash map and adjusts its size and capacity.
-         */
-        void reserve( size_t size );
-
-        /**
-         * @brief Inserts a new `cores` structure into the hash map if it does not already exist.
-         * 
-         * This function checks if a `cores` structure with the same values already exists in the bucket.
-         * If it does, it returns the label of the existing cores. Otherwise, it inserts the new `cores` structure and returns its label.
-         * 
-         * @param index Hash index (bucket index) where the cores should be inserted.
-         * @param core1 First core value.
-         * @param core2 Second core value.
-         * @param core3 Third core value.
-         * @param middle_count Middle count value.
-         * @param label Label for the cores.
-         * 
-         * @return The label of the inserted or existing cores.
-         */
-        uint32_t emplace( const uint32_t& index, const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count, const uint32_t& label );
-
-        /**
-         * @brief Checks if a specific `cores` structure exists in the hash map.
-         * 
-         * @param core1 First core value.
-         * @param core2 Second core value.
-         * @param core3 Third core value.
-         * @param middle_count Middle count value.
-         * 
-         * @return A pair where the first value indicates if the cores exists, and the second value is the label itself or bucket index.
-         */
-        inline std::pair<bool, uint32_t> exists( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) const;
-
-        /**
-         * @brief Returns the size of a bucket in the hash table.
-         * 
-         * @param bucket_index Index of the bucket.
-         * 
-         * @return The size of the bucket (number of elements in it).
-         */
-        inline size_t bucket_size( size_t bucket_index );
-
-        /**
-         * @brief Returns the number of elements in the hash map.
-         * 
-         * @return The number of elements in the hash map.
-         */
-        size_t size();
-
-        /**
-         * @brief Calculates the load factor of the hash map.
-         * 
-         * @return The load factor, which is the ratio of the number of elements to the capacity.
-         */
-        float load_factor();
-
-        /**
-         * @brief Returns the capacity of the hash map (the total number of buckets).
-         * 
-         * @return The capacity of the hash map.
-         */
-        size_t capacity();
-
-        // hash_map::iterator class definition
-        class iterator {
-        public:
-
-            /**
-             * @brief Constructor for the hash map iterator.
-             * 
-             * @param rowIt Iterator pointing to the current row in the hash map.
-             * @param rowItEnd Iterator pointing to the end of the rows in the hash map.
-             * @param bucketIt Iterator pointing to the current bucket in the hash map.
-             */
-            iterator(TableRowIt rowIt, TableRowIt rowItEnd, BucketIt bucketIt);
-
-            /**
-             * @brief Pre-increment operator for advancing the iterator.
-             * 
-             * @return Reference to the incremented iterator.
-             */
-            iterator& operator++();
-
-            /**
-             * @brief Post-increment operator for advancing the iterator.
-             * 
-             * @return A copy of the iterator before it was incremented.
-             */
-            iterator operator++(int);
-
-            /**
-             * @brief Inequality operator for comparing two iterators.
-             * 
-             * @param other The other iterator to compare against.
-             * 
-             * @return true if the iterators are not equal, false otherwise.
-             */
-            bool operator!=(const iterator& other);
-
-            /**
-             * @brief Dereference operator for accessing the value pointed to by the iterator.
-             * 
-             * @return Reference to the `cores` structure at the iterator's position.
-             */
-            struct cores& operator*();
-
-            /**
-             * @brief Arrow operator for accessing members of the `cores` structure at the iterator's position.
-             * 
-             * @return Pointer to the `cores` structure at the iterator's position.
-             */
-            struct cores* operator->();
-
-        private:
-            /**
-             * @brief Advances the iterator to the next valid position.
-             * Skips over empty buckets in the hash map.
-             */
-            void advance();
-
-            TableRowIt rowIt, rowItEnd;
-            BucketIt bucketIt;
-        };
-
-        /**
-         * @brief Returns an iterator to the beginning of the hash map.
-         * 
-         * @return An iterator pointing to the first element in the hash map.
-         */
-        iterator begin();
-        
-        /**
-         * @brief Returns an iterator to the end of the hash map.
-         * 
-         * @return An iterator pointing past the last element in the hash map.
-         */
-        iterator end();
-
-    private:
-        
-        size_t _size;
-        size_t _capacity;
-        std::vector<bucket_type> table;
-
-        /**
-         * @brief Hash function for computing the index in the hash table based on the cores values.
-         * 
-         * @param core1 First core value.
-         * @param core2 Second core value.
-         * @param core3 Third core value.
-         * 
-         * @return The computed hash index for the cores.
-         */
-        inline uint32_t entry( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count ) const;
+        * @brief Parameterized constructor for the `cores` structure.
+        * 
+        * @param label Label associated with the structure.
+        * @param labels The array of subcore labels. Must have exactly DCT_ITERATION_COUNT + 3 elements.
+        * 
+        * Initializes the structure with the provided core values and label.
+        */
+        cores(const uint32_t label, const uint32_t labels[DCT_ITERATION_COUNT + 4] ) {
+            this->label = label;
+            std::copy_n(labels, DCT_ITERATION_COUNT + 4, data);
+        }
     };
 
     namespace hash {
@@ -320,87 +89,72 @@ namespace lcp {
 
         // maps
         extern std::unordered_map<std::string, uint32_t> str_map;
-        extern hash_map cores_map;
+        extern std::vector<std::list<struct cores>> cores_map;
 
         // id
         extern uint32_t next_id;
 
         /**
-         * @brief Initializes the string and core hash tables with the specified sizes.
+         * @brief Initializes the internal hash maps with the specified sizes.
          *
-         * This function reserves memory for the `str_map` and `core_map` hash tables, optimizing for the 
-         * expected number of elements to prevent hash collisions and improve lookup performance.
+         * Reserves memory for the `str_map` and `cores_map` hash maps. 
+         * If `cores_map` already contains elements, a warning message is printed, 
+         * and no reservation is performed for `cores_map`.
          *
-         * @param str_map_size The initial size of the string hash table (`str_map`). Default is `1000`.
-         * @param core_map_size The initial size of the core hash table (`core_map`). Default is `10000`.
+         * @param str_map_size The number of elements to reserve for the `str_map`.
+         * @param cores_map_size The number of elements to reserve for the `cores_map`.
          */
-        void init( size_t str_map_size = STR_HASH_TABLE_SIZE, size_t core_map_size = CORE_HASH_TABLE_SIZE );
+        void init( size_t str_map_size = STR_HASH_TABLE_SIZE, size_t cores_map_size = CORE_HASH_TABLE_SIZE );
 
         /**
-         * @brief Inserts a k-mer string into str_map and returns its associated unique identifier.
-         * 
-         * This function extracts a substring (k-mer) from the provided range of iterators (begin to end), converts it to uppercase,
-         * and attempts to insert it into the str_map hash map. If the k-mer is not already present in the map, a new unique identifier is assigned
-         * to it (next_id), which is then returned. If the k-mer already exists, the existing identifier is returned.
-         * The function ensures thread safety by using a std::lock_guard to protect access to the str_map during insertion.
-         * 
-         * @param begin An iterator pointing to the beginning of the k-mer substring within the input string.
-         * @param end An iterator pointing to the end of the k-mer substring within the input string.
-         * @return The unique identifier (uint32_t) associated with the k-mer. If the k-mer is newly inserted, next_id is incremented.
-        */
-        uint32_t emplace( std::string::iterator begin, std::string::iterator end );
+         * @brief Inserts a string into the `str_map` and returns its unique ID.
+         *
+         * Converts the input string to uppercase and checks if it already exists in the `str_map`. 
+         * If it exists, returns the existing ID. Otherwise, safely inserts the string into the map 
+         * while ensuring thread safety and assigns it a new ID.
+         *
+         * @param data Pointer to the string data to be inserted.
+         * @param length Length of the string. (Unused in the function)
+         * @return The unique ID of the string in the `str_map`.
+         */
+        uint32_t emplace( const char *data, const size_t length );
 
         /**
-         * @brief Inserts a set of core values into cores_map and returns its associated unique identifier.
-         * 
-         * This function checks if a combination of four uint32_t values (core1, core2, core3, and middle_count) exists in the cores_map.
-         * If the combination is not already present, the function inserts the new core values into the cores_map with a unique identifier (next_id).
-         * If the core values already exist, their associated identifier is returned.
-         * The function ensures thread safety by using a std::lock_guard to protect access to the cores_map during insertion.
-         * 
-         * @param core1 First unsigned integer value representing a core component.
-         * @param core2 Second unsigned integer value representing a core component.
-         * @param core3 Third unsigned integer value representing a core component.
-         * @param middle_count Fourth unsigned integer value representing the middle count.
-         * @return The unique identifier (uint32_t) associated with the core values. If the core values are newly inserted, next_id is incremented.
-        */
-        uint32_t emplace( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t& middle_count );
+         * @brief Inserts a core represented as an array of `uint32_t` into the `cores_map` and returns its unique ID.
+         *
+         * Computes a hash index for the core and checks if an equivalent core exists in the same bucket.
+         * If it exists, returns the existing label. Otherwise, safely inserts the new core into the bucket 
+         * while ensuring thread safety and assigns it a new label.
+         *
+         * @param data Pointer to the array representing the core.
+         * @param length Length of the array.
+         * @return The unique ID (label) of the core in the `cores_map`.
+         */
+        uint32_t emplace( const uint32_t *data, const size_t length );
         
         /**
-         * @brief Hashes a k-mer string using MurmurHash3.
+         * @brief Computes a hash value for a given string.
          *
-         * This function takes a range of characters from a string (specified by 
-         * iterators), constructs a k-mer from that range, converts it to uppercase, 
-         * and computes its hash using the MurmurHash3_32 function.
+         * Uses the MurmurHash3 hashing algorithm to compute a hash value for the input string.
+         * Frees the memory allocated for the input string after hashing.
          *
-         * @param begin An iterator pointing to the beginning of the k-mer string.
-         * @param end An iterator pointing to one past the end of the k-mer string.
-         *
-         * @return The 32-bit hash value of the k-mer string.
-         *
-         * @note The input range defined by [begin, end) should contain valid characters 
-         * that can be transformed to uppercase. The resulting hash value will be 
-         * consistent for the same input string across different executions, provided the 
-         * same MurmurHash3 implementation is used.
+         * @param data Pointer to the string data to be hashed.
+         * @param length Length of the string.
+         * @return The computed hash value.
          */
-        uint32_t simple( std::string::iterator begin, std::string::iterator end );
+        uint32_t simple( const char *data, const size_t length );
 
         /**
-         * @brief Computes a hash value for four unsigned integer inputs.
+         * @brief Computes a hash value for a given array of `uint32_t`.
          *
-         * This function takes four `uint32_t32_t` values (`core1`, `core2`, `core3`, `middle_count`)
-         * and combines their individual hash values using XOR and a prime number multiplier (0x9e3779b9).
-         * The combination ensures a reasonable distribution of hash values, which is suitable
-         * for use in hash-based containers such as `std::unordered_map` or avoid them.
+         * Uses the MurmurHash3 hashing algorithm to compute a hash value for the input array.
+         * Frees the memory allocated for the input array after hashing.
          *
-         * @param core1 First unsigned integer value to be hashed.
-         * @param core2 Second unsigned integer value to be hashed.
-         * @param core3 Third unsigned integer value to be hashed.
-         * @param middle_count Fourth unsigned integer value to be hashed.
-         * 
-         * @return A combined `size_t` hash value computed from the input values.
+         * @param data Pointer to the array to be hashed.
+         * @param length Length of the array.
+         * @return The computed hash value.
          */
-        uint32_t simple( const uint32_t& core1, const uint32_t& core2, const uint32_t& core3, const uint32_t middle_count );
+        uint32_t simple( const uint32_t *data, const size_t length );
 
         /**
          * @brief Provides a summary of hash map statistics for two maps: `str_map` and `cores_map`.
@@ -421,6 +175,60 @@ namespace lcp {
          * - `max_bucket_size` is the largest number of entries in any single bucket.
          */
         void summary();
+
+        // MurmurHash2-64A function
+
+        /**
+         * @brief Computes the 64-bit MurmurHash64A hash for a given key.
+         * 
+         * This function computes a 64-bit hash of the input data 'key' with the specified
+         * length 'len' and an optional seed value. It processes the input in blocks and handles
+         * any remaining bytes.
+         * 
+         * @param key Pointer to the data to be hashed.
+         * @param len The length of the data in bytes.
+         * @param seed An initial seed value for the hash computation.
+         * @return The resulting 64-bit hash value.
+         */
+        inline uint64_t MurmurHash64A( const void * key, int len, uint64_t seed );
+
+        // MurmurHash3 32-bit function
+        
+        /**
+         * @brief Performs a left rotation on a 32-bit integer.
+         * 
+         * This function rotates the bits of the input integer 'x' to the left by 'r' positions.
+         * 
+         * @param x The 32-bit integer to be rotated.
+         * @param r The number of positions to rotate.
+         * @return The result of the left rotation.
+         */
+        inline uint32_t rotl32( uint32_t x, int8_t r );
+
+        /**
+         * @brief Finalizes the hash value using mix functions.
+         * 
+         * This function applies several mixing operations to the hash value 'h' to ensure
+         * a uniform distribution of the final hash.
+         * 
+         * @param h The hash value to be mixed.
+         * @return The final mixed hash value.
+         */
+        inline uint32_t fmix32( uint32_t h );
+
+        /**
+         * @brief Computes the 32-bit MurmurHash3 hash for a given key.
+         * 
+         * This function computes a 32-bit hash of the input data 'key' with the specified
+         * length 'len' and an optional seed value. It processes the input in blocks and handles
+         * any remaining bytes.
+         * 
+         * @param key Pointer to the data to be hashed.
+         * @param len The length of the data in bytes.
+         * @param seed An initial seed value for the hash computation.
+         * @return The resulting 32-bit hash value.
+         */
+        inline uint32_t MurmurHash3_32( const void* key, int len, uint32_t seed = 42 );
     };
 };
 

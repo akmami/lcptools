@@ -48,27 +48,10 @@
 #include <fstream>
 #include <iterator>
 #include <cstring>
+#include <iostream>
 #include "constant.h"
 #include "encoding.h"
 #include "hash.h"
-
-
-/**
- * @brief Computes the number of blocks required to store a bit sequence of the given size.
- * 
- * @param size The size of the bit sequence.
- * @return The number of blocks required.
- */
-inline size_t block_number( size_t size );
-
-
-/**
- * @brief Calculates the starting index for bit manipulation in a block.
- * 
- * @param size The size of the bit sequence.
- * @return The starting index within the first block.
- */
-inline size_t start_index( size_t size );
 
 
 namespace lcp {
@@ -82,50 +65,82 @@ namespace lcp {
 		#endif
 
 		// Represenation related variables
-		size_t size;
-		ublock* p;
+		uint32_t bit_size;
+		ublock *bit_rep;
 
 		// Other variables
 		uint32_t label;
 
-		/**
-		 * @brief Constructs a `core` object by encoding a string into bit representation.
-		 * 
-		 * This constructor takes iterators to a string, and encodes it into a bit sequence using
-		 * the `coefficients` or `reverse_complement_coefficients` array, depending on the `rev_comp` flag.
-		 * It allocates the necessary memory for the bit sequence and encodes the string iteratively.
-		 * 
-		 * @param begin Iterator to the beginning of the string.
-		 * @param end Iterator to the end of the string.
-		 * @param begin_index The starting index of the sequence.
-		 * @param rev_comp Boolean indicating if the reverse complement encoding should be used.
-		 */
-		core( std::string::iterator begin, std::string::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
-		
-		/**
-		 * @brief Constructs a `core` object by combining multiple `core` objects.
-		 * 
-		 * This constructor takes a range of `core*` objects and concatenates their bit sequences into
-		 * a single `core` object. It allocates the necessary memory and performs bitwise operations to merge
-		 * the individual cores.
-		 * 
-		 * @param begin Iterator to the first `core*` object in the range.
-		 * @param end Iterator to the last `core*` object in the range.
-		 */
-		core( const std::vector<struct core>::iterator begin, const std::vector<struct core>::iterator end, size_t begin_index, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP );
+
+		template <typename Iterator, typename Size, typename Representation, typename Data, typename Length>
+		core( Iterator begin, Iterator end, std::pair<size_t, size_t> indeces, Size size, Representation rep, Data data, Length length, bool use_map ) {
+
+			#ifdef STATS
+			this->start = indeces.first;
+			this->end = indeces.second;
+			#else
+			(void)indeces;
+			#endif
+			
+			this->bit_size = 0;
+
+			for( Iterator it = begin; it < end; it++ ) {
+				this->bit_size += size(it);
+			}
+
+			// allocate memory for representation
+			size_t block_number = ( this->bit_size + UBLOCK_BIT_SIZE - 1 ) / UBLOCK_BIT_SIZE;
+
+			this->bit_rep = new ublock[block_number];
+			std::memset(this->bit_rep, 0, block_number * sizeof(ublock));
+
+			size_t shift = 0;
+			int block_index = block_number - 1;
+
+			for( Iterator it = end - 1; begin <= it; it-- ) {
+				
+				ublock* o_bit_rep = rep(it);
+
+				for ( int i = ( size(it) - 1 ) / UBLOCK_BIT_SIZE; 0 <= i; i-- ) {
+
+					size_t curr_block_size = ( i > 0 ? UBLOCK_BIT_SIZE : size(it) % UBLOCK_BIT_SIZE );
+					
+					// shift and paste
+					this->bit_rep[block_index] |= ( o_bit_rep[i] << shift );
+					
+					// if there is an overflow after shifting, it pastes the overfloaw to the left block. 
+					if ( shift + curr_block_size > UBLOCK_BIT_SIZE ) {
+						this->bit_rep[block_index-1] |= ( o_bit_rep[i] >> ( UBLOCK_BIT_SIZE - shift) );
+					}
+
+					if ( shift + curr_block_size >= UBLOCK_BIT_SIZE ) {
+						block_index--;
+					}
+
+					shift = ( shift + curr_block_size ) % UBLOCK_BIT_SIZE;
+				}
+			}
+			
+			if ( !use_map ) {
+				this->label = hash::simple( data(begin, end), length(begin, end) );
+			} else {
+				this->label = hash::emplace( data(begin, end), length(begin, end) );
+			}
+		};
 
 		/**
 		 * @brief Constructs a `core` object from raw bit data.
 		 * 
 		 * This constructor initializes a `core` object with a given pointer to a bit sequence, and
 		 * sets its size, start, and end indices.
-		 * 
-		 * @param p Pointer to the bit sequence.
-		 * @param size The size of the bit sequence.
+		 *
 		 * @param start The starting index of the sequence.
 		 * @param end The ending index of the sequence.
+		 * @param bit_size The size of the bit sequence.
+		 * @param bit_rep The pointer to the bit representation of the sequence.
+		 * @param label The label/identifier of the core.
 		 */
-		core( ublock* p, size_t size, uint32_t label, size_t start, size_t end );
+		core( size_t start, size_t end, size_t bit_size, ublock* bit_rep, uint32_t label );
 
 		/**
 		 * @brief Constructs a `core` object by reading from an input file stream.
@@ -137,11 +152,6 @@ namespace lcp {
 		 */
 		core( std::ifstream& in );
 
-		/**
-		 * @brief Destructor for the `core` object.
-		 * 
-		 * Frees the memory allocated for the bit sequence.
-		 */
 		~core();
 
 
@@ -178,9 +188,9 @@ namespace lcp {
 		 * @brief Copy assignment operator for the `core` struct.
 		 * 
 		 * This operator performs a deep copy of the `other` core's data into the current instance.
-		 * It first checks for self-assignment, then deallocates any existing memory pointed to by `p`.
-		 * If `other.p` is not null, it allocates new memory and copies the data from `other`'s `p` array.
-		 * If `other.p` is null, it sets `p` to nullptr. Additionally, it copies the `size` and `label`
+		 * It first checks for self-assignment, then deallocates any existing memory pointed to by `bit_rep`.
+		 * If `other.bit_rep` is not null, it allocates new memory and copies the data from `other`'s `bit_rep` array.
+		 * If `other.bit_rep` is null, it sets `bit_rep` to nullptr. Additionally, it copies the `size` and `label`
 		 * values from `other`. If `STATS` is defined, it also copies the `start` and `end` values.
 		 * 
 		 * @param other The `core` instance to copy from.
