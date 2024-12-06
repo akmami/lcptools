@@ -100,7 +100,7 @@ lcpFastaMem: mkdir_bin check_fasta check_lcptoolsS
 	@echo "Compiling $(LCP_FASTA_MEM)$(CXX)"
 	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA_MEM)$(CXX) -o $(LCP_FASTA_MEM).o
 	@echo "Linking lcptoolsS library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptoolsS -Wl,-rpath,$(LIB_DIR)
+	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
 	rm $(LCP_FASTA_MEM).o
 	@echo "Moving $(LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
 	mv $(LCP_FASTA_MEM) $(EXECUTABLE_DIR)

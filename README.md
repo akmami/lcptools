@@ -101,20 +101,20 @@ The binary encoding of the alphabet is defined as follows. This default encoding
 To initialize the encodings, use the following function call at the beginning of your program. A boolean parameter `verbose` can be provided, which, when set to `true`, prints a summary of the encoding:
 
 ```cpp
-lcp::init_coefficients(verbose);
+lcp::encoding::init(verbose);
 ```
 
 To display the encoding summary separately, use:
 
 ```cpp
-lcp::encoding_summary();
+lcp::encoding::summary();
 ```
 
 For custom character encoding, initialize the encoding by passing a `std::map<char, int>` object to the initialization function:
 
 ```cpp
 std::map<char, int> customEncoding = { {'A', 3}, {'T', 0}, {'C', 2}, {'G', 1} };
-lcp::init_coefficients(customEncoding, verbose);
+lcp::encoding::init(customEncoding, verbose);
 ```
 
 In the above code, `verbose` is an optional boolean parameter, defaulting to `false`.
@@ -131,7 +131,7 @@ Below is an example demonstrating the usage of the LCP algorithm implementation:
 int main() {
 
     // Initialize alphabet coefficients
-    lcp::init_coefficients();
+    lcp::encoding::init();
 
     // Example string
     std::string str = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";

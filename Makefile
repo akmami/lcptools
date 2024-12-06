@@ -18,9 +18,7 @@ OBJ_DYNAMIC = $(SRC:.cpp=_d.o)
 
 # test files
 TEST_DIR = tests
-TEST_SRC = $(wildcard $(TEST_DIR)/*.cpp)
-TESTS = $(patsubst $(TEST_DIR)/%.cpp,%,$(TEST_SRC))
-TEST_OBJS = $(TEST_SRC:.cpp=.o)
+TESTS = $(patsubst $(TEST_DIR)/%.cpp,%,$(wildcard $(TEST_DIR)/*.cpp))
 
 # library names
 LIB_NAME = lcptools
@@ -30,14 +28,16 @@ DYNAMIC_STATS = lib$(LIB_NAME)S.so
 DYNAMIC = lib$(LIB_NAME).so
 
 PREFIX ?= /usr/local
-INCLUDE_DIR = $(PREFIX)/include
-LIB_DIR = $(PREFIX)/lib
+ABS_PREFIX := $(realpath $(PREFIX))
+INCLUDE_DIR = $(ABS_PREFIX)/include
+LIB_DIR = $(ABS_PREFIX)/lib
 
-.PHONY: all clean install uninstall 
+.PHONY: all clean install uninstall test
 
 install: clean $(STATIC_STATS) $(STATIC) $(DYNAMIC_STATS) $(DYNAMIC) lcptools
 
 	mkdir -p $(INCLUDE_DIR)
+	rm -f *.o
 	cp $(OTHER_HDR) $(HDR) $(INCLUDE_DIR)
 	@echo "";
 	@echo "WARNING! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH";
@@ -59,7 +59,7 @@ uninstall:
 	done
 
 clean:
-	rm -f $(TEST_OBJS) 
+	rm -f $(TEST_DIR)/*.o 
 	@echo "rm $(LIB_DIR)/$(STATIC_STATS)";
 	@if [ -f "$(LIB_DIR)/$(STATIC_STATS)" ]; then \
 		rm $(LIB_DIR)/$(STATIC_STATS) 2>/tmp/lcptools.err || \
@@ -162,17 +162,17 @@ lcptools: $(SRC) $(HDR) $(OTHER_HDR)
 %_d.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $(CXXEXTRA) $< -o $@
 
-# compile and link test executables
-$(TEST_DIR)/%.o: $(TEST_DIR)/%.cpp
-	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $< -o $@
-
-$(TESTS): %: $(TEST_DIR)/%.o
-	$(CXX) $(CXXFLAGS) -o tests/$@ $< -L$(LIB_DIR) -l$(LIB_NAME) -Wl,-rpath,$(LIB_DIR)
-
 # run all tests
-test: $(TESTS)
+test:
+	@echo "Running tests..."
 	@for test in $(TESTS); do \
+		echo "Compiling $$test.cpp..."; \
+		$(CXX) $(CXXFLAGS) -DSTATS -I$(INCLUDE_DIR) -o tests/$$test tests/$$test.cpp -L$(LIB_DIR) -l$(LIB_NAME)S -Wl,-rpath,$(LIB_DIR); \
+		if [ $$? -ne 0 ]; then \
+			echo "Compilation failed for $$test.cpp"; \
+			exit 1; \
+		fi; \
 		tests/$$test || exit 1; \
-		rm tests/$${test}.o; \
-		rm tests/$$test; \
+		rm -f tests/$$test; \
 	done
+	@echo "All tests passed."
