@@ -10,7 +10,7 @@ void log(const std::string &message) {
 
 void test_encoding_initialization_default() {
 
-	LCP_INIT(0);
+	LCP_INIT();
 
 	// check default alphabet
 	assert(alphabet['A'] == 0 && "A should be encoded as 0");

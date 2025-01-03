@@ -21,6 +21,18 @@
 
 #include "core.h"
 
+/**
+ * @brief Computes the 32-bit MurmurHash3 hash for a given key.
+ *
+ * This function computes a 32-bit hash of the input data 'key' with the
+ * specified length 'len' and an optional seed value. It processes the
+ * input in blocks and handles any remaining bytes.
+ *
+ * @param key Pointer to the data to be hashed.
+ * @param len The length of the data in bytes.
+ * @param seed An initial seed value for the hash computation.
+ * @return The resulting 32-bit hash value.
+ */
 uint32_t MurmurHash3_32(const void *key, int len, uint32_t seed) {
     const uint8_t *data = (const uint8_t *)key;
     const int nblocks = len / 4;
@@ -75,7 +87,7 @@ uint32_t MurmurHash3_32(const void *key, int len, uint32_t seed) {
     h1 *= 0xc2b2ae35;
     h1 ^= h1 >> 16;
     return h1;
-};
+}
 
 void init_core1(struct core *cr, const char *begin, uint64_t distance, uint64_t start_index, uint64_t end_index) {
 
@@ -111,8 +123,12 @@ void init_core1(struct core *cr, const char *begin, uint64_t distance, uint64_t 
         shift = (shift + alphabet_bit_size) % UBLOCK_BIT_SIZE;
     }
     
-    cr->label = MurmurHash3_32( (void*)begin, distance, 42);
-};
+    cr->label = 0;
+    cr->label |= ((distance-2) << (3 * alphabet_bit_size));
+    cr->label |= (alphabet[(*(begin)) & 0xDF] << (2 * alphabet_bit_size));
+    cr->label |= (alphabet[(*(begin+distance-2)) & 0xDF] << alphabet_bit_size);
+    cr->label |= (alphabet[(*(begin+distance-1)) & 0xDF]);
+}
 
 void init_core2(struct core *cr, const char *begin, uint64_t distance, uint64_t start_index, uint64_t end_index) {
 
@@ -147,9 +163,13 @@ void init_core2(struct core *cr, const char *begin, uint64_t distance, uint64_t 
 
         shift = (shift + alphabet_bit_size) % UBLOCK_BIT_SIZE;
     }
-    
-    cr->label = MurmurHash3_32( (void*)begin, distance, 42);
-};
+
+    cr->label = 0;
+    cr->label |= ((distance-2) << (3 * alphabet_bit_size));
+    cr->label |= (rc_alphabet[(*(begin)) & 0xDF] << (2 * alphabet_bit_size));
+    cr->label |= (rc_alphabet[(*(begin+distance-2)) & 0xDF] << alphabet_bit_size);
+    cr->label |= (rc_alphabet[(*(begin+distance-1)) & 0xDF]);
+}
 
 void init_core3(struct core *cr, struct core *begin, uint64_t distance) {
 
@@ -203,7 +223,7 @@ void init_core3(struct core *cr, struct core *begin, uint64_t distance) {
     data[2] = (begin+distance-1)->label;
     data[3] = distance-DCT_ITERATION_COUNT-2;
     cr->label = MurmurHash3_32( (void*)data, 4 * sizeof(ulabel), 42);
-};
+}
 
 void init_core4(struct core *cr, ubit_size bit_size, ublock *bit_rep, ulabel label, uint64_t start, uint64_t end) {
     cr->bit_size = bit_size;
@@ -216,7 +236,7 @@ void init_core4(struct core *cr, ubit_size bit_size, ublock *bit_rep, ulabel lab
 void free_core(struct core* cr) {
     free(cr->bit_rep);
     cr->bit_rep = NULL;
-};
+}
 
 void core_compress(const struct core *left_core, struct core *right_core) {
 
@@ -255,18 +275,18 @@ void core_compress(const struct core *left_core, struct core *right_core) {
     }
 
     right_core->bit_size = right_core->bit_size > 1 ? right_core->bit_size : 2;
-};
+}
 
 uint64_t core_memsize(const struct core *cr) {
     return sizeof(struct core) + sizeof(ublock) * ((cr->bit_size + UBLOCK_BIT_SIZE - 1) / UBLOCK_BIT_SIZE);
-};
+}
 
 void print_core(const struct core *cr) {
-    size_t block_number = (cr->bit_size - 1) / UBLOCK_BIT_SIZE + 1;
+    uint64_t block_number = (cr->bit_size - 1) / UBLOCK_BIT_SIZE + 1;
     for (int index = cr->bit_size - 1; 0 <= index; index--) {
         printf("%d", (cr->bit_rep[block_number - index / UBLOCK_BIT_SIZE - 1] >> (index % UBLOCK_BIT_SIZE)) & 1);
     }
-};
+}
 
 // core comparison operator implementation
 
@@ -286,7 +306,7 @@ int core_eq(const struct core *lhs, const struct core *rhs) {
     }
 
     return 1;
-};
+}
 
 int core_neq(const struct core *lhs, const struct core *rhs) {
 
@@ -304,7 +324,7 @@ int core_neq(const struct core *lhs, const struct core *rhs) {
     }
 
     return 0;
-};
+}
 
 int core_gt(const struct core *lhs, const struct core *rhs) {
 
@@ -324,7 +344,7 @@ int core_gt(const struct core *lhs, const struct core *rhs) {
     }
 
     return 0;
-};
+}
 
 int core_lt(const struct core *lhs, const struct core *rhs) {
 
@@ -344,7 +364,7 @@ int core_lt(const struct core *lhs, const struct core *rhs) {
     }
 
     return 0;
-};
+}
 
 int core_geq(const struct core *lhs, const struct core *rhs) {
 
@@ -363,7 +383,7 @@ int core_geq(const struct core *lhs, const struct core *rhs) {
     }
 
     return 1;
-};
+}
 
 int core_leq(const struct core *lhs, const struct core *rhs) {
 
@@ -382,4 +402,4 @@ int core_leq(const struct core *lhs, const struct core *rhs) {
     }
 
     return 1;
-};
+}

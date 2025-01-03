@@ -11,23 +11,20 @@
  *
  */
 
-
-#include <iostream>
-#include <fstream>
 #include <cmath>
+#include <map>
 #include <vector>
-#include <chrono>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <algorithm>
 
-#define DISTANCE_LENGTH     10000
-#define LCP_LEVEL           8
+#define DISTANCE_LENGTH 10000
+#define LCP_LEVEL 8
+#define MAXIMUM_FREQ_THRESHOLD 256
+#define MAX_DISTANCE_THRESHOLD 30
 
-
-// to represent 15 chars = uint32_t, 31 chars = uint64_t, 63 chars = unsigned __int128
-typedef uint32_t kmer_type;
-
+typedef unsigned long stats_type;
 
 /**
  * @brief Formats an integer with thousands separators for better readability.
@@ -50,7 +47,6 @@ std::string format_int(int value) {
     return ss.str();
 };
 
-
 /**
  * @brief Formats a double value with two decimal places and thousands separators.
  *
@@ -72,7 +68,6 @@ std::string format_double(double value, size_t precision = 2) {
     ss << std::fixed << std::setprecision(precision) << value;
     return ss.str();
 };
-
 
 /**
  * @brief Calculates the mean of integers.
@@ -98,7 +93,6 @@ double mean(int (&numbers)[DISTANCE_LENGTH], std::vector<int> numbersXL = {}) {
     count += numbersXL.size();
     return sum / count;
 };
-
 
 /**
  * @brief Calculates the standard deviation of integers.
@@ -128,7 +122,6 @@ double stdev(int (&numbers)[DISTANCE_LENGTH], std::vector<int> numbersXL = {}) {
     return sqrt(variance / count);
 };
 
-
 /**
  * @brief Calculates the mean of distances.
  *
@@ -151,7 +144,6 @@ double mean(int* distances, int n) {
     }
     return totalDistance / numOfDistances;
 };
-
 
 /**
  * @brief Calculates the standard deviation of distances.
@@ -177,53 +169,152 @@ double stdev(int* distances, int n, double mean) {
     return sqrt(sum / N);
 };
 
-
-/**
- * @brief Encodes a substring of DNA characters into a unique unsigned integer.
- *
- * This function encodes a sequence of characters (typically representing nucleotides
- * in a DNA string) using a predefined mapping into a 2-bit encoded integer for each
- * character. The final encoded value is returned as an unsigned integer.
- *
- * @param map    Pointer to an array where each index represents the mapping of a character.
- * @param begin  Iterator to the beginning of the substring to encode.
- * @param end    Iterator to the end of the substring to encode.
- * @return A unique unsigned integer representing the encoded DNA sequence.
- */
-kmer_type encode(int* map, std::string::iterator begin, std::string::iterator end) {
-    kmer_type res = 0;
-    for ( std::string::iterator it = begin; it < end; it++ )
-    {
-        res *= 4;
-        res |= map[static_cast<size_t>(*it)];
+void reverse_complement(std::string &str) {
+    std::reverse(str.begin(), str.end());
+    for (size_t i = 0; i < str.length(); i++) {
+        if (str[i] == 'A') {
+            str[i] = 'T';
+        } else if (str[i] == 'T') {
+            str[i] = 'A';
+        } else if (str[i] == 'G') {
+            str[i] = 'C';
+        } else if (str[i] == 'C') {
+            str[i] = 'G';
+        }
     }
-    return res;
 };
 
+template<typename kmer_type, typename index_type>
+void alignment_pairwise_stats(const std::map<kmer_type, std::vector<index_type>> &mapGTRead, 
+                              const std::map<kmer_type, std::vector<index_type>> &mapSimRead, 
+                              stats_type &true_positive, stats_type &false_positive, stats_type &false_negative, stats_type &total) {
+    // Process ground truth read to find matches and mismatches
+    for (const std::pair<const kmer_type, std::vector<index_type>> &gt_pair : mapGTRead) {
+        
+        kmer_type id = gt_pair.first;
+        const std::vector<index_type> &gt_indices = gt_pair.second;
 
-/**
- * @brief Initializes a character map for nucleotide encoding.
- *
- * This function initializes a mapping of DNA characters (A, T, G, C) and their lowercase
- * counterparts (a, t, g, c) into integers (0, 3, 2, 1, respectively). All other characters
- * are mapped to 0 by default.
- *
- * @param map A 128-element integer array where each index corresponds to a character
- *            in the ASCII table.
- */
-void init_map(int map[128]) {
-    for ( int i = 0; i < 128; i++ )
-    {
-        map[i] = 0;
+        bool isInSim = mapSimRead.find(id) != mapSimRead.end();
+        int currMatch = 0;
+
+        if (isInSim) {
+            const std::vector<index_type> &sim_indices = mapSimRead.at(id);
+            size_t index1 = 0; // gt index
+            size_t index2 = 0; // sim index
+            while(index1 < gt_indices.size() && index2 < sim_indices.size()) {
+                if ((sim_indices[index2] >= gt_indices[index1] && sim_indices[index2] - gt_indices[index1] < MAX_DISTANCE_THRESHOLD) ||
+                    (sim_indices[index2] < gt_indices[index1] && gt_indices[index1] - sim_indices[index2] < MAX_DISTANCE_THRESHOLD)) {
+                    index1++;
+                    index2++;
+                    currMatch++;
+                } else if (sim_indices[index2] > gt_indices[index1]) {
+                    index1++;
+                } else {
+                    index2++;
+                }
+            }
+            true_positive += currMatch;
+            false_positive += sim_indices.size() - currMatch;
+            total += sim_indices.size() - currMatch;
+        } 
+        false_negative += gt_indices.size() - currMatch;
+        total += gt_indices.size();
     }
+    // Consider sketches that are in simulated read but not in original sequence
+    for (const std::pair<const kmer_type, std::vector<index_type>> &sim_pair : mapSimRead) {
+        kmer_type id = sim_pair.first;
+        if (mapGTRead.find(id) == mapGTRead.end()) {
+            false_positive += sim_pair.second.size(); // false positive
+            total += sim_pair.second.size();
+        }
+    }
+};
 
-    map['A'] = 0;
-    map['T'] = 3;
-    map['G'] = 2;
-    map['C'] = 1;
-    // Assume there are soft masks
-    map['a'] = 0;
-    map['t'] = 3;
-    map['g'] = 2;
-    map['c'] = 1;
+template<typename kmer_type, typename index_type>
+void alignment_global_stats(const std::map<kmer_type, std::vector<index_type>> &mapReference, 
+                            const std::map<kmer_type, std::vector<index_type>> &mapGTRead, 
+                            const std::map<kmer_type, std::vector<index_type>> &mapSimRead, 
+                            stats_type &true_positive, stats_type &false_positive, stats_type &false_negative) {
+    
+    for (const std::pair<const kmer_type, std::vector<index_type>> &sim_pair : mapSimRead) {
+        kmer_type id = sim_pair.first;
+        
+        bool isInChr = mapReference.find(id) != mapReference.end();
+        if (!isInChr) {
+            continue;
+        }
+
+        const std::vector<index_type> &ref_indices = mapReference.at(id); // we are sure that it exists somewhere
+        const std::vector<index_type> &sim_indices = sim_pair.second;
+
+        if (MAXIMUM_FREQ_THRESHOLD <= ref_indices.size()) {
+            continue;
+        }
+
+        bool isInGTRead = mapGTRead.find(id) != mapGTRead.end();
+        if (!isInGTRead) {
+            false_positive += ref_indices.size() * sim_indices.size(); // as each sketch will hit to incorrect spot
+            continue;
+        }
+
+        const std::vector<index_type> &gt_indices = mapGTRead.at(id); // we are sure that sketch exists inside the read now
+        
+        // we process each sketch to find the true positive and false positive counts
+        for (const index_type &sim_index : sim_indices) {   
+            bool is_tp = false;
+
+            for (const index_type &gt_index : gt_indices) {
+                if (gt_index+MAX_DISTANCE_THRESHOLD < sim_index) { // not came to the correct place yet
+                    continue;
+                } 
+                if (sim_index+MAX_DISTANCE_THRESHOLD < gt_index) { // exceeds the read's original locations
+                    break;
+                }
+                is_tp = true;
+                break;
+            }
+
+            if (!is_tp) {
+                false_positive += ref_indices.size(); // as there no match and we have ref_count number of incorrect hit
+            } else {
+                true_positive++; // there is single correct match
+                false_positive += ref_indices.size()-1; // the rest is incorrect match
+            }
+        }
+    }
+    // Consider ids that are in read but not in sequence -> FN
+    for (const std::pair<const kmer_type, std::vector<index_type>> &gt_pair : mapGTRead) {
+        kmer_type id = gt_pair.first;
+        const std::vector<index_type> &ref_indices = mapReference.at(id);
+
+        // check if the id was filtered out
+        if (MAXIMUM_FREQ_THRESHOLD <= ref_indices.size()) {
+            continue;
+        }
+
+        bool isInSimRead = mapSimRead.find(id) != mapSimRead.end();
+        const std::vector<index_type> &gt_indices = gt_pair.second;
+
+        if (!isInSimRead) {
+            false_negative += gt_indices.size();
+            continue;
+        }
+
+        const std::vector<index_type> &sim_indices = mapSimRead.at(id); // we know that the id exists in both
+
+        // now we need to find how many of them are true positive, so we can exclude them in false negative
+        for (const index_type &gt_index : gt_indices) {
+            for (const index_type &sim_index : sim_indices) {
+                if (sim_index+MAX_DISTANCE_THRESHOLD < gt_index) {
+                    continue;
+                } 
+                else if (gt_index+MAX_DISTANCE_THRESHOLD < sim_index) { // exceeds the read's original locations, if not foun until now, then FN
+                    false_negative++;
+                    break;
+                }
+                // indeces matches, then it is false_positive and should have been counted earlier as TP
+                break;
+            }
+        }
+    }
 };

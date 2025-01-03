@@ -73,10 +73,16 @@ void LCP_SUMMARY();
  * @brief Initializes the encoding coefficients for standard DNA bases
  * (A, C, G, T) and their reverse complements. Sets default values for
  * coefficients and dictionary bit size.
- * @param verbose If 0, prints the encoding summary after initialization.
- * @return Always returns 0 upon successful initialization.
  */
-int LCP_INIT(int verbose);
+void LCP_INIT();
+
+/**
+ * @brief Initializes the encoding coefficients for standard DNA bases
+ * (A, C, G, T) and their reverse complements. Sets default values for
+ * coefficients and dictionary bit size.
+ * @param verbose If 0, prints the encoding summary after initialization.
+ */
+void LCP_INIT2(int verbose);
 
 /**
  * @brief Initializes the encoding coefficients by reading them from a

@@ -1,5 +1,5 @@
 /**
- * @file    lcp-fasta.cpp
+ * @file    falcp-mem.cpp
  * @brief   Analysis and Processing of Genomic Data
  *
  * This program is designed for in-depth analysis of genomic sequences. It reads
@@ -21,8 +21,8 @@
 #include <set>
 #include <vector>
 
-#define STRING_SIZE     250000000
-#define COUNT_DISTINCT  false
+#define STRING_SIZE 250000000
+#define COUNT_DISTINCT false
 
 /**
  * @brief Processes genomic sequence data, tracks execution time, and analyzes
@@ -38,53 +38,46 @@
  *                  processing time.
  * @param total_core_counts An array storing the number of LCP cores found at each level.
  * @param distinct_cores An array of set storing the distinct LCP cores found at each level.
- * @param sizes An array storing sizes (bytes) of LCP cores found at each level.
- * @param strs An vector of lps objects obtained after processing given sequences.
  */
-void process(std::string &sequence, std::vector<std::chrono::milliseconds> &durations, size_t (&total_core_counts)[LCP_LEVEL], std::set<ulabel> (&distinct_cores)[LCP_LEVEL], double (&sizes)[LCP_LEVEL], std::vector<lcp::lps *> &strs) {
+void process(std::string &sequence, std::vector<std::chrono::milliseconds> &durations, size_t (&total_core_counts)[LCP_LEVEL], std::set<ulabel> (&distinct_cores)[LCP_LEVEL]) {
 
 	auto start = std::chrono::high_resolution_clock::now();
-	lcp::lps *str = new lcp::lps(sequence);
+    struct lps str;
+    init_lps(&str, sequence.c_str(), sequence.size());
 
 	auto extraction_end = std::chrono::high_resolution_clock::now();
-	total_core_counts[0] += str->size();
+	total_core_counts[0] += str.size;
 
 	durations[0] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(extraction_end - start).count());
 
-	if (COUNT_DISTINCT && str->cores != nullptr) {
-		for (std::vector<lcp::core>::iterator it = str->cores->begin(); it != str->cores->end(); it++) {
+	if (COUNT_DISTINCT && str.cores != NULL) {
+        for (struct core *it = str.cores + 1; it < str.cores + str.size; it++) {
 			distinct_cores[0].insert(it->label);
 		}
 	}
-
-	sizes[0] += str->memsize();
 
 	for (int i = 1; i < LCP_LEVEL; i++) {
 
 		auto start_level = std::chrono::high_resolution_clock::now();
 
-		str->deepen();
+		lps_deepen1(&str);
 
 		auto stop_level = std::chrono::high_resolution_clock::now();
-		total_core_counts[i] += str->size();
+		total_core_counts[i] += str.size;
 
 		durations[i] += std::chrono::milliseconds(std::chrono::duration_cast<std::chrono::milliseconds>(stop_level - start_level).count());
 
-		if (COUNT_DISTINCT && str->cores != nullptr) {
-			for (std::vector<lcp::core>::iterator it = str->cores->begin(); it != str->cores->end(); it++) {
+		if (COUNT_DISTINCT && str.cores != NULL) {
+            for (struct core *it = str.cores + 1; it < str.cores + str.size; it++) {
 				distinct_cores[i].insert(it->label);
 			}
 		}
-
-		sizes[i] += str->memsize();
 	}
 
 	std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
 
-	strs.push_back(str);
+    free_lps(&str);
 	sequence.clear();
-
-	str = nullptr;
 }
 
 /**
@@ -115,9 +108,7 @@ int main(int argc, char **argv) {
 	std::fstream genome;
 	genome.open(argv[1], std::ios::in);
 
-	std::vector<lcp::lps *> strs;
 	std::vector<std::chrono::milliseconds> durations(LCP_LEVEL);
-	double sizes[LCP_LEVEL] = {0, 0, 0, 0, 0, 0, 0, 0};
 	size_t total_core_counts[LCP_LEVEL] = {0, 0, 0, 0, 0, 0, 0, 0};
 	std::set<ulabel> distinct_cores[LCP_LEVEL];
 
@@ -128,7 +119,7 @@ int main(int argc, char **argv) {
 		sequence.reserve(STRING_SIZE);
 
 		// initializing coefficients of the alphabet and hash tables
-		lcp::encoding::init();
+        LCP_INIT();
 
 		std::cout << "Program begins" << std::endl;
 
@@ -138,7 +129,7 @@ int main(int argc, char **argv) {
 
 				// process previous chromosome before moving into new one
 				if (sequence.size() != 0) {
-					process(sequence, durations, total_core_counts, distinct_cores, sizes, strs);
+					process(sequence, durations, total_core_counts, distinct_cores);
 				}
 
 				id = line.substr(1);
@@ -151,7 +142,7 @@ int main(int argc, char **argv) {
 		}
 
 		if (sequence.size() != 0) {
-			process(sequence, durations, total_core_counts, distinct_cores, sizes, strs);
+			process(sequence, durations, total_core_counts, distinct_cores);
 		}
 
 		genome.close();
@@ -189,19 +180,6 @@ int main(int argc, char **argv) {
 		std::cout << sep << format_double(((double)durations[i].count()) / 1000);
 	}
 	std::cout << std::endl;
-
-	// Total Sizes
-	std::cout << "Total Size (GB)**";
-	for (int i = 0; i < LCP_LEVEL; i++) {
-		std::cout << sep << format_double(sizes[i] / (1024.0 * 1024.0 * 1024.0));
-	}
-	std::cout << std::endl << std::endl;
-
-	// cleanup
-	for (std::vector<lcp::lps *>::iterator it = strs.begin(); it != strs.end(); it++) {
-		delete (*it);
-	}
-	strs.clear();
 
 	return 0;
 };

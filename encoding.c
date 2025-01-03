@@ -25,9 +25,13 @@ void LCP_SUMMARY() {
     }
     printf("\n");
     printf("# Alphabet bit size: %d", alphabet_bit_size);
-};
+}
 
-int LCP_INIT(int verbose) {
+void LCP_INIT() {
+    LCP_INIT2(0);
+}
+
+void LCP_INIT2(int verbose) {
 
     // init coefficients A/a=0, T/t=3, G/g=2, C/c=1
     for (int current_index = 0; current_index < 128; current_index++) {
@@ -53,9 +57,7 @@ int LCP_INIT(int verbose) {
 
     if (verbose)
         LCP_SUMMARY();
-
-    return 0;
-};
+}
 
 int LCP_INIT_FILE(const char *encoding_file, int verbose) {
     
@@ -94,4 +96,4 @@ int LCP_INIT_FILE(const char *encoding_file, int verbose) {
     alphabet_bit_size = bit_count;
 
     return 0;
-};
+}

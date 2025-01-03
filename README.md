@@ -98,10 +98,18 @@ The binary encoding of the alphabet is defined as follows. This default encoding
 
 ### Initialization
 
-To initialize the encodings, use the following function call at the beginning of your program. A integer parameter `verbose` can be provided, which, when set to `1`, prints a summary of the encoding:
+To initialize the encodings, use the following function call at the beginning of your program.
 
 ```cpp
-LCP_INIT(verbose);
+LCP_INIT();
+```
+
+In the above code, defaults the verbose to `0`.
+
+A integer parameter `verbose` can be provided, which, when set to `1`, prints a summary of the encoding:
+
+```cpp
+LCP_INIT2(verbose);
 ```
 
 To display the encoding summary separately, use:
@@ -109,8 +117,6 @@ To display the encoding summary separately, use:
 ```cpp
 LCP_SUMMARY();
 ```
-
-In the above code, `verbose` is an optional integer parameter, defaulting to `0`.
 
 ## Usage Example
 
@@ -122,14 +128,14 @@ Below is an example demonstrating the usage of the LCP algorithm implementation:
 int main() {
 
     // Initialize alphabet coefficients
-    LCP_INIT(0);
+    LCP_INIT();
 
     // Example string
     const char *str = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
 
     // Create LCP string object
     struct lps lcp_str;
-    init_lps(&lcp_str, str, strlen(str), 0);
+    init_lps(&lcp_str, str, strlen(str));
 
     // Deepen the LCP analysis
     int isSuccess = lps_deepen(&lcp_str, 2);

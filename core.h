@@ -64,27 +64,71 @@ struct core {
 };
 
 /**
- * @brief Computes the 32-bit MurmurHash3 hash for a given key.
- *
- * This function computes a 32-bit hash of the input data 'key' with the
- * specified length 'len' and an optional seed value. It processes the
- * input in blocks and handles any remaining bytes.
- *
- * @param key Pointer to the data to be hashed.
- * @param len The length of the data in bytes.
- * @param seed An initial seed value for the hash computation.
- * @return The resulting 32-bit hash value.
+ * @brief Initializes a core structure with the provided string data and index range.
+ * 
+ * This function processes a given substring starting at `begin` with a specified 
+ * distance (length of the substring) and assigns start and end indices for tracking.
+ * 
+ * @param cr Pointer to the core structure to initialize.
+ * @param begin Pointer to the start of the string data.
+ * @param distance Length of the substring to process.
+ * @param start_index Start index of the substring within the data.
+ * @param end_index End index of the substring within the data.
  */
-uint32_t MurmurHash3_32(const void *key, int len, uint32_t seed);
-
 void init_core1(struct core *cr, const char *begin, uint64_t distance, uint64_t start_index, uint64_t end_index);
 
+/**
+ * @brief Initializes a core structure with the provided string data and index range.
+ * 
+ * Similar to `init_core1`, but initalizes the core structure with reverse complement
+ * alphabet encoding.
+ * 
+ * @param cr Pointer to the core structure to initialize.
+ * @param begin Pointer to the start of the string data.
+ * @param distance Length of the substring to process.
+ * @param start_index Start index of the substring within the data.
+ * @param end_index End index of the substring within the data.
+ */
 void init_core2(struct core *cr, const char *begin, uint64_t distance, uint64_t start_index, uint64_t end_index);
 
+/**
+ * @brief Initializes a core structure by combining data from other core structures.
+ * 
+ * This function initializes a new core structure (`cr`) using a sequence of 
+ * `core` objects starting from `begin` with the specified `distance` (number 
+ * of `core` objects to process).
+ * 
+ * @param cr Pointer to the core structure to initialize.
+ * @param begin Pointer to the start of the sequence of core structures.
+ * @param distance Number of core structures to process in the sequence.
+ */
 void init_core3(struct core *cr, struct core *begin, uint64_t distance);
 
+/**
+ * @brief Directly initializes a core structure with precomputed representation and metadata.
+ * 
+ * This function allows the initialization of a core structure when the bit 
+ * representation, bit size, and label are already computed. Useful for 
+ * deserializing or cloning a core structure.
+ * 
+ * @param cr Pointer to the core structure to initialize.
+ * @param bit_size Size of the bit representation in bits.
+ * @param bit_rep Pointer to the precomputed bit representation array.
+ * @param label Unique label assigned to the core structure.
+ * @param start Start index of the substring or sequence represented by the core.
+ * @param end End index of the substring or sequence represented by the core.
+ */
 void init_core4(struct core *cr, ubit_size bit_size, ublock *bit_rep, ulabel label, uint64_t start, uint64_t end);
 
+/**
+ * @brief Frees the allocated memory associated with a core structure.
+ * 
+ * This function ensures that all dynamically allocated resources (e.g., the bit 
+ * representation array) associated with the given core structure are properly 
+ * released, preventing memory leaks.
+ * 
+ * @param cr Pointer to the core structure to deallocate.
+ */
 void free_core(struct core* cr);
 
 /**

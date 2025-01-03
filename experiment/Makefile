@@ -1,11 +1,42 @@
-FASTA ?=
-LCP_LEVEL ?= 4
+FASTA := ../data/chm13v2.0.fa
+FASTA2 := ../data/chm13v2.0.chr1.fa
+FASTQ := ../data/chm13v2.0.chr1.fq
+MAF := ../data/chm13v2.0.chr1.maf
+
+ifeq ($(firstword $(MAKECMDGOALS)),faMin)
+  TARGET := faMin
+else ifeq ($(firstword $(MAKECMDGOALS)),faCMin)
+  TARGET := faCMin
+else ifeq ($(firstword $(MAKECMDGOALS)),faSync)
+  TARGET := faSync
+endif
+
+ifneq ($(TARGET),)
+  RUN_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
+  $(eval $(RUN_ARGS):;@:)
+  ifeq ($(TARGET),faSync)
+    RUN_ARGS_JOINED := $(word 1, $(RUN_ARGS))-$(word 2, $(RUN_ARGS))-$(word 3, $(RUN_ARGS))
+  else
+    RUN_ARGS_JOINED := $(word 1, $(RUN_ARGS))-$(word 2, $(RUN_ARGS))
+  endif
+endif
 
 # Programs
-LCP_FASTA := lcp-fasta
-LCP_FASTA_MEM := lcp-fasta-mem
-MINIMIZER_FASTA := minimizer-fasta
-SYNCMER_FASTA := syncmer-fasta
+# fa
+FACMIN := facmin
+FALCPMEM := falcp-mem
+FALCP := falcp
+FAMIN := famin
+FASYNC := fasync
+# fq - alignment exp
+FQCMIN := fqcmin
+FQLCP := fqlcp
+FQMIN := fqmin
+FQSYNC := fqsync
+# fq2 - hit experiment
+FQLCP2 := fqlcp2
+FQMIN2 := fqmin2
+FQSYNC2 := fqsync2
 
 # Directories
 CURRENT_DIR := $(shell pwd)
@@ -20,7 +51,7 @@ CXX := .cpp
 
 # Compiler
 GXX := g++
-CXXFLAGS = -std=c++11 -O0 -Wall -Wextra -g
+CXXFLAGS = -std=c++11 -O3 -Wall -Wextra -Wpedantic
 TIME := /usr/bin/time -v
 
 .PHONY: all
@@ -45,13 +76,13 @@ mkdir_out:
 		echo "$(OUT_DIR) already exists."; \
 	fi
 
-check_lcptoolsS:
+check_lcptools:
 	@if [ ! -d "$(INCLUDE_DIR)" ]; then \
-		echo "$(INCLUDE_DIR) does not exist. Please compile lcptoolsS to headers to $(INCLUDE_DIR)"; \
+		echo "$(INCLUDE_DIR) does not exist. Please compile lcptools to headers to $(INCLUDE_DIR)"; \
 		exit 1; \
 	fi
 	@if [ ! -d "$(LIB_DIR)" ]; then \
-		echo "$(LIB_DIR) does not exist. Please compile lcptoolsS and put library to $(LIB_DIR)"; \
+		echo "$(LIB_DIR) does not exist. Please compile lcptools and put library to $(LIB_DIR)"; \
 		exit 1; \
 	fi
 
@@ -63,12 +94,6 @@ check_fasta:
 	@if [ ! -f $(FASTA) ]; then \
 		echo "$(FASTA) does not exist. Exiting."; \
 		exit 1; \
-	fi
-
-install:
-	@if [ ! -f $(DATA_DIR)/$(FASTA) ]; then \
-		wget http://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz -P $(DATA_DIR)/; \
-		gunzip $(DATA_DIR)/hg38.fa.gz; \
 	fi
 
 clean:
@@ -85,50 +110,132 @@ clean:
 ######################################################################
 # LCP
 ######################################################################
-lcpFasta: mkdir_bin check_fasta check_lcptoolsS
-	@echo "Compiling $(LCP_FASTA)$(CXX)"
-	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA)$(CXX) -o $(LCP_FASTA).o
+faLCP: mkdir_bin check_lcptools
+	@echo "Compiling $(FALCP)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(FALCP)$(CXX)
 	@echo "Linking lcptoolsS library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA) $(LCP_FASTA).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
-	rm $(LCP_FASTA).o
-	@echo "Moving $(LCP_FASTA) to $(EXECUTABLE_DIR)"
-	mv $(LCP_FASTA) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA)-output.txt 2>&1
+	$(GXX) $(CXXFLAGS) -o $(FALCP) $(FALCP).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(FALCP).o
+	@echo "Moving $(FALCP) to $(EXECUTABLE_DIR)"
+	mv $(FALCP) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FALCP)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FALCP) $(FASTA) > $(OUT_DIR)/$(FALCP)-output.txt 2>&1
 
-lcpFastaMem: mkdir_bin check_fasta check_lcptoolsS
-	@echo "Compiling $(LCP_FASTA_MEM)$(CXX)"
-	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(LCP_FASTA_MEM)$(CXX) -o $(LCP_FASTA_MEM).o
+faLCPmem: mkdir_bin check_fasta check_lcptools
+	@echo "Compiling $(FALCPMEM)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(FALCPMEM)$(CXX)
 	@echo "Linking lcptoolsS library and binary files"
-	$(GXX) $(CXXFLAGS) -o $(LCP_FASTA_MEM) $(LCP_FASTA_MEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
-	rm $(LCP_FASTA_MEM).o
-	@echo "Moving $(LCP_FASTA_MEM) to $(EXECUTABLE_DIR)"
-	mv $(LCP_FASTA_MEM) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(LCP_FASTA_MEM) $(FASTA) > $(OUT_DIR)/$(LCP_FASTA_MEM)-output.txt 2>&1
+	$(GXX) $(CXXFLAGS) -o $(FALCPMEM) $(FALCPMEM).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(FALCPMEM).o
+	@echo "Moving $(FALCPMEM) to $(EXECUTABLE_DIR)"
+	mv $(FALCPMEM) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FALCPMEM)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FALCPMEM) $(FASTA) > $(OUT_DIR)/$(FALCPMEM)-output.txt 2>&1
+
+fqLcp: mkdir_bin
+	@echo "Compiling $(FQLCP)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(FQLCP)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQLCP) $(FQLCP).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(FQLCP).o
+	@echo "Moving $(FQLCP) to $(EXECUTABLE_DIR)"
+	mv $(FQLCP) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQLCP)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQLCP) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQLCP)-output.txt 2>&1
+
+fqLcp2: mkdir_bin
+	@echo "Compiling $(FQLCP2)$(CXX)"
+	$(GXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $(FQLCP2)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQLCP2) $(FQLCP2).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(FQLCP2).o
+	@echo "Moving $(FQLCP2) to $(EXECUTABLE_DIR)"
+	mv $(FQLCP2) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQLCP2)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQLCP2) $(FASTA2) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQLCP2)-output.txt 2>&1
 
 ######################################################################
 # MINIMIZER
 ######################################################################
-minimizerFasta: mkdir_bin check_fasta
-	@echo "Compiling $(MINIMIZER_FASTA)$(CXX)"
-	$(GXX) $(CXXFLAGS) -c $(MINIMIZER_FASTA)$(CXX) -o $(MINIMIZER_FASTA).o
-	$(GXX) $(CXXFLAGS) -o $(MINIMIZER_FASTA) $(MINIMIZER_FASTA).o
-	rm $(MINIMIZER_FASTA).o
-	@echo "Moving $(MINIMIZER_FASTA) to $(EXECUTABLE_DIR)"
-	mv $(MINIMIZER_FASTA) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(MINIMIZER_FASTA) $(FASTA) > $(OUT_DIR)/$(MINIMIZER_FASTA)-output.txt 2>&1
+faMin: mkdir_bin
+	@echo "Compiling $(FAMIN)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FAMIN)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FAMIN) $(FAMIN).o
+	rm $(FAMIN).o
+	@echo "Moving $(FAMIN) to $(EXECUTABLE_DIR)"
+	mv $(FAMIN) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FAMIN)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FAMIN) $(FASTA) $(RUN_ARGS) > $(OUT_DIR)/$(FAMIN)-$(RUN_ARGS_JOINED)-output.txt 2>&1
 
+fqMin: mkdir_bin
+	@echo "Compiling $(FQMIN)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FQMIN)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQMIN) $(FQMIN).o
+	rm $(FQMIN).o
+	@echo "Moving $(FQMIN) to $(EXECUTABLE_DIR)"
+	mv $(FQMIN) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQMIN)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQMIN) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQMIN)-output.txt 2>&1
+
+fqMin2: mkdir_bin
+	@echo "Compiling $(FQMIN2)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FQMIN2)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQMIN2) $(FQMIN2).o
+	rm $(FQMIN2).o
+	@echo "Moving $(FQMIN2) to $(EXECUTABLE_DIR)"
+	mv $(FQMIN2) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQMIN2)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQMIN2) $(FASTA2) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQMIN2)-output.txt 2>&1
+
+######################################################################
+# Canonical kmer - MINIMIZER
+######################################################################
+faCMin: mkdir_bin
+	@echo "Compiling $(FACMIN)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FACMIN)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FACMIN) $(FACMIN).o
+	rm $(FACMIN).o
+	@echo "Moving $(FACMIN) to $(EXECUTABLE_DIR)"
+	mv $(FACMIN) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FACMIN)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FACMIN) $(FASTA) $(RUN_ARGS) > $(OUT_DIR)/$(FACMIN)-$(RUN_ARGS_JOINED)-output.txt 2>&1
+
+fqCMin: mkdir_bin
+	@echo "Compiling $(FQCMIN)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FQCMIN)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQCMIN) $(FQCMIN).o
+	rm $(FQCMIN).o
+	@echo "Moving $(FQCMIN) to $(EXECUTABLE_DIR)"
+	mv $(FQCMIN) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQCMIN)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQCMIN) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQCMIN)-output.txt 2>&1
 ######################################################################
 # SYNCMER
 ######################################################################
-syncmerFasta: mkdir_bin check_fasta
-	@echo "Compiling $(SYNCMER_FASTA)$(CXX)"
-	$(GXX) $(CXXFLAGS) -c $(SYNCMER_FASTA)$(CXX) -o $(SYNCMER_FASTA).o
-	$(GXX) $(CXXFLAGS) -o $(SYNCMER_FASTA) $(SYNCMER_FASTA).o -L$(LIB_DIR) -llcptoolsS -Wl,-rpath,$(LIB_DIR)
-	rm $(SYNCMER_FASTA).o
-	@echo "Moving $(SYNCMER_FASTA) to $(EXECUTABLE_DIR)"
-	mv $(SYNCMER_FASTA) $(EXECUTABLE_DIR)
-	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt"
-	$(TIME) $(EXECUTABLE_DIR)/$(SYNCMER_FASTA) $(FASTA) > $(OUT_DIR)/$(SYNCMER_FASTA)-output.txt 2>&1
+faSync: mkdir_bin check_fasta
+	@echo "Compiling $(FASYNC)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FASYNC)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FASYNC) $(FASYNC).o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
+	rm $(FASYNC).o
+	@echo "Moving $(FASYNC) to $(EXECUTABLE_DIR)"
+	mv $(FASYNC) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FASYNC)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FASYNC) $(FASTA) $(RUN_ARGS) > $(OUT_DIR)/$(FASYNC)-$(RUN_ARGS_JOINED)-output.txt 2>&1
+
+fqSync: mkdir_bin
+	@echo "Compiling $(FQSYNC)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FQSYNC)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQSYNC) $(FQSYNC).o
+	rm $(FQSYNC).o
+	@echo "Moving $(FQSYNC) to $(EXECUTABLE_DIR)"
+	mv $(FQSYNC) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQSYNC)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQSYNC) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQSYNC)-output.txt 2>&1
+
+fqSync2: mkdir_bin
+	@echo "Compiling $(FQSYNC2)$(CXX)"
+	$(GXX) $(CXXFLAGS) -c $(FQSYNC2)$(CXX)
+	$(GXX) $(CXXFLAGS) -o $(FQSYNC2) $(FQSYNC2).o
+	rm $(FQSYNC2).o
+	@echo "Moving $(FQSYNC2) to $(EXECUTABLE_DIR)"
+	mv $(FQSYNC2) $(EXECUTABLE_DIR)
+	@echo "Preprocessing $(FASTA). Output will be put into $(OUT_DIR)/$(FQSYNC2)-output.txt"
+	$(TIME) $(EXECUTABLE_DIR)/$(FQSYNC2) $(FASTA2) $(MAF) $(FASTQ) > $(OUT_DIR)/$(FQSYNC2)-output.txt 2>&1

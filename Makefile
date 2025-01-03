@@ -1,6 +1,6 @@
 # g++
 CXX = gcc
-CXXFLAGS = -O0 -Wall -Wextra -g
+CXXFLAGS = -O3 -Wall -Wextra -Wpedantic
 CXXEXTRA = -fPIC
 
 # archiver and flags
@@ -34,9 +34,7 @@ install: clean $(STATIC) $(DYNAMIC) lcptools
 	mkdir -p $(INCLUDE_DIR)
 	rm -f *.o
 	cp $(HDR) $(INCLUDE_DIR)
-	@echo "";
-	@echo "WARNING! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH";
-	@echo "";
+	@echo "[[WARNING]]! Please make sure that $(LIB_DIR) included in LD_LIBRARY_PATH if you want to include dynamic library";
 
 uninstall:
 	rm -f lcptools;
@@ -71,7 +69,7 @@ clean:
 
 # target for static library
 $(STATIC): $(OBJ_STATIC)
-	$(AR) $(ARFLAGS) $@ $^
+	$(AR) $(ARFLAGS) $@ $^ -lm
 	rm -f $(OBJ_STATIC)
 	mkdir -p $(LIB_DIR)
 	@mv $@ $(LIB_DIR) || \
@@ -82,7 +80,7 @@ $(STATIC): $(OBJ_STATIC)
 
 # target for dynamic library
 $(DYNAMIC): $(OBJ_DYNAMIC)
-	$(CXX) -shared -o $@ $^
+	$(CXX) -shared -o $@ $^ -lm
 	rm -f $(OBJ_DYNAMIC)
 	mkdir -p $(LIB_DIR)
 	@mv $@ $(LIB_DIR) || \
@@ -94,7 +92,8 @@ $(DYNAMIC): $(OBJ_DYNAMIC)
 # target to compile lcptools executable
 lcptools: $(SRC) $(HDR)
 	rm -f $@
-	$(CXX) $(CXXFLAGS) -o $@ $@.c $(SRC)
+	$(CXX) $(CXXFLAGS) -I$(INCLUDE_DIR) -c $@.c -o $@.o
+	$(CXX) $(CXXFLAGS) -o $@ $@.o -L$(LIB_DIR) -llcptools -Wl,-rpath,$(LIB_DIR)
 	chmod +x $@
 
 # rule to compile .c files to .o files for static library

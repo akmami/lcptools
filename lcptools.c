@@ -14,21 +14,21 @@ void print_usage(const char *lcptools) {
 	// printf("  fqlcpt   Process the fasta file.\n");
 	printf("File extensions:\n");
 	printf("  .fasta, .fa, .fastq, .fq\n");
-};
+}
 
 int validate_extension(const char *infilename) {
     const char *valid_extensions[] = {".fasta", ".fa", ".fastq", ".fq"};
-    size_t infilename_len = strlen(infilename);
+    uint64_t infilename_len = strlen(infilename);
 
     for (int i = 0; i < 4; i++) {
-        size_t ext_len = strlen(valid_extensions[i]);
+        uint64_t ext_len = strlen(valid_extensions[i]);
         if (ext_len < infilename_len &&
             strcmp(infilename + infilename_len - ext_len, valid_extensions[i]) == 0) {
             return 0;
         }
     }
     return -1;
-};
+}
 
 int isNumber(const char *str) {
     if (str == NULL || *str == '\0') {
@@ -41,21 +41,21 @@ int isNumber(const char *str) {
 
     // Check if there was an overflow or no valid conversion
     if (errno != 0 || *end != '\0') {
-        return -1;
+        return 1;
     }
 
     return 0;
-};
+}
 
 void done(FILE *out) {
     char isDone = 0;
     fwrite(&isDone, 1, 1, out);
     fclose(out);
-};
+}
 
 int process_fasta(const char *infilename, const char *outfilename, int lcp_level, long unsigned int sequence_size) {
 
-    FILE *infile = fopen(infilename, "r");
+    FILE *infile = fopen(infilename, "rb");
     FILE *outfile = fopen(outfilename, "wb");
 
 	if (!infile || !outfile) {
@@ -101,10 +101,10 @@ int process_fasta(const char *infilename, const char *outfilename, int lcp_level
 		// Process previous chromosome before moving into new one
 		if (strlen(sequence) > 0) {
 			struct lps str;
-            init_lps(&str, sequence, strlen(sequence), 0);
+            init_lps(&str, sequence, strlen(sequence));
             lps_deepen(&str, lcp_level);
 
-            // str->write(outfile);
+            write_lps(&str, outfile);
 
 			free_lps(&str);
 
@@ -114,10 +114,10 @@ int process_fasta(const char *infilename, const char *outfilename, int lcp_level
 
 	if (strlen(sequence) > 0) {
         struct lps str;
-        init_lps(&str, sequence, strlen(sequence), 0);
+        init_lps(&str, sequence, strlen(sequence));
         lps_deepen(&str, lcp_level);
 			
-		// str->write(outfile);
+		write_lps(&str, outfile);
 
 		free_lps(&str);
 	}
@@ -129,7 +129,7 @@ int process_fasta(const char *infilename, const char *outfilename, int lcp_level
     fclose(outfile);
 
 	return 0;
-};
+}
 
 int main(int argc, char *argv[]) {
 
@@ -147,12 +147,12 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	if (!validate_extension(infilename)) {
+	if (validate_extension(infilename)) {
 		fprintf(stderr, "Error: Invalid file extension. Supported extensions are .fasta, .fa, .fastq, .fq\n");
 		return 1;
 	}
 
-	if (!isNumber(argv[3])) {
+	if (isNumber(argv[3])) {
 		fprintf(stderr, "Error: The lcp level argument must be a positive integer.\n");
 		return 1;
 	}
@@ -178,4 +178,4 @@ int main(int argc, char *argv[]) {
 	// todo: fastq
 
 	return 0;
-};
+}
