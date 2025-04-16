@@ -9,6 +9,57 @@ void log(const std::string &message) {
 	std::cout << message << std::endl;
 };
 
+void test_lps_char_constructor() {
+
+	lcp::encoding::init();
+
+	const char *test_string1 = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
+	// create an lps object
+	lcp::lps lps_obj1(test_string1, strlen(test_string1));
+
+    std::string test_string2 = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
+    lcp::lps lps_obj2(test_string2);
+	
+    // compare the resulting cores at level 1
+	assert(lps_obj1.size() == lps_obj2.size() && "Core size at level 1 should match");
+    assert(lps_obj1 == lps_obj2 && "Cores at level 1 should match");
+
+    lps_obj1.deepen();
+    lps_obj2.deepen();
+
+    // compare the resulting cores at level 1
+	assert(lps_obj1.size() == lps_obj2.size() && "Core size at level 2 should match");
+    assert(lps_obj1 == lps_obj2 && "Cores at level 2 should match");
+
+	log("...  test_lps_char_constructor passed!");
+};
+
+void test_lps_char_rev_compl_constructor() {
+
+	lcp::encoding::init();
+
+	const char *test_string1 = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
+	// create an lps object
+	lcp::lps lps_obj1(test_string1, strlen(test_string1), false, true);
+
+    std::string test_string2 = "GGGACCTGGTGACCCCAGCCCACGACAGCCAAGCGCCAGCTGAGCTCAGGTGTGAGGAGATCACAGTCCT";
+    lcp::lps lps_obj2(test_string2, false, true);
+	
+    // compare the resulting cores at level 1
+	assert(lps_obj1.size() == lps_obj2.size() && "Core size at level 1 should match");
+    assert(lps_obj1 == lps_obj2 && "Cores at level 1 should match");
+
+    lps_obj1.deepen();
+    lps_obj2.deepen();
+
+    // compare the resulting cores at level 1
+	assert(lps_obj1.size() == lps_obj2.size() && "Core size at level 2 should match");
+    assert(lps_obj1 == lps_obj2 && "Cores at level 2 should match");
+
+	log("...  test_lps_char_rev_compl_constructor passed!");
+};
+
+
 void test_lps_constructor() {
 
 	lcp::encoding::init();
@@ -258,6 +309,8 @@ int main() {
 
 	log("Running test_lps...");
 
+    test_lps_char_constructor();
+    test_lps_char_rev_compl_constructor();
 	test_lps_constructor();
 	test_lps_file_io();
 	test_lps_deepen();

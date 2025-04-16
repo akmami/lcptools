@@ -3,7 +3,7 @@
 
 #include <cstdint>
 
-typedef unsigned int ublock;
+typedef uint32_t ublock;
 typedef uint32_t ulabel;
 typedef uint32_t ubit_size;
 

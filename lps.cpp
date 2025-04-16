@@ -14,6 +14,25 @@ void reverse(std::string &str) {
 	}
 };
 
+void reverse(const char *str, int len, char **rev) {
+    if (len > 0) {
+        *rev = (char*) malloc(len*sizeof(char));
+        size_t left = 0;
+        size_t right = len - 1;
+
+        while (left < right) {
+            (*rev)[left] = str[right];
+            (*rev)[right] = str[left];
+
+            left++;
+            right--;
+        }
+        if (left == right) {
+            (*rev)[left] = str[left];
+        }
+    }
+}; 
+
 namespace lcp {
 
 	lps::lps(std::string &str, const int lcp_level, const size_t sequence_split_length, const size_t overlap_margin_length) {
@@ -96,6 +115,25 @@ namespace lcp {
 		this->cores->reserve((end - begin) / CONSTANT_FACTOR);
 
 		parse(begin, end, this->cores, 0, char_gt, char_lt, char_eq, char_index, char_size, char_rep, char_data, false);
+	};
+
+    lps::lps(const char *str, int len, bool use_map, bool rev_comp) {
+
+		this->level = 1;
+
+		this->cores = new std::vector<struct core>;
+		this->cores->reserve(len / CONSTANT_FACTOR);
+
+		if (rev_comp) {
+            char *rev = nullptr;
+			reverse(str, len, &rev);
+			parse(rev, rev+len, this->cores, 0, char_ptr_rc_gt, char_ptr_rc_lt, char_ptr_rc_eq, char_ptr_index, char_ptr_size, char_ptr_rev_rep, char_ptr_data, use_map);
+            if (rev) {
+                free(rev);
+            }
+		} else {
+			parse(str, str+len, this->cores, 0, char_ptr_gt, char_ptr_lt, char_ptr_eq, char_ptr_index, char_ptr_size, char_ptr_rep, char_ptr_data, use_map);
+		}
 	};
 
 	lps::lps(std::string &str, bool use_map, bool rev_comp) {

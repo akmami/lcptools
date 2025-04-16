@@ -94,6 +94,16 @@ namespace lcp {
 		 * transformation.
 		 *
 		 * @param str The input string to be parsed.
+         * @param len The length of the string to be parsed.
+		 * @param rev_comp Whether to apply reverse complement (default is false).
+		 */
+        lps(const char *str, int len, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP);
+
+		/**
+		 * @brief Constructs an lps object from a string, with an option to apply reverse complement
+		 * transformation.
+		 *
+		 * @param str The input string to be parsed.
 		 * @param rev_comp Whether to apply reverse complement (default is false).
 		 */
 		lps(std::string &str, bool use_map = LCP_USE_MAP, bool rev_comp = LCP_REV_COMP);

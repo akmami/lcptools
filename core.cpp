@@ -223,7 +223,7 @@ namespace lcp {
 
 		while (index < lhs.bit_size) {
 			if (lhs.bit_rep[index / UBLOCK_BIT_SIZE] != rhs.bit_rep[index / UBLOCK_BIT_SIZE]) {
-				return lhs.bit_size > rhs.bit_size;
+				return lhs.bit_size >= rhs.bit_size;
 			}
 
 			index += UBLOCK_BIT_SIZE;
@@ -235,14 +235,14 @@ namespace lcp {
 	bool operator<=(const struct core &lhs, const struct core &rhs) {
 
 		if (lhs.bit_size != rhs.bit_size) {
-			return lhs.bit_size < rhs.bit_size;
+			return lhs.bit_size <= rhs.bit_size;
 		}
 
 		ubit_size index = 0;
 
 		while (index < lhs.bit_size) {
 			if (lhs.bit_rep[index / UBLOCK_BIT_SIZE] != rhs.bit_rep[index / UBLOCK_BIT_SIZE]) {
-				return lhs.bit_size < rhs.bit_size;
+				return lhs.bit_size <= rhs.bit_size;
 			}
 
 			index += UBLOCK_BIT_SIZE;

@@ -10,6 +10,21 @@ namespace lcp {
 	// MARK: Properties
 
 	/**
+	 * @brief Computes the indices of two char pointers relative to the beginning of the string.
+	 *
+	 * Calculates the distance of two char pointers (`it1` and `it2`) from the starting char pointer (`begin`).
+	 * Returns the indices as a pair.
+	 *
+	 * @param begin The char pointer pointing to the beginning of the string.
+	 * @param it1 The first pointer whose index is to be computed.
+	 * @param it2 The second pointer whose index is to be computed.
+	 * @return A pair of indices representing the positions of `it1` and `it2` relative to `begin`.
+	 */
+	inline std::pair<size_t, size_t> char_ptr_index(const char *begin, const char *it1, const char *it2) {
+		return std::make_pair(std::distance(begin, it1), std::distance(begin, it2));
+	};
+
+	/**
 	 * @brief Computes the indices of two string iterators relative to the beginning of the string.
 	 *
 	 * Calculates the distance of two iterators (`it1` and `it2`) from the starting iterator (`begin`).
@@ -44,6 +59,18 @@ namespace lcp {
 		return std::make_pair(std::distance(begin, it1), std::distance(begin, it2));
 	};
 
+    /**
+	 * Gets the bit length of the character encoding that is given in char pointer.
+	 *
+	 * @param it A char pointer pointing to the character. It doesn't matter which character is given.
+	 *          It will return alphabet_bit_size value.
+	 * @return A bit length of the encoding of the given character (i.e. alphabet_bit_size)
+	 */
+	inline uint64_t char_ptr_size(const char *it) {
+		(void)it;
+		return alphabet_bit_size;
+	};
+
 	/**
 	 * Gets the bit length of the character encoding that is given in string iterator.
 	 *
@@ -66,6 +93,18 @@ namespace lcp {
 		return it->bit_size;
 	};
 
+    /**
+	 * Gets the character encoding from the alphabet.
+	 *
+	 * @param it A char pointer pointing to the character.
+	 * @return An encoding of the character.
+	 */
+	inline ublock *char_ptr_rep(const char *it) {
+		thread_local static ublock temp;
+		temp = static_cast<ublock>(alphabet[static_cast<unsigned char>(*it)]);
+		return &temp;
+	};
+
 	/**
 	 * Gets the character encoding from the alphabet.
 	 *
@@ -75,6 +114,18 @@ namespace lcp {
 	inline ublock *char_rep(std::string::iterator it) {
 		thread_local static ublock temp;
 		temp = static_cast<ublock>(alphabet[static_cast<unsigned char>(*it)]);
+		return &temp;
+	};
+
+	/**
+	 * Gets the character encoding from the reverse complement alphabet.
+	 *
+	 * @param it A char pointer pointing to the character.
+	 * @return An encoding of the character.
+	 */
+	inline ublock *char_ptr_rev_rep(char *it) {
+		thread_local static ublock temp;
+		temp = static_cast<ublock>(rc_alphabet[static_cast<unsigned char>(*it)]);
 		return &temp;
 	};
 
@@ -98,6 +149,28 @@ namespace lcp {
 	 */
 	inline ublock *core_rep(std::vector<struct core>::iterator it) {
 		return it->bit_rep;
+	};
+
+	/**
+	 * @brief Extracts character data from a range of char pointers and returns it as a dynamically allocated array.
+	 *
+	 * Copies characters from the range specified by the `begin` and `end` pointers into a newly allocated `char` array.
+	 * The caller is responsible for deleting the returned array.
+	 *
+	 * @param begin A char pointer pointing to the start of the string range.
+	 * @param end A char pointer pointing to the end of the string range.
+	 * @return A pointer to a dynamically allocated array containing the characters in the specified range.
+	 */
+	inline ulabel char_ptr_data(const char *begin, const char *end) {
+		thread_local static int double_shift = 2 * alphabet_bit_size;
+		thread_local static int triple_shift = 3 * alphabet_bit_size;
+		thread_local static ulabel data;
+		data = 0;
+		data |= ((std::distance(begin,end)-2) << triple_shift);
+		data |= (alphabet[(*(begin)) & 0xDF] << double_shift);
+		data |= (alphabet[(*(end-2)) & 0xDF] << alphabet_bit_size);
+		data |= (alphabet[(*(end-1)) & 0xDF]);
+		return data;
 	};
 
 	/**
@@ -147,6 +220,19 @@ namespace lcp {
 	/**
 	 * Compares two characters from a string using a custom alphabet mapping.
 	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is greater than the character
+	 *         pointed to by it2 based on the modularity of the alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_gt(const char *it1, const char *it2) {
+		return (alphabet[static_cast<unsigned char>(*it1)]) > (alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping.
+	 *
 	 * @param it1 An iterator pointing to the first character.
 	 * @param it2 An iterator pointing to the second character.
 	 * @return true if the character pointed to by it1 is greater than the character
@@ -160,6 +246,19 @@ namespace lcp {
 	/**
 	 * Compares two characters from a string using a custom alphabet mapping.
 	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is less than the character
+	 *         pointed to by it2 based on the modularity of the alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_lt(const char *it1, const char *it2) {
+		return (alphabet[static_cast<unsigned char>(*it1)]) < (alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping.
+	 *
 	 * @param it1 An iterator pointing to the first character.
 	 * @param it2 An iterator pointing to the second character.
 	 * @return true if the character pointed to by it1 is less than the character
@@ -168,6 +267,19 @@ namespace lcp {
 	 */
 	inline bool char_lt(const std::string::iterator it1, const std::string::iterator it2) {
 		return (alphabet[static_cast<unsigned char>(*it1)]) < (alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping.
+	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is equal to the character
+	 *         pointed to by it2 based on the modularity of the alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_eq(const char *it1, const char *it2) {
+		return (alphabet[static_cast<unsigned char>(*it1)]) == (alphabet[static_cast<unsigned char>(*it2)]);
 	};
 
 	/**
@@ -223,6 +335,19 @@ namespace lcp {
 	/**
 	 * Compares two characters from a string using a custom alphabet mapping (reverse complement).
 	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is greater than the character
+	 *         pointed to by it2 based on the modularity of the reverse complement alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_rc_gt(const char *it1, const char *it2) {
+		return (rc_alphabet[static_cast<unsigned char>(*it1)]) > (rc_alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+	 *
 	 * @param it1 An iterator pointing to the first character.
 	 * @param it2 An iterator pointing to the second character.
 	 * @return true if the character pointed to by it1 is greater than the character
@@ -236,6 +361,19 @@ namespace lcp {
 	/**
 	 * Compares two characters from a string using a custom alphabet mapping (reverse complement).
 	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is less than the character
+	 *         pointed to by it2 based on the modularity of the reverse complement alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_rc_lt(const char *it1, const char *it2) {
+		return (rc_alphabet[static_cast<unsigned char>(*it1)]) < (rc_alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+	 *
 	 * @param it1 An iterator pointing to the first character.
 	 * @param it2 An iterator pointing to the second character.
 	 * @return true if the character pointed to by it1 is less than the character
@@ -244,6 +382,19 @@ namespace lcp {
 	 */
 	inline bool char_rc_lt(const std::string::iterator it1, const std::string::iterator it2) {
 		return (rc_alphabet[static_cast<unsigned char>(*it1)]) < (rc_alphabet[static_cast<unsigned char>(*it2)]);
+	};
+
+	/**
+	 * Compares two characters from a string using a custom alphabet mapping (reverse complement).
+	 *
+	 * @param it1 A char pointer pointing to the first character.
+	 * @param it2 A char pointer pointing to the second character.
+	 * @return true if the character pointed to by it1 is equal to the character
+	 *         pointed to by it2 based on the modularity of the reverse complement alphabet mapping;
+	 *         false otherwise.
+	 */
+	inline bool char_ptr_rc_eq(const char *it1, const char *it2) {
+		return (rc_alphabet[static_cast<unsigned char>(*it1)]) == (rc_alphabet[static_cast<unsigned char>(*it2)]);
 	};
 
 	/**
